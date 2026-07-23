@@ -38,6 +38,7 @@ const required = [
   "web/package.json",
   "skills/LICENSE",
   "skills/.codex-plugin/plugin.json",
+  ".agents/plugins/marketplace.json",
 ];
 if (!allowUninitializedServer) required.push("server/LICENSE", "server/LICENSING.md");
 for (const path of required) {
@@ -74,6 +75,14 @@ if (web.repository?.directory !== "web") failures.push("Web repository directory
 const skills = JSON.parse(readFileSync(resolve(root, "skills/.codex-plugin/plugin.json"), "utf8"));
 for (const value of [skills.homepage, skills.repository, skills.interface?.websiteURL]) {
   if (value !== "https://github.com/xfzen/apimind") failures.push("Skills repository metadata is invalid");
+}
+
+const marketplace = JSON.parse(
+  readFileSync(resolve(root, ".agents/plugins/marketplace.json"), "utf8"),
+);
+const apiMindPlugin = marketplace.plugins?.find((plugin) => plugin.name === "apimind");
+if (apiMindPlugin?.source?.source !== "local" || apiMindPlugin?.source?.path !== "./skills") {
+  failures.push("ApiMind marketplace must expose the local skills plugin");
 }
 
 const licensing = readFileSync(resolve(root, "LICENSING.md"), "utf8");

@@ -96,6 +96,12 @@ the runtime images. Open `http://127.0.0.1:4000`, register or sign in, and
 create a minimal workspace, project, and interface. The development Server
 port is `127.0.0.1:18889`.
 
+After `cp .env.example .env`, local Compose provisions the development account
+`admin@example.invalid` with the initial password `change-me-local-only`. These
+values come from the local `.env` file and are for development only; change
+them before startup and never commit `.env`. You may also register a new
+account.
+
 See the [English Quick Start](docs/quick-start.en.md) for the complete flow.
 
 ## Documentation

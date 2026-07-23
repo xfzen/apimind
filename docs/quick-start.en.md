@@ -32,6 +32,16 @@ make bootstrap
 If the repository was cloned without submodules, `make bootstrap` checks out
 the exact Server commit pinned by the workspace.
 
+The local development account in `.env.example` is:
+
+| Setting | Default example value |
+| --- | --- |
+| Username | `admin@example.invalid` |
+| Password | `change-me-local-only` |
+
+Change these values in `.env` before the first startup. `.env` is ignored by
+Git; never commit real credentials.
+
 ## 2. Start the development stack
 
 ```bash
@@ -61,7 +71,8 @@ make status
 
 ## 3. Browser verification
 
-Open `http://127.0.0.1:4000`, register or sign in, then:
+Open `http://127.0.0.1:4000`, sign in with the account from `.env` or register a
+new account, then:
 
 1. create a workspace;
 2. create a project;

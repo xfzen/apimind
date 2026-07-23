@@ -73,6 +73,10 @@ make dev
 
 Server 和 Web 均在宿主机编译，Docker 只负责运行 MongoDB 和打包运行时镜像。打开 `http://127.0.0.1:4000`，完成注册或登录，并创建最小工作区、项目和接口。Server 开发端口是 `127.0.0.1:18889`。
 
+`cp .env.example .env` 后，本地 Compose 会预置开发账号
+`admin@example.invalid`，初始密码为 `change-me-local-only`。这些值来自本地
+`.env`，仅用于开发；启动前应修改，且不要提交 `.env`。也可以直接注册新账号。
+
 完整步骤见[中文 Quick Start](docs/quick-start.md)。
 
 ## 文档列表

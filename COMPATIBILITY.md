@@ -5,7 +5,7 @@ Distribution: `0.1.0`
 | Component | Source | Version |
 | --- | --- | --- |
 | Web | `web/` | `0.1.0` |
-| Server | `xfzen/apimind-server@691db22ca55c555156736e65d5322d327a2030ba` | `0.1.0` |
+| Server | `xfzen/apimind-server@842e93e885bbea2129f6c8db78569b7f9ff15e11` | `0.1.0` |
 | Skills | `skills/` | `0.1.0` |
 
 ## Contracts and storage
