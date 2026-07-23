@@ -1,0 +1,4 @@
+[submodule "server"]
+	path = server
+	url = https://github.com/xfzen/apimind-server.git
+	shallow = true

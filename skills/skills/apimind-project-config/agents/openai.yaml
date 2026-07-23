@@ -1,0 +1,4 @@
+interface:
+  display_name: "ApiMind Project Config"
+  short_description: "Manage ApiMind repository setup and project mapping"
+  default_prompt: "Use $apimind-project-config to initialize or update AGENTS.md, CLAUDE.md, and apimind-contract.yaml for this repository."

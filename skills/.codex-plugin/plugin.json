@@ -1,0 +1,40 @@
+{
+  "name": "apimind",
+  "version": "0.1.0",
+  "description": "ApiMind project configuration and API contract maintenance skills for coding agents.",
+  "author": {
+    "name": "ApiMind"
+  },
+  "homepage": "https://github.com/xfzen/apimind",
+  "repository": "https://github.com/xfzen/apimind",
+  "license": "Apache-2.0",
+  "keywords": [
+    "apimind",
+    "api-documentation",
+    "mcp",
+    "contracts",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ApiMind",
+    "shortDescription": "Project setup and API contract workflows for ApiMind",
+    "longDescription": "Use ApiMind skills to configure repository-local ApiMind project bindings and safely review or update ApiMind API contracts through MCP.",
+    "developerName": "ApiMind",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Configure this repository for ApiMind.",
+      "Review or update this API contract in ApiMind."
+    ],
+    "websiteURL": "https://github.com/xfzen/apimind",
+    "privacyPolicyURL": "https://github.com/xfzen/apimind",
+    "termsOfServiceURL": "https://github.com/xfzen/apimind",
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

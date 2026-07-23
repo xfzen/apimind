@@ -1,0 +1,32 @@
+import ReactIs from '../../node_modules/react-is/cjs/react-is.production.min.js';
+
+export const AsyncMode = ReactIs.AsyncMode;
+export const ConcurrentMode = ReactIs.ConcurrentMode;
+export const ContextConsumer = ReactIs.ContextConsumer;
+export const ContextProvider = ReactIs.ContextProvider;
+export const Element = ReactIs.Element;
+export const ForwardRef = ReactIs.ForwardRef;
+export const Fragment = ReactIs.Fragment;
+export const Lazy = ReactIs.Lazy;
+export const Memo = ReactIs.Memo;
+export const Portal = ReactIs.Portal;
+export const Profiler = ReactIs.Profiler;
+export const StrictMode = ReactIs.StrictMode;
+export const Suspense = ReactIs.Suspense;
+export const isAsyncMode = ReactIs.isAsyncMode;
+export const isConcurrentMode = ReactIs.isConcurrentMode;
+export const isContextConsumer = ReactIs.isContextConsumer;
+export const isContextProvider = ReactIs.isContextProvider;
+export const isElement = ReactIs.isElement;
+export const isForwardRef = ReactIs.isForwardRef;
+export const isFragment = ReactIs.isFragment;
+export const isLazy = ReactIs.isLazy;
+export const isMemo = ReactIs.isMemo;
+export const isPortal = ReactIs.isPortal;
+export const isProfiler = ReactIs.isProfiler;
+export const isStrictMode = ReactIs.isStrictMode;
+export const isSuspense = ReactIs.isSuspense;
+export const isValidElementType = ReactIs.isValidElementType;
+export const typeOf = ReactIs.typeOf;
+
+export default ReactIs;

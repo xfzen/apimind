@@ -1,0 +1,14 @@
+$color-grey:#979DA7;
+
+.search-wrapper{
+  cursor: auto;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  .search-input{
+    width: 2rem;
+    height: 32px;
+  }
+  .srch-icon{
+  }
+}

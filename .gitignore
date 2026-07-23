@@ -1,0 +1,8 @@
+/.worktrees/
+/.repo-split/
+/.artifacts/
+/.env
+/yapi
+/tests/e2e/node_modules/
+/tests/e2e/.npm-cache/
+/tests/e2e/test-results/

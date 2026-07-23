@@ -1,0 +1,21 @@
+@use '../../styles/mixin' as *;
+
+.m-subnav {
+  margin-bottom: $layout-page-gap;
+  background-color: #fff;
+  box-shadow: 0 0 .04rem rgba(0, 0, 0, .08);
+  font-size: .14rem;
+  border: none;
+  .ant-menu {
+    font-size: unset;
+   }
+  .m-subnav-menu {
+    border: none;
+    padding: 0 $layout-page-gap;
+    .item {
+      line-height: $layout-subnav-height;
+      padding: 0 .28rem;
+      font-weight: normal;
+    }
+  }
+}

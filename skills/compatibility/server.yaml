@@ -1,0 +1,11 @@
+server: 0.1.0
+contracts:
+  http_api: yapi-http-v1
+  mcp: apimind-mcp-v1
+required_tools:
+  - list_workspaces
+  - get_project
+  - list_cats
+  - get_interface
+  - upsert_cat
+  - upsert_interface

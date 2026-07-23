@@ -1,0 +1,17 @@
+Name: apimind
+Host: 0.0.0.0
+Port: 8888
+Mode: dev
+Mongo:
+  URI: mongodb://mongo:27017
+  Database: yapi
+Yapi:
+  RegisterEnabled: true
+  LDAPEnabled: false
+  ScriptEnable: false
+  SequenceStep: 1
+  DefaultUserEnabled: false
+MCP:
+  Enabled: true
+  AuthEnabled: false
+  Path: /mcp

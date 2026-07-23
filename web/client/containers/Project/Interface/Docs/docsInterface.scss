@@ -1,0 +1,242 @@
+@use '../../../../styles/mixin' as *;
+
+body.apimind-docs-fixed-scroll {
+  overflow: hidden;
+
+  .router-main {
+    height: 100% !important;
+    min-height: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+
+    &::after {
+      display: none;
+      height: 0;
+    }
+  }
+
+  .footer-wrapper {
+    display: none;
+  }
+}
+
+.doc-project-menu {
+  position: fixed;
+  top: calc(#{$layout-header-height} + #{$layout-subnav-height} + #{$layout-page-gap} - 1px);
+  bottom: $layout-page-gap;
+  display: flex;
+  flex-direction: column;
+  width: $layout-side-width;
+  max-height: none;
+  overflow: visible;
+
+  .doc-side-navbar,
+  .doc-side-searchbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 6px;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fff;
+  }
+
+  .doc-side-navbar {
+    justify-content: space-between;
+  }
+
+  .doc-side-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+
+  .doc-nav-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+
+    &:hover {
+      background: #f5f7fa;
+      color: #1890ff;
+    }
+  }
+
+  .doc-side-title {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+    color: #333;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 40px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .doc-side-searchbar {
+    gap: 6px;
+  }
+
+  .doc-side-search-input {
+    flex: 1;
+
+    &.ant-input {
+      height: 30px;
+      border: 0;
+      border-bottom: 2px solid #1890ff;
+      border-radius: 0;
+      box-shadow: none;
+      padding-left: 4px;
+
+      &:focus {
+        box-shadow: none;
+      }
+    }
+  }
+
+  .doc-project-title {
+    overflow: visible;
+    padding-right: 0;
+
+    .btns {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      position: absolute;
+      top: 50%;
+      right: 2px;
+      min-width: 72px;
+      width: auto;
+      height: 25px;
+      padding: 0 2px;
+      border-radius: 4px;
+      background: transparent;
+      box-shadow: none;
+      transform: translateY(-50%);
+      z-index: 20;
+    }
+
+    .interface-delete-icon {
+      flex: 0 0 auto;
+    }
+  }
+
+  .doc-project-group-title {
+    .doc-tree-title-text {
+      font-weight: 500;
+    }
+  }
+
+  .doc-tree-title-text {
+    min-width: 0;
+    margin-left: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tree-wrappper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding-top: 8px;
+  }
+
+  .ant-tree-node-content-wrapper {
+    overflow: visible;
+  }
+
+  .container-title {
+    overflow: visible;
+
+    &:hover .interface-item {
+      max-width: calc(100% - 76px);
+    }
+  }
+
+  .interface-item {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .doc-side-toc {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px 8px 16px;
+  }
+
+  .doc-side-toc-item {
+    display: block;
+    width: 100%;
+    border: 0;
+    padding: 7px 8px;
+    border-radius: 4px;
+    background: transparent;
+    color: #555;
+    text-align: left;
+    font-size: 13px;
+    line-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+      color: #1890ff;
+      background: #f5f7fa;
+    }
+
+    &.active {
+      color: #1890ff;
+      font-weight: 600;
+      background: #e8f4ff;
+    }
+
+    &.level-2 {
+      padding-left: 20px;
+    }
+
+    &.level-3 {
+      padding-left: 32px;
+    }
+  }
+
+  .doc-side-empty {
+    padding: 24px 16px;
+    color: #999;
+    font-size: 13px;
+    text-align: center;
+  }
+}
+
+.doc-project-content {
+  height: $layout-project-content-height;
+  min-height: 0;
+  overflow: hidden;
+
+  .doc-project-empty {
+    padding: 24px 32px;
+  }
+}
+
+.doc-project-empty {
+  text-align: center;
+}

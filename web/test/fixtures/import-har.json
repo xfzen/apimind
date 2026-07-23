@@ -1,0 +1,35 @@
+{
+  "log": {
+    "version": "1.2",
+    "creator": {
+      "name": "codex",
+      "version": "1.0"
+    },
+    "entries": [
+      {
+        "request": {
+          "method": "GET",
+          "url": "http://example.com/har/ping?ok=1",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "queryString": [
+            {
+              "name": "ok",
+              "value": "1"
+            }
+          ]
+        },
+        "response": {
+          "content": {
+            "mimeType": "application/json",
+            "text": "{\"ok\":true}"
+          }
+        }
+      }
+    ]
+  }
+}

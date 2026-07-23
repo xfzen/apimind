@@ -1,0 +1,409 @@
+@use '../../../styles/mixin' as *;
+
+.left-menu {
+  min-height: $layout-project-content-height;
+  // background: #FFF;
+  // .item-all-interface {
+  //   background-color: red;
+  // }
+  // .ant-tabs-bar{
+  //     border-bottom: none;
+  //     margin-bottom: 0
+  // }
+  .ant-tag {
+    margin-right: 0.16rem;
+  }
+  .ant-tabs-nav {
+    width: 100%;
+    background-color: $color-bg-gray;
+  }
+  .ant-tabs-tab {
+    min-width: 49.4%;
+  }
+  .ant-tabs.ant-tabs-card > .ant-tabs-bar .ant-tabs-tab {
+    height: 33px;
+    background: #fff;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+  .ant-tabs.ant-tabs-card > .ant-tabs-bar .ant-tabs-tab:nth-of-type(2) {
+    border-left: 0;
+  }
+  // .ant-tabs.ant-tabs-card > .ant-tabs-bar .ant-tabs-tab:last-of-type {
+  //     border-right: 0;
+  // }
+  .ant-tabs.ant-tabs-card > .ant-tabs-bar .ant-tabs-tab-active {
+    height: 34px;
+    background-color: #ddd;
+    // color: $color-white;
+  }
+
+  .ant-tabs.ant-tabs-card > .ant-tabs-bar .ant-tabs-nav-container {
+    height: 34px;
+  }
+
+  .ant-tabs.ant-tabs-card > .ant-tabs-bar {
+    text-align: center;
+    // background: #ececec;
+  }
+
+  .ant-tabs-nav-wrap {
+    height: 34px;
+    line-height: 28px;
+    // border-bottom: 1px solid #d9d9d9;
+  }
+  .ant-input {
+    width: 100%;
+  }
+  .interface-filter {
+    padding: 8px 12px;
+    padding-right: 110px;
+    line-height: 32px;
+    background-color: #ddd;
+    position: relative;
+  }
+  .btn-filter {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .ant-tree li .ant-tree-node-content-wrapper {
+    width: calc(100% - 22px);
+    position: relative;
+    .container-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btns {
+      background-color: #eef7fe;
+      position: absolute;
+      top: 50%;
+      right: 0;
+      transform: translateY(-60%);
+      transition: all 0.2s;
+    }
+  }
+  .interface-list {
+    .ant-tree-treenode {
+      width: 100%;
+    }
+
+    .ant-tree-node-content-wrapper {
+      flex: 1;
+      min-width: 0;
+      width: auto;
+      position: relative;
+      overflow: visible;
+
+      .container-title {
+        overflow: visible;
+      }
+    }
+
+    .ant-tree-title {
+      display: block;
+      width: 100%;
+    }
+
+    .container-title {
+      position: relative;
+      width: 100%;
+      min-height: 25px;
+      line-height: 25px;
+      overflow: visible;
+      white-space: nowrap;
+
+      .btns {
+        background: transparent;
+        border-radius: 4px;
+        box-shadow: none;
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+        position: absolute;
+        top: 50%;
+        right: 2px;
+        min-width: 72px;
+        width: auto;
+        height: 25px;
+        transform: translateY(-50%);
+        transition: all 0.2s;
+        z-index: 20;
+
+        .interface-delete-icon {
+          float: none;
+          display: none;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+
+      .ant-tree-treenode:hover & .btns,
+      &:hover .btns {
+        display: flex;
+      }
+
+      .ant-tree-treenode:hover & .interface-item,
+      &:hover .interface-item {
+        max-width: calc(100% - 76px);
+      }
+
+      &:hover .interface-delete-icon,
+      .ant-tree-treenode:hover & .interface-delete-icon {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .ant-tree-node-selected .container-title .btns {
+      background: transparent;
+    }
+  }
+  .ant-tree li .ant-tree-node-selected {
+    .btns {
+      background-color: #d5ebfc;
+      transition: all 0.2s;
+    }
+  }
+
+  .interface-delete-icon {
+    position: relative;
+    right: 0;
+    float: right;
+    line-height: 25px;
+    width: 24px;
+    font-weight: bold;
+  }
+  .anticon-ellipsis {
+    transform: rotate(90deg);
+  }
+  .interface-delete-icon:hover {
+    color: #2395f1;
+  }
+
+  .interface-list {
+    //max-height: 600px;
+    //overflow-y: scroll;
+    .cat_switch_hidden {
+      .ant-tree-switcher {
+        visibility: hidden;
+      }
+    }
+
+    a {
+      color: rgba(13, 27, 62, 0.65);
+    }
+
+    .btn-http {
+      height: 23px;
+      font-size: 10px;
+      margin-right: 7px;
+      padding: 0 5px;
+      width: auto !important;
+    }
+    .interface-item {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      top: 0px;
+    }
+    .interface-item-nav {
+      line-height: 25px;
+    }
+    .interface-list {
+      .cat_switch_hidden {
+        .ant-tree-switcher {
+          visibility: hidden;
+        }
+      }
+
+      .btn-http {
+        height: 23px;
+        font-size: 10px;
+        margin-right: 7px;
+        padding: 0 5px;
+        width: auto !important;
+      }
+      .interface-item {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        top: 0px;
+        line-height: 100%;
+        text-decoration: none;
+      }
+      .interface-item-nav {
+        line-height: 25px;
+      }
+    }
+  }
+}
+
+.right-content {
+  min-height: $layout-project-content-height;
+  background: #fff;
+  .caseContainer {
+    table {
+      border-radius: 4px;
+      // border-collapse: collapse;
+    }
+    .ant-table-small .ant-table-thead > tr > th {
+      text-align: left;
+      background-color: #f8f8f8;
+    }
+    tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+  }
+  .interface-content {
+    > .ant-tabs {
+      padding: 0 24px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .ant-tabs-nav {
+      width: 100%;
+      // background-color: #ddd;
+      // color: $color-white;
+    }
+
+    .ant-tabs > .ant-tabs-nav {
+      min-height: 40px;
+      margin-bottom: 0;
+    }
+
+    .ant-tabs-nav-wrap {
+      text-align: left;
+      min-height: 40px;
+    }
+
+    .ant-tabs-tab {
+      height: 40px;
+      padding: 0 18px;
+      font-size: 15px;
+      line-height: 40px;
+      margin: 0 8px 0 0;
+    }
+
+    .ant-tabs-tab-btn {
+      line-height: 40px;
+    }
+  }
+  .interface-title {
+    clear: both;
+    font-weight: normal;
+    margin-top: 0.48rem;
+    margin-bottom: 0.16rem;
+    border-left: 3px solid #2395f1;
+    padding-left: 8px;
+    .tooltip {
+      font-size: 13px;
+      font-weight: normal;
+    }
+  }
+  .container-radiogroup {
+    text-align: center;
+    margin-bottom: 0.16rem;
+  }
+  .panel-sub {
+    background: rgba(236, 238, 241, 0.67);
+    padding: 0.1rem;
+    .bulk-import {
+      color: #2395f1;
+      text-align: right;
+      margin-right: 16px;
+      cursor: pointer;
+    }
+  }
+  .ant-radio-button-wrapper-checked {
+    color: #fff;
+    background-color: #2395f1;
+    &:hover {
+      color: #ddd;
+    }
+  }
+  .href {
+    color: #2395f1;
+    cursor: pointer;
+  }
+  .remark-editor {
+    background-color: #fff;
+  }
+  .remark {
+    table {
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      font-weight: normal;
+      background-color: #f8f8f8;
+      text-indent: 0.4em;
+    }
+    tr {
+      text-indent: 0.4em;
+    }
+    th,
+    td {
+      border: 1px solid #e9e9e9;
+    }
+    tr:nth-child(odd) {
+      background: #f8f8f8;
+    }
+    tr:nth-child(even) {
+      background: #fff;
+    }
+  }
+}
+.addcatmodal {
+  .ant-modal-body {
+    padding: 10px 0px;
+    .ant-form-item {
+      margin-bottom: 10px;
+    }
+    .catModalfoot {
+      border-top: 1px solid #e9e9e9;
+      margin-bottom: 0px;
+      padding-top: 10px;
+      margin-top: 0px;
+      .ant-form-item-control-wrapper {
+        margin-left: 0px;
+      }
+      .ant-form-item-control {
+        float: right;
+        margin-right: 10px;
+      }
+    }
+  }
+}
+
+.common-setting-modal{
+  
+  .setting-item{
+    margin: 10px;
+    line-height: 35px;
+    .col-item{
+      padding:5px;
+    }
+  }
+
+  .case-script{
+    min-height: 200px;
+    margin: 10px;
+    width: 98%;
+  }
+
+  .insert-code{
+    padding-top: 45px;
+  }
+}

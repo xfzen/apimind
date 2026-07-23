@@ -1,0 +1,4 @@
+interface:
+  display_name: "ApiMind Contract"
+  short_description: "Maintain ApiMind API contracts safely"
+  default_prompt: "Use $apimind-contract to review or update ApiMind API documentation safely."

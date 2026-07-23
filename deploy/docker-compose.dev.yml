@@ -1,0 +1,13 @@
+services:
+  server:
+    ports:
+      - "127.0.0.1:${APIMIND_SERVER_PORT:-18889}:8888"
+    environment:
+      APIMIND_MCP_AUTH_ENABLED: "false"
+    configs:
+      - source: server_dev_config
+        target: /app/etc/apimind.yaml
+
+configs:
+  server_dev_config:
+    file: ./server.dev.yaml

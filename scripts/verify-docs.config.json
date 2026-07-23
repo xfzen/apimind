@@ -1,0 +1,125 @@
+{
+  "root": "..",
+  "requiredFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/quick-start.md",
+    "docs/quick-start.en.md",
+    "docs/architecture.md",
+    "docs/architecture.en.md",
+    "docs/components.md",
+    "docs/components.en.md",
+    "docs/capabilities.md",
+    "docs/capabilities.en.md",
+    "docs/ecosystem.md",
+    "docs/ecosystem.en.md",
+    "docs/roadmap.md",
+    "docs/roadmap.en.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE",
+    "LICENSING.md",
+    "COMPONENTS.md",
+    "COMPATIBILITY.md",
+    "compatibility.yaml",
+    "Makefile",
+    ".gitmodules"
+  ],
+  "requiredSections": {
+    "README.md": ["## 项目介绍", "## Quick Start", "## 文档列表"],
+    "README.en.md": ["## Overview", "## Quick Start", "## Documentation"]
+  },
+  "languageLinks": [
+    ["README.md", "README.en.md"],
+    ["README.en.md", "README.md"],
+    ["docs/README.md", "README.en.md"],
+    ["docs/README.en.md", "README.md"],
+    ["docs/quick-start.md", "quick-start.en.md"],
+    ["docs/quick-start.en.md", "quick-start.md"],
+    ["docs/architecture.md", "architecture.en.md"],
+    ["docs/architecture.en.md", "architecture.md"],
+    ["docs/components.md", "components.en.md"],
+    ["docs/components.en.md", "components.md"],
+    ["docs/capabilities.md", "capabilities.en.md"],
+    ["docs/capabilities.en.md", "capabilities.md"],
+    ["docs/ecosystem.md", "ecosystem.en.md"],
+    ["docs/ecosystem.en.md", "ecosystem.md"],
+    ["docs/roadmap.md", "roadmap.en.md"],
+    ["docs/roadmap.en.md", "roadmap.md"]
+  ],
+  "sharedFacts": [
+    {
+      "value": "Go 1.25.12",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "Node.js 22",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "npm 10",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "MongoDB 7.0.37",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "127.0.0.1:18889",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "127.0.0.1:4000",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "https://github.com/xfzen/apimind",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "make dev",
+      "files": ["README.md", "README.en.md"]
+    }
+  ],
+  "linkFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/quick-start.md",
+    "docs/quick-start.en.md",
+    "docs/architecture.md",
+    "docs/architecture.en.md",
+    "docs/components.md",
+    "docs/components.en.md",
+    "docs/capabilities.md",
+    "docs/capabilities.en.md",
+    "docs/ecosystem.md",
+    "docs/ecosystem.en.md",
+    "docs/roadmap.md",
+    "docs/roadmap.en.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md"
+  ],
+  "surfaceFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/quick-start.md",
+    "docs/quick-start.en.md",
+    "docs/architecture.md",
+    "docs/architecture.en.md",
+    "docs/components.md",
+    "docs/components.en.md",
+    "docs/capabilities.md",
+    "docs/capabilities.en.md",
+    "docs/ecosystem.md",
+    "docs/ecosystem.en.md",
+    "docs/roadmap.md",
+    "docs/roadmap.en.md"
+  ],
+  "forbiddenTerms": ["apimind-dev"]
+}

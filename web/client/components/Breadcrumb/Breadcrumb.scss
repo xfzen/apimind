@@ -1,0 +1,33 @@
+@use '../../styles/mixin' as *;
+
+.breadcrumb-container {
+  .ant-breadcrumb {
+    font-size: 16px;
+    float: left;
+    color: #fff;
+    padding-left: 16px;
+    line-height: unset;
+    height: .56rem;
+    display: flex;
+    align-items: center;
+  }
+  .ant-breadcrumb a,
+  .ant-breadcrumb li,
+  .ant-breadcrumb-link {
+    color: #fff;
+    &:hover {
+      color: $color-blue
+    }
+  }
+  .ant-breadcrumb > span:last-child,
+  .ant-breadcrumb li:last-child,
+  .ant-breadcrumb li:last-child .ant-breadcrumb-link {
+    color: #fff;
+    font-weight: normal;
+  }
+  .ant-breadcrumb-separator,
+  .ant-breadcrumb .ant-breadcrumb-separator {
+    color: #fff;
+    font-weight: normal;
+  }
+}

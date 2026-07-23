@@ -1,0 +1,58 @@
+{
+  "root": "..",
+  "requiredFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md"
+  ],
+  "requiredSections": {
+    "README.md": ["## 项目介绍", "## Quick Start", "## 文档列表"],
+    "README.en.md": ["## Overview", "## Quick Start", "## Documentation"]
+  },
+  "languageLinks": [
+    ["README.md", "README.en.md"],
+    ["README.en.md", "README.md"],
+    ["docs/README.md", "README.en.md"],
+    ["docs/README.en.md", "README.md"]
+  ],
+  "sharedFacts": [
+    {
+      "value": "Node.js 22",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "npm 10",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "127.0.0.1:4000",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "127.0.0.1:8888",
+      "files": ["README.md", "README.en.md"]
+    },
+    {
+      "value": "Apache-2.0",
+      "files": ["README.md", "README.en.md"]
+    }
+  ],
+  "linkFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/changes-from-yapi.md",
+    "docs/documents/redev.md",
+    "docs/devops/index.md"
+  ],
+  "surfaceFiles": [
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/README.en.md",
+    "docs/changes-from-yapi.md"
+  ],
+  "forbiddenTerms": ["apimind-dev", "PC App"]
+}

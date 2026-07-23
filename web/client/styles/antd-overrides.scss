@@ -1,0 +1,141 @@
+@use './mixin' as *;
+
+.ant-layout,
+.ant-layout-content {
+  background: #eceef1;
+}
+
+.ant-modal-confirm .ant-modal-confirm-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ant-table-wrapper .ant-table {
+  font-size: 13px;
+}
+
+/* Antd 6 compatibility for YApi's legacy antd 3/4 class-based layouts. */
+.ant-layout-sider {
+  background: transparent;
+}
+
+.anticon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+}
+
+.ant-tabs {
+  > .ant-tabs-nav {
+    margin-bottom: 0;
+
+    &::before {
+      border-bottom-color: transparent;
+    }
+
+    .ant-tabs-nav-wrap {
+      min-height: 34px;
+    }
+  }
+
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.left-menu {
+  min-height: $layout-project-content-height;
+  background: #fff;
+
+  .ant-tabs > .ant-tabs-nav {
+    width: 100%;
+    background-color: #eee;
+  }
+
+  .ant-tabs-nav-list {
+    width: 100%;
+  }
+
+  .ant-tabs-tab {
+    min-width: 50%;
+    height: 34px;
+    justify-content: center;
+    margin: 0;
+    padding: 0 12px;
+    background: #fff;
+  }
+
+  .ant-tabs-tab-active {
+    background-color: #ddd;
+  }
+
+  .ant-tabs-content-holder {
+    background: #fff;
+  }
+
+  .ant-tree-indent-unit {
+    width: 12px;
+  }
+
+  .ant-tree-switcher {
+    width: 18px;
+  }
+
+  .ant-tree-node-content-wrapper {
+    padding: 3px 4px;
+  }
+}
+
+.projectGround .ant-layout-sider {
+  background: #fff;
+}
+
+.group-bar .group-list .ant-menu-item {
+  display: flex;
+  align-items: center;
+
+  .anticon {
+    flex: 0 0 auto;
+    margin-right: 4px;
+  }
+
+  .group-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.ant-tree {
+  background: #fff;
+
+  .ant-tree-draggable-icon {
+    display: none;
+  }
+
+  .ant-tree-switcher {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ant-tree-treenode {
+    align-items: center;
+  }
+
+  .ant-tree-node-content-wrapper {
+    min-height: 25px;
+    padding: 3px 5px;
+  }
+
+  .ant-tree-node-content-wrapper.ant-tree-node-selected {
+    background-color: #d5ebfc;
+  }
+}
+
+.ant-card-hoverable:hover {
+  box-shadow: none;
+}

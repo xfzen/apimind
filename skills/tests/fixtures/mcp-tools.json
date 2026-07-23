@@ -1,0 +1,47 @@
+{
+  "version": "apimind-mcp-v1",
+  "tools": [
+    {
+      "name": "list_workspaces",
+      "description": "List visible workspaces",
+      "inputSchema": { "type": "object", "properties": {} },
+      "outputSchema": { "type": "object", "properties": { "workspaces": { "type": "array" } } },
+      "readOnlyHint": true
+    },
+    {
+      "name": "get_project",
+      "description": "Get a project by workspace and project names",
+      "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string" }, "project": { "type": "string" } } },
+      "outputSchema": { "type": "object", "properties": { "project": { "type": "string" } } },
+      "readOnlyHint": true
+    },
+    {
+      "name": "list_cats",
+      "description": "List interface cats in a project",
+      "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string" }, "project": { "type": "string" } } },
+      "outputSchema": { "type": "object", "properties": { "cats": { "type": "array" } } },
+      "readOnlyHint": true
+    },
+    {
+      "name": "get_interface",
+      "description": "Get an interface by method and path",
+      "inputSchema": { "type": "object", "properties": { "method": { "type": "string" }, "path": { "type": "string" } } },
+      "outputSchema": { "type": "object", "properties": { "path": { "type": "string" } } },
+      "readOnlyHint": true
+    },
+    {
+      "name": "upsert_cat",
+      "description": "Create or update a project cat",
+      "inputSchema": { "type": "object", "properties": { "cat": { "type": "string" } } },
+      "outputSchema": { "type": "object", "properties": { "cat": { "type": "string" } } },
+      "readOnlyHint": false
+    },
+    {
+      "name": "upsert_interface",
+      "description": "Create or update an interface",
+      "inputSchema": { "type": "object", "properties": { "path": { "type": "string" } } },
+      "outputSchema": { "type": "object", "properties": { "path": { "type": "string" } } },
+      "readOnlyHint": false
+    }
+  ]
+}

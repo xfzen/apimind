@@ -1,0 +1,19 @@
+distribution: 0.1.0
+components:
+  web:
+    source: web/
+    version: 0.1.0
+  server:
+    source: https://github.com/xfzen/apimind-server
+    version: 0.1.0
+    commit: 691db22ca55c555156736e65d5322d327a2030ba
+  skills:
+    source: skills/
+    version: 0.1.0
+contracts:
+  http_api: yapi-http-v1
+  mcp: apimind-mcp-v1
+  database_schema: yapi-mongo-v1
+storage:
+  current: mongodb
+  planned: postgresql

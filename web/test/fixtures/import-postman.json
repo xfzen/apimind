@@ -1,0 +1,47 @@
+{
+  "id": "postman-fixture",
+  "folders": [
+    {
+      "id": "folder-1",
+      "collectionId": "postman-fixture",
+      "name": "Postman Fixture",
+      "description": "Postman import fixture"
+    }
+  ],
+  "requests": [
+    {
+      "id": "request-1",
+      "folder": "folder-1",
+      "name": "Postman Ping",
+      "url": "http://example.com/postman/ping?ok=1",
+      "method": "GET",
+      "description": "Postman ping endpoint",
+      "queryParams": [
+        {
+          "key": "ok",
+          "value": "1",
+          "description": "ok flag",
+          "enabled": true
+        }
+      ],
+      "headerData": [
+        {
+          "key": "Accept",
+          "value": "application/json",
+          "description": "response type",
+          "enabled": true
+        }
+      ],
+      "headers": "Accept: application/json",
+      "dataMode": "params",
+      "data": [],
+      "rawModeData": "",
+      "responses": [
+        {
+          "language": "json",
+          "text": "{\"ok\":true}"
+        }
+      ]
+    }
+  ]
+}

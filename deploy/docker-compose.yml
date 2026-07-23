@@ -1,0 +1,59 @@
+name: apimind-public
+
+services:
+  mongo:
+    image: mongo@sha256:340c1c56fb10e95cf79ff547f8664b96bc6ead9909bc355238cbf865a9695a6f
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  server:
+    image: apimind-server:local
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APIMIND_MONGO_URI: mongodb://mongo:27017
+      APIMIND_MONGO_DATABASE: yapi
+      APIMIND_DEFAULT_USER_ENABLED: "true"
+      APIMIND_DEFAULT_USERNAME: ${APIMIND_DEFAULT_USERNAME:-admin@example.invalid}
+      APIMIND_DEFAULT_PASSWORD: ${APIMIND_DEFAULT_PASSWORD:?set APIMIND_DEFAULT_PASSWORD}
+      APIMIND_MCP_ENABLED: "true"
+      APIMIND_MCP_AUTH_ENABLED: "true"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/apimind-server", "-healthcheck", "http://127.0.0.1:8888/api/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  web:
+    image: apimind-web:local
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APIMIND_WEB_PORT:-8080}:8080"
+    configs:
+      - source: web_nginx
+        target: /etc/nginx/conf.d/default.conf
+    depends_on:
+      server:
+        condition: service_healthy
+
+configs:
+  web_nginx:
+    file: ./nginx/nginx.conf
+
+volumes:
+  mongo-data:

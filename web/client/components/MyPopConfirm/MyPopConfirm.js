@@ -1,0 +1,55 @@
+import React, { PureComponent as Component } from 'react';
+import { Modal, Button } from 'antd';
+import PropTypes from 'prop-types';
+
+// 嵌入到 BrowserRouter 内部，覆盖掉默认的 window.confirm
+// http://reacttraining.cn/web/api/BrowserRouter/getUserConfirmation-func
+class MyPopConfirm extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      visible: true
+    };
+  }
+  static propTypes = {
+    msg: PropTypes.string,
+    callback: PropTypes.func
+  };
+
+  complete = ok => {
+    this.setState({ visible: false }, () => {
+      this.props.callback(ok);
+    });
+  };
+
+  yes = () => {
+    this.complete(true);
+  };
+
+  no = () => {
+    this.complete(false);
+  };
+
+  componentWillReceiveProps() {
+    this.setState({ visible: true });
+  }
+
+  render() {
+    if (!this.state.visible) {
+      return null;
+    }
+    return (<Modal
+      title="你即将离开编辑页面"
+      open={this.state.visible}
+      onCancel={this.no}
+      footer={[
+        <Button key="back" onClick={this.no}>取 消</Button>,
+        <Button key="submit" onClick={this.yes}>确 定</Button>
+      ]}
+    >
+      <p>{this.props.msg}</p>
+    </Modal>);
+  }
+}
+
+export default MyPopConfirm;

@@ -1,0 +1,21 @@
+[
+  {
+    "name": "YApi JSON Fixture",
+    "desc": "YApi JSON import fixture",
+    "list": [
+      {
+        "title": "JSON Ping",
+        "path": "/json/ping",
+        "method": "GET",
+        "desc": "JSON ping endpoint",
+        "req_query": [],
+        "req_headers": [],
+        "req_body_form": [],
+        "req_body_type": "raw",
+        "req_body_other": "",
+        "res_body_type": "json",
+        "res_body": "{\"ok\":true}"
+      }
+    ]
+  }
+]
