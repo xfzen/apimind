@@ -78,7 +78,7 @@ test('registry tarballs resolve only from the official npm registry', () => {
 });
 
 test('Axios uses its supported public package entrypoint', () => {
-  assert.match(requestSource, /import realAxios from 'axios';/);
+  assert.match(requestSource, /import realAxios from 'axios-runtime';/);
   assert.doesNotMatch(requestSource, /axios\/dist\/axios/);
 });
 

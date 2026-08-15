@@ -55,6 +55,7 @@ module.exports = {
       client: path.resolve(__dirname, 'client'),
       common: path.resolve(__dirname, 'common'),
       exts: path.resolve(__dirname, 'exts'),
+      'axios-runtime$': path.resolve(__dirname, 'node_modules/axios/index.js'),
       'axios$': path.resolve(__dirname, 'client/utils/request.js')
     }
   },

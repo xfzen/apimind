@@ -1,14 +1,14 @@
 const runtimePlugins = [
   {
     name: 'advanced-mock',
-    importPath: '/exts/yapi-plugin-advanced-mock/client.js',
+    importPath: '../exts/yapi-plugin-advanced-mock/client.js',
     options: null,
     hooks: ['interface_tab', 'add_reducer'],
     classification: 'legacy alias now, migrate later'
   },
   {
     name: 'wiki',
-    importPath: '/exts/yapi-plugin-wiki/client.js',
+    importPath: '../exts/yapi-plugin-wiki/client.js',
     options: null,
     hooks: ['sub_nav'],
     classification: 'legacy alias now, migrate later'

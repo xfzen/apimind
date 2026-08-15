@@ -9,7 +9,7 @@ import { buildPluginModuleContent } from '../scripts/generate-plugin-module.js';
 test('runtime plugin registry is explicit and stable', t => {
   t.deepEqual(runtimePlugins.map(plugin => plugin.name), ['advanced-mock', 'wiki']);
   runtimePlugins.forEach(plugin => {
-    t.true(plugin.importPath.startsWith('/exts/yapi-plugin-'));
+    t.true(plugin.importPath.startsWith('../exts/yapi-plugin-'));
     t.true(Array.isArray(plugin.hooks));
     t.truthy(plugin.classification);
   });

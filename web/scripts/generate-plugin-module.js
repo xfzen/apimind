@@ -8,7 +8,7 @@ const { runtimePlugins } = require('../client/builtins/pluginRegistry.js');
 function createScript(plugin) {
   const options = plugin.options ? JSON.stringify(plugin.options) : null;
   const importPath = plugin.importPath;
-  return `    "${plugin.name}": { module: await loadPlugin('${importPath}', '${plugin.name}'), options: ${options} }`;
+  return `    "${plugin.name}": { module: await loadPlugin(() => import('${importPath}'), '${plugin.name}'), options: ${options} }`;
 }
 
 function buildPluginModuleContent(plugins = runtimePlugins) {
@@ -16,9 +16,9 @@ function buildPluginModuleContent(plugins = runtimePlugins) {
 
   const lines = [];
   lines.push('export default (async () => {');
-  lines.push('  async function loadPlugin(importPath, name) {');
+  lines.push('  async function loadPlugin(load, name) {');
   lines.push('    try {');
-  lines.push('      const mod = await import(/* @vite-ignore */ importPath);');
+  lines.push('      const mod = await load();');
   lines.push('      return mod.default || mod;');
   lines.push('    } catch (e) {');
   lines.push('      const message = e && e.message ? e.message : String(e);');

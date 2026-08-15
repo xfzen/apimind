@@ -2,7 +2,7 @@
 // - baseURL comes from Vite's explicit `__YAPI_API_BASE__` define or runtime `window.API_BASE`
 // - withCredentials enabled so cross-site cookies are sent when CORS allows it
 
-import realAxios from 'axios';
+import realAxios from 'axios-runtime';
 
 function getApiBase() {
   // Prefer build-time injection. Avoid browser `process.env`, which can be

@@ -62,6 +62,7 @@ function buildProxyFromConfig(cfg) {
 const devProxy = buildProxyFromConfig(DEV_PROXY);
 
 export default defineConfig({
+  publicDir: 'static',
   plugins: [
     // Remove CommonJS transform for local sources to avoid transform crashes.
     {
@@ -120,6 +121,7 @@ export default defineConfig({
       { find: 'exts', replacement: path.resolve(__dirname, 'exts') },
       // Use Sass Embedded implementation for better performance and to avoid legacy-JS-API warnings
       { find: 'sass', replacement: 'sass-embedded' },
+      { find: /^axios-runtime$/, replacement: path.resolve(__dirname, 'node_modules/axios/index.js') },
       { find: /^axios$/, replacement: path.resolve(__dirname, 'client/utils/request.js') },
       { find: /^moment$/, replacement: path.resolve(__dirname, 'client/shims/moment.js') },
       { find: 'react-is', replacement: path.resolve(__dirname, 'client/shims/react-is.js') }
