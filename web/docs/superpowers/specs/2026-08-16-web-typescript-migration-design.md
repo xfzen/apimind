@@ -4,24 +4,31 @@ Date: 2026-08-16
 
 ## Objective
 
-Incrementally migrate the browser runtime of ApiMind Web from JavaScript to
-strict TypeScript. Improve API-contract visibility, Redux state safety,
-component refactorability, and editor support without changing browser
-behavior, Server contracts, request paths, response shapes, plugin behavior,
-or deployment boundaries.
+Incrementally migrate the ApiMind Web application code under `client/` and
+`common/` from JavaScript to strict TypeScript. Improve API-contract
+visibility, Redux state safety, component refactorability, and editor support
+without changing browser behavior, Server contracts, request paths, response
+shapes, extension behavior, or deployment boundaries.
 
-The migration is complete when every repository-owned module reachable from
-the production browser entry is TypeScript, except for an explicit and tested
-compatibility allowlist. Build configuration, Node-only scripts, generated
-files, tests, vendored code, and historical plugin server files are not part of
-the production-runtime completion metric.
+The migration is complete when every in-scope module under `client/` and
+`common/` that is reachable from the production browser entry is TypeScript,
+except for an explicit and tested compatibility allowlist. Existing `exts/`
+modules are a deliberate scope exception: they remain JavaScript compatibility
+dependencies until a separately approved effort replaces them with built-in
+Web modules. Build configuration, Node-only scripts, generated files, tests,
+vendored code, and historical plugin server files are also outside the
+completion metric.
 
 ## Confirmed Decisions
 
 - Use an incremental mixed JavaScript/TypeScript migration. Do not perform a
   repository-wide rename or a single large conversion change.
-- Limit the primary target to repository-owned browser-runtime modules under
-  `client/`, `common/`, and enabled browser plugin modules under `exts/`.
+- Limit the target to repository-owned browser-runtime modules under `client/`
+  and `common/`, plus narrow TypeScript adapters owned by the main application
+  when an in-scope module must call an existing `exts/` module.
+- Do not migrate `exts/` internals in this effort. Dynamic runtime extensions
+  and statically embedded compatibility modules remain allowlisted JavaScript
+  until they are replaced by separately designed built-in implementations.
 - Establish strict type checking before converting business modules.
 - Migrate contracts and state boundaries before large React pages.
 - Preserve class components during type conversion when that is the smallest
@@ -42,8 +49,9 @@ The current source snapshot contains:
 
 - 205 JavaScript/TypeScript production-like modules and approximately 30,251
   lines under `client/`, `common/`, and `exts/`;
-- approximately 135 repository-owned modules and 25,065 lines in the current
-  production Vite source maps;
+- 135 repository-owned modules in the current production Vite source maps:
+  112 under `client/`, 9 under `common/`, and 14 under `exts/`; the 121 modules
+  under `client/` and `common/` form the initial in-scope runtime inventory;
 - 219 `.js` files across Web and one `.tsx` production module;
 - approximately 98 class-component files, 59 decorator-using files, 98
   PropTypes-using files, 59 Redux `connect` users, and 56 modules containing
@@ -59,10 +67,12 @@ The current source snapshot contains:
   component-test framework protecting the main login, workspace, project, and
   interface-editing flows.
 
-The production build currently includes 14 modules from `exts/`, while the
-directory contains substantially more historical, disabled, migrated, or
-Node-side plugin code. Source presence is therefore not evidence that a file
-belongs in the TypeScript migration target.
+The production build currently includes 14 modules from `exts/`, including
+both dynamically loaded extensions and modules statically embedded by the main
+application. These modules are known production dependencies but are excluded
+from this migration by design. The directory also contains substantially more
+historical, disabled, migrated, or Node-side plugin code, so source presence is
+not evidence that a file belongs in the runtime compatibility allowlist.
 
 ## Selected Approach
 
@@ -74,13 +84,13 @@ Use a boundary-first vertical migration.
    JavaScript as runtime target, compatibility adapter, generated output,
    tooling, test, vendor, or historical code.
 3. Define shared API envelopes, domain entities, runtime globals, Redux state,
-   plugin hooks, and backend URL types.
+   main-application extension hooks, and backend URL types.
 4. Convert low-coupling utilities and state modules.
 5. Convert UI in complete business slices, keeping each slice buildable and
    browser-verifiable.
-6. Convert the enabled plugin clients and remove temporary compatibility
-   declarations.
-7. Enforce a zero-unclassified-runtime-JavaScript gate.
+6. Type the main application's extension-facing adapters while leaving `exts/`
+   internals unchanged.
+7. Enforce a zero-unclassified-JavaScript gate within `client/` and `common/`.
 
 This approach is preferred over leaf-component-first conversion because the
 largest maintenance risks are not JSX syntax. They are inconsistent API
@@ -101,8 +111,14 @@ The initial `tsconfig.json` must:
 - set `allowJs: true` so migrated TypeScript may import unmigrated JavaScript;
 - initially set `checkJs: false`; JavaScript conversion is controlled by the
   migration inventory rather than a flood of inferred legacy diagnostics;
+- set `experimentalDecorators: true`, `useDefineForClassFields: false`, and
+  `emitDecoratorMetadata: false` to match the current legacy-decorator and
+  loose class-field behavior;
 - use module and JSX settings compatible with the current Vite build;
-- include browser-runtime source and repository-owned declaration files;
+- include `client/`, `common/`, and repository-owned declaration files as
+  explicit roots; do not add `exts/` as a root, while allowing imported
+  allowlisted JavaScript extensions to resolve under `allowJs` and remain
+  unchecked under `checkJs: false`;
 - exclude `dist/`, vendored code, historical plugin server modules, and other
   classified non-runtime inputs;
 - use `skipLibCheck` only as a temporary third-party declaration boundary, not
@@ -122,7 +138,8 @@ Before converting a directory, classify its files by actual runtime use.
 The inventory must distinguish:
 
 - production browser entry and statically imported modules;
-- enabled runtime plugin client modules;
+- dynamically loaded extension modules and statically embedded `exts/`
+  compatibility modules;
 - browser compatibility adapters and shims;
 - Node-only build and generation scripts;
 - generated modules;
@@ -137,9 +154,12 @@ compatibility layer requires focused build and browser evidence.
 
 Maintain a machine-readable allowlist for repository-owned JavaScript that is
 intentionally retained during migration. Each entry must contain the path, its
-classification, the reason JavaScript is still required, and the phase that
-removes or permanently accepts it. The gate must reject newly introduced
-production JavaScript that is not in the allowlist.
+classification, the reason JavaScript is still required, and its exit
+condition. Existing production `exts/` entries use replacement by a built-in
+module as their exit condition; that replacement is not a phase of this
+migration. The gate must reject newly introduced in-scope production
+JavaScript that is not in the allowlist and must reject new dependencies from
+`client/` or `common/` into previously unused `exts/` modules.
 
 ## Shared Contract Model
 
@@ -151,13 +171,17 @@ responses:
 ```ts
 export interface ApiResponse<T> {
   errcode: number;
-  errmsg?: string;
-  data: T;
+  errmsg: string;
+  data: T | null;
 }
 ```
 
-Do not force endpoints with different documented shapes into this envelope.
-Model exceptions explicitly.
+This models the Go Server contract: `errmsg` is always present, and error
+responses use `data: null`. Consumers may treat `data` as non-null only after
+an endpoint-appropriate success check. Endpoints with additional top-level
+fields, such as user status with `ladp` and `canRegister`, extend the envelope
+explicitly. Do not force endpoints with different documented shapes into this
+envelope; model exceptions explicitly.
 
 Axios response types must preserve the distinction between
 `AxiosResponse<ApiResponse<T>>` and `ApiResponse<T>`. Redux middleware types
@@ -175,7 +199,7 @@ consumers. Initial domains are:
 - test collection and cases;
 - document and workspace-project mapping;
 - template project and template document;
-- Mock and Advanced Mock data;
+- main-application Mock data and the Advanced Mock adapter contract;
 - route parameters and permissions.
 
 Types must represent server-observed nullability and legacy numeric/string ID
@@ -231,7 +255,7 @@ Migrate components in dependency order:
 2. forms and shared editor adapters;
 3. route-aware and Redux-connected components;
 4. large project and interface pages;
-5. enabled runtime plugin pages.
+5. main-application pages and adapters that host extension surfaces.
 
 For a class component, define Props and State and preserve lifecycle methods.
 Do not combine conversion with a Hooks rewrite unless the existing component
@@ -248,9 +272,15 @@ during migration. Do not introduce new decorators. Removing decorators or
 changing class-field semantics requires a separate focused refactor and
 browser verification.
 
-## Plugin and CommonJS Boundary
+Phase 0 must convert a small decorated canary containing the patterns used by
+the application, including `@connect`, `@withRouter`, and `@autobind`. Its
+typecheck, production build, and browser behavior must pass before any bulk
+conversion of decorated components. The Vite/Babel transform order for `.ts`
+and `.tsx` must be covered by a structural regression test.
 
-Define a typed plugin protocol containing:
+## Extension and CommonJS Compatibility Boundary
+
+Define the main application's typed extension-facing protocol containing:
 
 - hook names;
 - hook multiplicity and listener/component kind;
@@ -259,8 +289,13 @@ Define a typed plugin protocol containing:
 - asynchronous loading and failure behavior;
 - reducer and route extension contracts.
 
-Advanced Mock and Wiki are the enabled runtime plugin targets. Migrated and
-disabled plugins are not re-enabled by this work.
+Advanced Mock and Wiki remain dynamically loaded runtime extensions. Import
+helpers and Gen Services remain statically embedded compatibility modules.
+Their `exts/` implementations are not TypeScript migration targets. In-scope
+callers must depend on narrow typed adapters or ambient declarations that
+describe only the behavior they consume. Do not move domain types into
+`exts/`, deepen extension coupling, re-enable disabled plugins, or treat an
+allowlisted extension as evidence that the main application is untyped.
 
 Keep generated plugin output compatible with Vite static analysis. Converting
 the Node-only generator or CommonJS registry is optional and does not block
@@ -274,7 +309,7 @@ untyped imports through business components.
 ## Type-Debt Policy
 
 - `any` is prohibited in domain models, API envelopes, Redux state, public
-  component props, and plugin hook contracts.
+  component props, and main-application extension hook contracts.
 - `unknown` is required at untrusted boundaries and must be narrowed before
   business use.
 - `@ts-ignore` is prohibited.
@@ -285,30 +320,34 @@ untyped imports through business components.
 - Type assertions may not be used to conceal nullable or structurally
   incompatible Server responses.
 - Temporary compatibility types must remain localized and appear in the
-  migration allowlist with a removal phase.
+  migration allowlist with an explicit exit condition.
 
 ## Migration Slices
 
-### Phase 0: Foundation and protection
+### Phase 0: Foundation, pilot, and protection
 
 - add TypeScript configuration and the typecheck gate;
 - add runtime-source classification and the JavaScript allowlist;
-- add browser smoke coverage for login, workspace/group navigation, project
-  navigation, interface read/edit, and document rendering;
+- add the decorator canary and its transform regression test;
+- add deterministic browser smoke coverage for the authentication pilot and
+  the authenticated workspace/group landing page;
 - establish module declarations for required legacy dependencies;
-- record the type-error baseline without weakening strict mode.
+- migrate the authentication API types, user reducer, selectors, and login
+  consumers as the pilot slice;
+- record pilot diagnostics and type-debt evidence without weakening strict
+  mode.
 
 ### Phase 1: Boundaries and low-coupling modules
 
 - API envelope and shared domain types;
 - backend URL and request helpers;
-- security, Markdown, schema, and import/export pure utilities that are in the
-  production graph;
+- security, Markdown, schema, and in-scope import/export pure utilities that
+  are in the production graph;
 - runtime globals and build-time constants.
 
 ### Phase 2: Redux domains
 
-- user/authentication;
+- remaining user/authentication modules outside the Phase 0 pilot;
 - workspace/group and project;
 - interface and interface collection;
 - documents and templates;
@@ -319,23 +358,66 @@ consumer before moving to the next domain.
 
 ### Phase 3: Product UI slices
 
-- login and user;
+- remaining login and user UI outside the Phase 0 pilot;
 - workspace/group and project navigation;
 - documents and templates;
 - interface list and interface editor;
-- test collections, Postman tooling, and schema editors.
+- test collections, the main-application side of Postman tooling, and schema
+  editors.
 
 Large pages must be migrated as behavior-preserving vertical slices. File
 splitting is allowed only where it exposes an independently testable boundary;
 it must not become a general UI redesign.
 
-### Phase 4: Enabled plugins and compatibility closure
+### Phase 4: Compatibility closure
 
-- type the plugin hook system;
-- migrate Advanced Mock and Wiki browser modules;
+- finish the typed main-application side of extension hooks and adapters;
 - remove obsolete ambient declarations and temporary `any` adapters;
-- shrink the JavaScript allowlist to permanent non-runtime exceptions;
-- enforce the final production-runtime TypeScript gate.
+- shrink the JavaScript allowlist to classified compatibility exceptions,
+  including the deferred production `exts/` modules;
+- enforce the final `client/` and `common/` TypeScript gate.
+
+Replacing `exts/` modules with built-in implementations is a separate future
+design. It must remove an allowlist entry as each replacement lands, but it is
+not required for this migration to complete.
+
+## Browser Verification Protocol
+
+Use Playwright as a direct development dependency installed from the official
+npm registry. Phase 0 adds `npm run test:browser` and a separate
+`make test-web-browser` target so browser installation and execution remain
+explicit rather than making every unit-test invocation download a browser.
+CI installs the publisher-provided Chromium build through Playwright and runs
+the browser target in the Web job.
+
+Per-change browser tests run Vite on an isolated port and intercept `/api/*`
+requests with versioned JSON fixtures derived from Server response tests or
+reviewed OpenAPI schemas. Phase 0 covers:
+
+- unauthenticated user status and login rendering;
+- successful login and redirect to the workspace/group landing page;
+- failed login with no authenticated navigation;
+- user-visible authenticated and unauthenticated states; focused reducer tests
+  verify the corresponding Redux state transitions.
+
+This mocked transport keeps the fast browser gate deterministic and requires
+no database access. Each later product slice adds its own browser fixture and
+flow before that slice is accepted: project navigation, interface read/edit,
+and document rendering are not Phase 0 prerequisites.
+
+At phase boundaries, run a live-stack smoke against the existing Web dev mode
+and Go service on the documented development ports (`4000` and `18889`). Create
+test state only through public Go APIs using a unique run prefix; do not access
+the database directly. The live smoke verifies proxying, cookies, asset
+loading, and the selected phase's critical happy path. It must clean up through
+public APIs when supported and otherwise use an isolated Compose project and
+volume.
+
+Browser checks fail on uncaught page errors, failed production asset loads,
+and application-originated console errors. A warning allowlist must be narrow,
+checked into the repository, and contain a reason; browser-extension messages
+are not part of the clean Playwright profile and must not be added to the
+baseline.
 
 ## Verification Strategy
 
@@ -349,16 +431,17 @@ Required repository gates are:
 - AVA functional tests;
 - Vite production build;
 - dependency, editor, and schema smoke tests affected by the slice;
-- browser smoke for affected product flows;
+- deterministic Playwright smoke for affected product flows;
+- live-stack browser smoke at phase boundaries;
 - container smoke when build output or public assets change.
 
 Type-only conversion does not justify skipping browser verification for route,
-Redux, form, editor, or plugin code. Vite build success proves transpilation,
-not behavioral equivalence.
+Redux, form, editor, or extension-adapter code. Vite build success proves
+transpilation, not behavioral equivalence.
 
 For each phase, compare production output for:
 
-- successful entry and dynamic plugin chunk loading;
+- successful entry and unchanged dynamic extension chunk loading;
 - absence of new browser console errors or warnings;
 - successful `/api/*`, `/mock/*`, and WebSocket URL construction;
 - unchanged plugin registration and failure isolation;
@@ -390,7 +473,11 @@ Foundation acceptance requires:
 - strict `tsconfig.json` with `noEmit`;
 - mandatory `typecheck` in local and CI verification;
 - a reviewed runtime inventory and machine-readable JavaScript allowlist;
-- browser smoke protection for the critical product flows selected in Phase 0;
+- a passing decorated-component canary;
+- deterministic browser smoke for authentication and the authenticated
+  workspace/group landing page;
+- recorded pilot results covering diagnostics, third-party type gaps, type
+  debt, test additions, and browser verification effort;
 - current production behavior, build, and container verification remain green.
 
 Per-module acceptance requires:
@@ -399,20 +486,22 @@ Per-module acceptance requires:
 - public inputs and outputs are explicit;
 - no prohibited type-debt escape hatch is added;
 - focused tests cover the contract exposed by the migration;
-- no API, Redux, route, editor, plugin, or rendered behavior changes unless
-  separately specified and approved.
+- no API, Redux, route, editor, extension-adapter, or rendered behavior changes
+  unless separately specified and approved.
 
 Final acceptance requires:
 
-- every repository-owned production browser module is TypeScript or appears in
-  the permanent compatibility allowlist;
-- the permanent allowlist contains no unclassified business module;
-- no `@ts-ignore`, `@ts-nocheck`, or domain-layer `any` remains;
-- API envelopes, shared entities, Redux state, selectors, routes, and enabled
-  plugin hooks have canonical types;
+- every in-scope production module under `client/` and `common/` is TypeScript
+  or appears in the reviewed compatibility allowlist;
+- the reviewed allowlist contains no unclassified business module;
+- no in-scope `@ts-ignore`, `@ts-nocheck`, or domain-layer `any` remains;
+- API envelopes, shared entities, Redux state, selectors, routes, and
+  main-application extension hooks have canonical types;
 - full typecheck, tests, production build, browser smoke, and container smoke
   pass;
 - browser console and production asset loading show no migration regression;
+- existing `exts/` runtime dependencies remain behaviorally unchanged and
+  explicitly allowlisted for later built-in replacement;
 - Web still calls business APIs only through the Go-side service boundary;
 - desktop packaging, Server business behavior, storage, and ApiMind
   documentation remain unchanged.
@@ -425,6 +514,8 @@ Final acceptance requires:
 - redesigning UI or changing product workflows;
 - changing HTTP, Mock, WebSocket, authentication, or storage contracts;
 - re-enabling disabled historical plugins;
+- converting `exts/` modules before their separately designed built-in
+  replacements;
 - converting all tests, build scripts, configuration, generated output, or
   vendored sources to TypeScript;
 - generating API documentation or syncing contracts to ApiMind;
@@ -438,9 +529,10 @@ units. Keep each change limited to one foundation concern or one business
 slice. Do not update Server code or ApiMind documentation unless a separately
 approved contract defect is discovered.
 
-Before implementation planning, validate the foundation assumptions with one
-pilot slice: authentication API types, the user reducer, selectors, and the
-login consumers. The pilot must measure initial diagnostics, third-party type
-gaps, type-debt escapes, test additions, and browser verification effort. Use
-that evidence to refine phase size; the estimated total effort remains
-approximately 6 to 12 engineer-weeks until the pilot is complete.
+After this design is approved, write a focused implementation plan for Phase 0
+and the authentication pilot. Execute that plan before detailing Phases 1
+through 4. The pilot must measure initial diagnostics, third-party type gaps,
+type-debt escapes, test additions, and browser verification effort. Use that
+evidence to produce the remaining phase plan and effort estimate. Any estimate
+for this migration covers only `client/`, `common/`, and main-application
+adapters; future extension built-in work is estimated separately.
