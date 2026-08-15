@@ -5,6 +5,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import type { PluggableList } from 'unified';
 
 type MarkdownPreviewProps = {
   value?: string;
@@ -48,7 +49,7 @@ export default function MarkdownPreview({ value = '', className }: MarkdownPrevi
   const cls = className
     ? `apimind-docs-rendered markdown-body ${className}`
     : 'apimind-docs-rendered markdown-body';
-  const rehypePlugins = useMemo(() => [
+  const rehypePlugins = useMemo<PluggableList>(() => [
     rehypeSlug,
     [rehypeAutolinkHeadings, {
       behavior: 'append',

@@ -68,6 +68,7 @@ test-layout: bootstrap ## Verify source ownership, licensing boundaries, and the
 test-web: web-install ## Run Web lint and tests.
 	node --test web/tests/*.test.mjs
 	cd web && npm run lint
+	cd web && npm run typecheck
 	cd web && npm test
 
 .PHONY: test-server

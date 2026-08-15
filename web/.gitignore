@@ -43,7 +43,6 @@ runtime/
 /dev/
 .tags
 .tags1
-tsconfig.json
 client/plugin-module.js
 .vscode
 /iconfont
