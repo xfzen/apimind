@@ -16,6 +16,7 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "build:vite": "NODE_ENV=production npm run prepare:plugins && vite build",
     "build": "npm run build:vite",
+    "inventory:runtime": "node scripts/typescript/runtime-inventory.mjs --build",
     "smoke:dev": "node scripts/smoke/dev-server-smoke.mjs",
     "smoke:deps": "node scripts/smoke/dependency-smoke.mjs",
     "smoke:editor-module": "node scripts/smoke/editor-module-smoke.mjs",

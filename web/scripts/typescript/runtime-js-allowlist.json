@@ -1,0 +1,797 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "path": "client/Application.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/common.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/AceEditor/AceEditor.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/AceEditor/mockEditor.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/AuthenticatedComponent.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Breadcrumb/Breadcrumb.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/CaseEnv/index.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Docs/DocsWorkspace.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Docs/MarkdownRawEditor.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Docs/markdownHeadings.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/EasyDragSort/EasyDragSort.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ErrMsg/ErrMsg.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Footer/Footer.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/GuideBtns/GuideBtns.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Header/Header.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Header/Search/Search.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Intro/Intro.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/JsonSchemaEditor/JsonSchemaEditor.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Label/Label.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Loading/Loading.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/LogoSVG/index.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ModalPostman/MethodsList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ModalPostman/MockList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ModalPostman/VariablesSelect.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ModalPostman/index.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/MyPopConfirm/MyPopConfirm.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Postman/Postman.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/ProjectCard/ProjectCard.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/SchemaTable/SchemaTable.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/Subnav/Subnav.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/TimeLine/TimeLine.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/components/UsernameAutoComplete/UsernameAutoComplete.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/constants/variable.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/AddProject/AddProject.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Follows/Follows.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/Group.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/GroupList/GroupList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/GroupLog/GroupLog.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/GroupSetting/GroupSetting.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/MemberList/MemberList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Group/ProjectList/ProjectList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Home/Home.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Login/Login.js",
+      "classification": "migration-target",
+      "reason": "Authentication pilot runtime module",
+      "exitCondition": "Phase 0 authentication pilot"
+    },
+    {
+      "path": "client/containers/Login/LoginContainer.js",
+      "classification": "migration-target",
+      "reason": "Authentication pilot runtime module",
+      "exitCondition": "Phase 0 authentication pilot"
+    },
+    {
+      "path": "client/containers/Login/LoginWrap.js",
+      "classification": "migration-target",
+      "reason": "Authentication pilot runtime module",
+      "exitCondition": "Phase 0 authentication pilot"
+    },
+    {
+      "path": "client/containers/Login/Reg.js",
+      "classification": "migration-target",
+      "reason": "Authentication pilot runtime module",
+      "exitCondition": "Phase 0 authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Activity/Activity.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/Docs/DocsInterface.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/Interface.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceCol/CaseReport.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceCol/ImportInterface.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceCol/InterfaceCaseContent.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceCol/InterfaceColContent.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceCol/InterfaceColMenu.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/AddInterfaceCatForm.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/AddInterfaceForm.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/Edit.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/InterfaceContent.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/InterfaceEditForm.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/InterfaceList.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/InterfaceMenu.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Interface/InterfaceList/View.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Project.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectData/ProjectData.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectData/exporters.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectData/importers.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectEnv/ProjectEnvContent.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectEnv/index.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectMember/ProjectMember.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectMessage/ProjectMessage.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectMessage/ProjectTag.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectMock/index.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectRequest/ProjectRequest.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/ProjectToken/ProjectToken.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/Setting.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/Setting/settingTabs.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/TemplateProject/TemplateDocument.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/TemplateProject/TemplateEditor.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/TemplateProject/TemplateNav.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Project/TemplateProject/TemplateProject.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/Templates/Templates.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/User/List.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/User/Profile.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/containers/User/User.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/plugin-module.js",
+      "classification": "generated",
+      "reason": "Generated from the reviewed built-in plugin registry for Vite static analysis",
+      "exitCondition": "Replace the generated registry only with an equivalent typed build contract"
+    },
+    {
+      "path": "client/plugin.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/create.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/middleware/messageMiddleware.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/addInterface.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/docs.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/follow.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/group.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/interface.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/interfaceCol.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/menu.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/mockCol.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/news.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/project.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/reducer.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/template.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/reducer/modules/user.js",
+      "classification": "migration-target",
+      "reason": "Authentication pilot runtime module",
+      "exitCondition": "Phase 0 authentication pilot"
+    },
+    {
+      "path": "client/shims/Collapse.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/shims/LocaleProvider.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/shims/antdIcon.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/shims/moment.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/shims/react-is.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/shims/reactRoot.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/utils/backend.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "client/utils/request.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/HandleImportData.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/diff-view.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/mock-extra.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/postmanLib.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/power-string.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/sanitize.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/schema-transformTo-table.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/utils.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "common/validators.js",
+      "classification": "migration-target",
+      "reason": "Existing production JavaScript module awaiting TypeScript migration",
+      "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/AdvMock.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/MockCol/CaseDesModal.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/MockCol/MockCol.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/MockCol/mockColReducer.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/client.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-advanced-mock/httpCodes.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-gen-services/Services/Services.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-import-har/client.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-import-postman/client.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-import-swagger/run.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-wiki/client.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-wiki/wikiPage/Editor.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-wiki/wikiPage/View.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    },
+    {
+      "path": "exts/yapi-plugin-wiki/wikiPage/index.js",
+      "classification": "extension-compat",
+      "reason": "Existing production extension dependency excluded from this migration",
+      "exitCondition": "Replace with a separately approved built-in Web module"
+    }
+  ]
+}

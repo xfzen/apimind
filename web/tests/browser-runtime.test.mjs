@@ -5,8 +5,15 @@ import { join, resolve } from 'node:path';
 import test, { after, before } from 'node:test';
 import { build, createServer } from 'vite';
 
+import {
+  collectRuntimeSources,
+  prepareRuntimeBuildInputs,
+  validateRuntimeJavaScript
+} from '../scripts/typescript/runtime-inventory.mjs';
+
 const root = resolve(new URL('../', import.meta.url).pathname);
 const requestModule = resolve(root, 'client/utils/request.js');
+const allowlistPath = resolve(root, 'scripts/typescript/runtime-js-allowlist.json');
 const outDir = join(tmpdir(), `apimind-web-runtime-${process.pid}`);
 
 function walkFiles(directory) {
@@ -17,6 +24,7 @@ function walkFiles(directory) {
 }
 
 before(async () => {
+  await prepareRuntimeBuildInputs(root);
   await build({
     root,
     configFile: resolve(root, 'vite.config.mjs'),
@@ -24,7 +32,7 @@ before(async () => {
     build: {
       outDir,
       emptyOutDir: true,
-      sourcemap: false
+      sourcemap: true
     }
   });
 });
@@ -65,4 +73,14 @@ test('the production build packages runtime plugins instead of requesting source
 
 test('the production build includes the favicon referenced by index.html', () => {
   assert.equal(statSync(resolve(outDir, 'image/favicon.png')).isFile(), true);
+});
+
+test('the production build contains no unclassified runtime JavaScript', async () => {
+  const sources = await collectRuntimeSources(outDir, root);
+  const allowlist = JSON.parse(readFileSync(allowlistPath, 'utf8'));
+
+  assert.deepEqual(validateRuntimeJavaScript(sources, allowlist), {
+    violations: [],
+    staleEntries: []
+  });
 });
