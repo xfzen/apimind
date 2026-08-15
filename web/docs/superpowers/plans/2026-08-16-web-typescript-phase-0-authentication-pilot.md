@@ -7,15 +7,19 @@
 
 **Goal:** Establish strict TypeScript, runtime-JavaScript inventory, legacy
 decorator verification, deterministic browser testing, and a fully typed
-authentication pilot without changing Web behavior or migrating `exts/`.
+authentication pilot without migrating `exts/`, with only the explicitly
+scoped Promise-rejection correction described below.
 
 **Architecture:** Keep Vite as the transpiler and run TypeScript 5.9.3 with
 `noEmit` as an independent correctness gate. Model the Go/YApi response
 envelope and redux-promise boundary explicitly, migrate the user reducer and
 login components as one vertical slice, and protect the slice with reducer,
-Vite-transform, mocked-browser, and isolated live-stack verification. Treat
-all production `exts/` modules as classified JavaScript compatibility
-dependencies pending a separate built-in replacement effort.
+Vite-transform, mocked-browser, and isolated live-stack verification. The only
+approved behavior correction is to propagate the existing login dispatch
+promises into their existing rejection handler, removing the current unhandled
+rejection without changing messages or navigation. Treat all
+production `exts/` modules as classified JavaScript compatibility dependencies
+pending a separate built-in replacement effort.
 
 **Tech Stack:** Node.js 22+, npm 10+, TypeScript 5.9.3, React 18.3.1,
 React Redux 8.1.3, Redux 4.2.1, redux-promise 0.5.3, React Router 5.3.4,
@@ -54,8 +58,13 @@ Compose.
   service boundary.
 - Do not access the database directly. Live verification creates state through
   Go APIs or uses an isolated Compose project and volume.
-- Use Web development port `4000` and Go service port `18889`; do not use the
-  desktop embedded-server default `18888`.
+- Default live verification to Web development port `4000` and Go service port
+  `18889`, allow explicit per-run overrides when those ports are occupied, and
+  never use the desktop embedded-server default `18888`.
+- The only approved Phase 0 behavior correction is returning the existing
+  login and LDAP-login dispatch promises from their form callback so the
+  existing terminal `.catch()` handles rejection. Preserve the current error
+  message, success message, and navigation behavior.
 - Do not package the PC App and do not update ApiMind documentation.
 - Do not use subagents. Execute all tasks inline in the primary session.
 - Every implementation task follows RED, GREEN, focused verification, then a
@@ -94,6 +103,9 @@ Compose.
 - Consumes: Vite source maps produced from the real production entry.
 - Produces:
   `collectRuntimeSources(outDir, webRoot): Promise<string[]>`.
+- Produces:
+  `prepareRuntimeBuildInputs(webRoot): Promise<void>`, which executes the
+  repository-owned plugin-module generator before every direct Vite build.
 - Produces:
   `validateRuntimeJavaScript(sources, allowlist): { violations: string[]; staleEntries: string[] }`.
 - Produces CLI modes `--build --check`, `--build --write-baseline`, and
@@ -138,6 +150,12 @@ that `violations` is exactly `['client/new-runtime.js']`. Remove Wiki from the
 allowlist and assert it is also rejected; this prevents new unclassified
 extension dependencies.
 
+Create a temporary Web root containing a minimal
+`scripts/generate-plugin-module.js` that writes
+`client/plugin-module.js`. Call `prepareRuntimeBuildInputs(tempRoot)` and
+assert that the ignored generated file now exists. This test must not rely on
+the developer checkout already containing `client/plugin-module.js`.
+
 - [ ] **Step 2: Run the focused test and verify RED**
 
 Run:
@@ -168,15 +186,22 @@ export function validateRuntimeJavaScript(sources, allowlist) {
 }
 ```
 
+Implement `prepareRuntimeBuildInputs(webRoot)` with `spawn` from
+`node:child_process`. Execute `process.execPath` with the absolute path to
+`scripts/generate-plugin-module.js`, set `cwd` to `webRoot`, use
+`stdio: 'inherit'`, and return a Promise that rejects on a spawn error or
+nonzero exit. Do not copy or synthesize `client/plugin-module.js` inside the
+inventory tool.
+
 Resolve each source relative to its map file, call `realpath`, and accept it
 only when it is inside the current Web root and its first path segment is
 `client`, `common`, or `exts`. Never classify by substring matching.
 
-For `--build`, call Vite's JavaScript API with a temporary output directory,
-`sourcemap: true`, and `emptyOutDir: true`; remove the temporary directory in a
-`finally` block. `--check` exits non-zero for violations or stale entries.
-`--json` prints the normalized inventory and validation result without writing
-repository files.
+For `--build`, first await `prepareRuntimeBuildInputs(webRoot)`, then call
+Vite's JavaScript API with a temporary output directory, `sourcemap: true`, and
+`emptyOutDir: true`; remove the temporary directory in a `finally` block.
+`--check` exits non-zero for violations or stale entries. `--json` prints the
+normalized inventory and validation result without writing repository files.
 
 - [ ] **Step 4: Generate and inspect the initial baseline**
 
@@ -203,11 +228,13 @@ Remaining `client/` and `common/` entries use exit condition
 
 - [ ] **Step 5: Connect the gate to the existing real Vite build test**
 
-In `web/tests/browser-runtime.test.mjs`, reuse the temporary production build
-created in its `before` hook. Add one test that calls
-`collectRuntimeSources(outDir, root)`, loads the checked-in allowlist, and
-asserts both `violations` and `staleEntries` are empty. Do not add a second
-production build to this test file.
+In `web/tests/browser-runtime.test.mjs`, import
+`prepareRuntimeBuildInputs()` and call it in the `before` hook before the
+existing direct Vite build. Reuse that temporary production build, add one test
+that calls `collectRuntimeSources(outDir, root)`, loads the checked-in
+allowlist, and asserts both `violations` and `staleEntries` are empty. Do not
+add a second production build to this test file. This setup must pass after a
+clean checkout where ignored `client/plugin-module.js` is initially absent.
 
 - [ ] **Step 6: Verify GREEN and commit**
 
@@ -341,9 +368,9 @@ weaken checking for repository `.ts` or `.tsx` files.
 Create `web/types/browser-globals.d.ts`:
 
 ```ts
-declare const __YAPI_API_BASE__: string;
-
 declare global {
+  const __YAPI_API_BASE__: string;
+
   interface Window {
     API_BASE?: string;
     Buffer?: typeof import('buffer').Buffer;
@@ -779,6 +806,7 @@ git commit -m "refactor(web): migrate authentication UI to TypeScript"
 - Create: `web/tests/browser/fixtures/auth/project-list.json`
 - Create: `web/tests/browser/auth.spec.ts`
 - Create: `web/tests/browser/decorator-canary.spec.ts`
+- Modify: `web/client/containers/Login/Login.tsx`
 - Modify: `web/package.json`
 - Modify: `web/package-lock.json`
 - Modify: root `Makefile`
@@ -825,6 +853,16 @@ Create JSON fixtures matching the Go response contracts:
 }
 ```
 
+Use this Server-compatible failed-login fixture:
+
+```json
+{
+  "errcode": 400,
+  "errmsg": "用户名或密码错误",
+  "data": null
+}
+```
+
 The member-status fixture adds `ladp: false` and `canRegister: true`. The group
 fixture uses ID `11`, name `个人空间`, type `private`, role `owner`, and an
 empty compatible `custom_field1`. The project-list fixture uses
@@ -846,7 +884,8 @@ Create tests that assert:
 2. successful login posts the exact email/password fields, navigates to
    `/group` or `/group/11`, and renders `个人空间` plus `项目列表`;
 3. failed login remains on `/login` and does not render authenticated
-   navigation;
+   navigation, while rendering the Ant Design message `用户名或密码错误` but
+   producing no unhandled rejection or `pageerror`;
 4. the decorator canary increments from `connected:0` to `connected:1` after
    its callback is passed separately and invoked by the button.
 
@@ -918,7 +957,60 @@ export default defineConfig({
 Add browser test files and `playwright.config.ts` to `tsconfig.include` now
 that Playwright and Node types are direct dependencies.
 
-- [ ] **Step 5: Wire the explicit browser target into package, Make, and CI**
+- [ ] **Step 5: Run the failed-login case and verify the existing rejection bug**
+
+Run:
+
+```bash
+cd web
+npm run test:browser -- tests/browser/auth.spec.ts --grep "failed login"
+```
+
+Expected: FAIL because `messageMiddleware` throws for the nonzero login
+response, while `Login.tsx` does not return the nested dispatch promise to the
+existing terminal `.catch()`. The console guard must report the resulting
+unhandled rejection or `pageerror`; do not weaken the guard or allowlist the
+error.
+
+- [ ] **Step 6: Propagate dispatch promises to the existing rejection handlers**
+
+In `Login.tsx`, return the dispatch promise from both branches of the
+`validateFields().then(...)` callback:
+
+```ts
+if (this.props.isLDAP && this.state.loginType === 'ldap') {
+  return this.props.loginLdapActions(values).then(res => {
+    if (res.payload.data.errcode === 0) {
+      this.props.history.replace('/group');
+      message.success('登录成功! ');
+    }
+  });
+}
+
+return this.props.loginActions(values).then(res => {
+  if (res.payload.data.errcode === 0) {
+    this.props.history.replace('/group');
+    message.success('登录成功! ');
+  }
+});
+```
+
+Retain the existing terminal `.catch(() => {})`. Do not suppress the
+middleware error, change its Ant Design message, navigate on failure, change
+the Redux action shape, or alter registration behavior in this fix.
+
+Rerun:
+
+```bash
+cd web
+npm run test:browser -- tests/browser/auth.spec.ts --grep "failed login"
+npm run typecheck
+```
+
+Expected: PASS. The visible failure behavior is unchanged, and the rejected
+dispatch promise is now consumed by the pre-existing form promise chain.
+
+- [ ] **Step 7: Wire the explicit browser target into package, Make, and CI**
 
 Add root Make target:
 
@@ -938,7 +1030,7 @@ In the Web job of `.github/workflows/verify.yml`, after `npm ci`, add:
 
 After `make build-web`, add `make test-web-browser`.
 
-- [ ] **Step 6: Verify GREEN and commit**
+- [ ] **Step 8: Verify GREEN and commit**
 
 Run:
 
@@ -959,7 +1051,7 @@ failed login all pass with no unclassified request or console error.
 Commit:
 
 ```bash
-git add Makefile .github/workflows/verify.yml web/package.json web/package-lock.json web/playwright.config.ts web/tsconfig.json web/tests/browser
+git add Makefile .github/workflows/verify.yml web/client/containers/Login/Login.tsx web/package.json web/package-lock.json web/playwright.config.ts web/tsconfig.json web/tests/browser
 git commit -m "test(web): cover TypeScript authentication pilot"
 ```
 
@@ -977,10 +1069,14 @@ git commit -m "test(web): cover TypeScript authentication pilot"
 **Interfaces:**
 
 - Produces `make test-web-browser-live`, which starts an isolated Mongo/Go
-  Compose project, starts Vite on `4000` against Go `18889`, runs real login,
-  and deletes only the isolated Compose project and volume.
+  Compose project, starts Vite on port `4000` by default against Go port
+  `18889` by default, runs real login, and deletes only that invocation's
+  uniquely named Compose project and volume.
 - Requires `APIMIND_DEFAULT_PASSWORD`; accepts
   `APIMIND_DEFAULT_USERNAME`, defaulting to `admin@example.invalid`.
+- Accepts `APIMIND_LIVE_WEB_PORT` and `APIMIND_LIVE_SERVER_PORT` for explicit
+  per-run overrides and fails before starting services if either selected port
+  is already in use.
 - Does not write to MongoDB directly.
 
 - [ ] **Step 1: Write the failing live authentication test**
@@ -1003,18 +1099,34 @@ trace retention on failure.
 Create `web/scripts/smoke/typescript-pilot-live.sh` with `set -eu`. It must:
 
 1. require `APIMIND_DEFAULT_PASSWORD` and default the username;
-2. use Compose project name `apimind-ts-pilot` and `.env.example`;
-3. start only `mongo` and `server` from the base and development Compose files;
-4. wait for `http://127.0.0.1:18889/api/ping`;
-5. start Vite with `YAPI_API_TARGET=http://127.0.0.1:18889`,
-   `YAPI_WEB_HOST=127.0.0.1`, and `YAPI_WEB_PORT=4000`;
-6. wait for `http://127.0.0.1:4000/`;
-7. run only `tests/browser/live-auth.spec.ts` with the live config;
-8. use a trap to stop Vite and run Compose `down -v --remove-orphans` for
-   project `apimind-ts-pilot` on success, failure, or interruption.
+2. set `server_port=${APIMIND_LIVE_SERVER_PORT:-18889}` and
+   `web_port=${APIMIND_LIVE_WEB_PORT:-4000}`, require each value to contain only
+   decimal digits and be within `1..65535`, and reject `server_port=18888`;
+3. before starting Compose, use a short Node `node:net` probe bound to
+   `127.0.0.1` to verify both selected ports are free; fail with a message that
+   names the matching override variable rather than stopping another process;
+4. derive the Compose project name as
+   `apimind-ts-pilot-$(date +%s)-$$`, combining the start epoch and runner PID,
+   and pass that exact value through `docker compose -p` to every Compose
+   command; never accept an externally supplied project name;
+5. use `.env.example` and start only `mongo` and `server` from the base and
+   development Compose files, passing `APIMIND_SERVER_PORT="$server_port"`;
+6. wait for `http://127.0.0.1:${server_port}/api/ping`;
+7. start Vite with
+   `YAPI_API_TARGET=http://127.0.0.1:${server_port}`,
+   `YAPI_WEB_HOST=127.0.0.1`, and `YAPI_WEB_PORT=${web_port}`;
+8. wait for `http://127.0.0.1:${web_port}/` and export
+   `APIMIND_LIVE_BASE_URL=http://127.0.0.1:${web_port}`;
+9. run only `tests/browser/live-auth.spec.ts` with the live config;
+10. use a trap to stop only the captured Vite PID and run Compose
+    `down -v --remove-orphans` with the exact generated project name on success,
+    failure, or interruption. Install the trap before starting either service.
 
-Do not reference an unscoped volume name and do not run `down -v` against the
-developer's normal Compose project.
+Quote every resolved variable. Do not reference an unscoped volume name, use a
+fixed Compose project name, kill a process discovered by port, or run `down -v`
+against the developer's normal Compose project. Port probing is fail-fast
+protection rather than a lock; if a bind still races, preserve the original
+failure and clean up only this invocation's generated project.
 
 - [ ] **Step 3: Add and run the live Make target**
 
@@ -1022,7 +1134,7 @@ Add:
 
 ```make
 .PHONY: test-web-browser-live
-test-web-browser-live: web-install ## Run isolated live Go/Web authentication smoke.
+test-web-browser-live: bootstrap web-install ## Run isolated live Go/Web authentication smoke.
 	sh web/scripts/smoke/typescript-pilot-live.sh
 ```
 
@@ -1034,6 +1146,16 @@ APIMIND_DEFAULT_PASSWORD=pilot-local-password make test-web-browser-live
 
 Expected: real login reaches the workspace/group page, and the isolated stack
 and volume no longer exist after the command exits.
+
+If the documented development ports are already occupied, run a second
+explicitly isolated invocation without stopping the existing stack:
+
+```bash
+APIMIND_DEFAULT_PASSWORD=pilot-local-password \
+APIMIND_LIVE_SERVER_PORT=18890 \
+APIMIND_LIVE_WEB_PORT=4001 \
+make test-web-browser-live
+```
 
 - [ ] **Step 4: Run the complete Phase 0 verification matrix**
 
