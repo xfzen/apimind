@@ -1,5 +1,5 @@
 import { combineReducers } from 'redux';
-import user from './user.js';
+import user from './user';
 import group from './group.js';
 import project from './project.js';
 import inter from './interface.js';

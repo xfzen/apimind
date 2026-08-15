@@ -602,12 +602,6 @@
       "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
     },
     {
-      "path": "client/reducer/modules/user.js",
-      "classification": "migration-target",
-      "reason": "Authentication pilot runtime module",
-      "exitCondition": "Phase 0 authentication pilot"
-    },
-    {
       "path": "client/shims/Collapse.js",
       "classification": "migration-target",
       "reason": "Existing production JavaScript module awaiting TypeScript migration",
