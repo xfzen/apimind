@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   loadPhaseThreeModuleMap,
+  phaseThreeExcludedPaths,
   scanCompletedTargets,
   validatePhaseThreeModuleMap
 } from '../scripts/typescript/phase3-module-policy.mjs';
@@ -26,6 +27,36 @@ function countByWave(entries) {
     wave => entries.filter(entry => entry.wave === wave).length
   );
 }
+
+const retiredDormantJavaScript = [
+  'client/components/Docs/DocToc.js',
+  'client/components/Docs/DocTree.js',
+  'client/components/Docs/MarkdownOutline.js',
+  'client/components/Docs/MilkdownEditor.js',
+  'client/components/MockDoc/MockDoc.js',
+  'client/containers/DevTools/DevTools.js',
+  'client/containers/Group/ProjectList/UpDateModal.js',
+  'client/containers/News/News.js',
+  'client/containers/News/NewsList/NewsList.js',
+  'client/containers/News/NewsTimeline/NewsTimeline.js',
+  'common/config.js',
+  'common/createContext.js',
+  'common/formats.js',
+  'common/mergeJsonSchema.js',
+  'common/plugin.js'
+];
+
+test('dormant JavaScript stays retired while live compatibility dependencies remain explicit', async () => {
+  assert.deepEqual(phaseThreeExcludedPaths, [
+    'client/builtins/pluginRegistry.js',
+    'common/lib.js',
+    'common/markdown.js'
+  ]);
+
+  for (const path of retiredDormantJavaScript) {
+    assert.equal(await exists(resolve(webRoot, path)), false, `${path} must stay retired`);
+  }
+});
 
 test('Phase 3 map defines a dependency-closed 88-module migration', async () => {
   const map = await loadPhaseThreeModuleMap(webRoot);

@@ -13,23 +13,8 @@ const expectedWaveCounts = [13, 20, 22, 27, 6];
 
 export const phaseThreeExcludedPaths = [
   'client/builtins/pluginRegistry.js',
-  'client/components/Docs/DocToc.js',
-  'client/components/Docs/DocTree.js',
-  'client/components/Docs/MarkdownOutline.js',
-  'client/components/Docs/MilkdownEditor.js',
-  'client/components/MockDoc/MockDoc.js',
-  'client/containers/DevTools/DevTools.js',
-  'client/containers/Group/ProjectList/UpDateModal.js',
-  'client/containers/News/News.js',
-  'client/containers/News/NewsList/NewsList.js',
-  'client/containers/News/NewsTimeline/NewsTimeline.js',
-  'common/config.js',
-  'common/createContext.js',
-  'common/formats.js',
   'common/lib.js',
-  'common/markdown.js',
-  'common/mergeJsonSchema.js',
-  'common/plugin.js'
+  'common/markdown.js'
 ];
 
 function normalizePath(path) {
