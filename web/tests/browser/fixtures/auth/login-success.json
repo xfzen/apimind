@@ -1,0 +1,14 @@
+{
+  "errcode": 0,
+  "errmsg": "成功！",
+  "data": {
+    "_id": 7,
+    "id": 7,
+    "uid": 7,
+    "username": "pilot",
+    "email": "pilot@example.invalid",
+    "role": "admin",
+    "type": "site",
+    "study": true
+  }
+}

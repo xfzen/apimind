@@ -62,6 +62,7 @@ function buildProxyFromConfig(cfg) {
 const devProxy = buildProxyFromConfig(DEV_PROXY);
 
 export default defineConfig({
+  cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
   publicDir: 'static',
   plugins: [
     // Remove CommonJS transform for local sources to avoid transform crashes.
@@ -104,8 +105,7 @@ export default defineConfig({
         plugins: [
           [require.resolve('@babel/plugin-proposal-decorators'), { legacy: true }],
           [require.resolve('@babel/plugin-proposal-class-properties'), { loose: true }],
-          [require.resolve('@babel/plugin-transform-runtime'), { regenerator: true }],
-          [require.resolve('babel-plugin-import'), { libraryName: 'antd', libraryDirectory: 'es' }]
+          [require.resolve('@babel/plugin-transform-runtime'), { regenerator: true }]
         ],
         presets: [],
         parserOpts: {
@@ -164,6 +164,9 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
+    // npm resolves this file dependency to vendor/, so Vite treats it as source unless forced.
+    // Pre-bundling restores the CommonJS default export used by the browser application.
+    include: ['@apimind/mockjs-safe'],
     // esbuild pre-bundler needs to parse our source which uses JSX in .js files
     esbuildOptions: {
       loader: {
@@ -175,7 +178,7 @@ export default defineConfig({
       }
     },
     // Ensure CommonJS consumers (antd LocaleProvider) see moment's instance functions
-    needsInterop: ['moment', 'json-schema-editor-visual', 'react-is']
+    needsInterop: ['@apimind/mockjs-safe', 'moment', 'json-schema-editor-visual', 'react-is']
   },
   build: {
     outDir: 'dist',

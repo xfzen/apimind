@@ -78,7 +78,7 @@ export default class GroupList extends Component {
     super(props);
   }
 
-  async componentWillMount() {
+  async UNSAFE_componentWillMount() {
     const groupId = !isNaN(this.props.match.params.groupId)
       ? parseInt(this.props.match.params.groupId)
       : 0;
@@ -201,7 +201,7 @@ export default class GroupList extends Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // GroupSetting 组件设置的分组信息，通过redux同步到左侧分组菜单中
     if (this.props.groupList !== nextProps.groupList) {
       this.setState({
@@ -212,6 +212,29 @@ export default class GroupList extends Component {
 
   render() {
     const { currGroup } = this.props;
+    const menuItems = this.state.groupList.map(group => ({
+      key: `${group._id}`,
+      className: 'group-item',
+      style:
+        group.type === 'private'
+          ? { zIndex: this.props.studyTip === 0 ? 3 : 1 }
+          : undefined,
+      icon: <Icon type={group.type === 'private' ? 'user' : 'folder-open'} />,
+      label:
+        group.type === 'private' ? (
+          <Popover
+            overlayClassName="popover-index"
+            content={<GuideBtns />}
+            title={tip}
+            placement="right"
+            open={this.props.studyTip === 0 && !this.props.study}
+          >
+            {group.group_name}
+          </Popover>
+        ) : (
+          group.group_name
+        )
+    }));
     return (
       <div className="m-group">
         {!this.props.study ? <div className="study-mask" /> : null}
@@ -248,37 +271,8 @@ export default class GroupList extends Component {
             mode="inline"
             onClick={this.selectGroup}
             selectedKeys={[`${currGroup._id}`]}
-          >
-            {this.state.groupList.map(group => {
-              if (group.type === 'private') {
-                return (
-                  <Menu.Item
-                    key={`${group._id}`}
-                    className="group-item"
-                    style={{ zIndex: this.props.studyTip === 0 ? 3 : 1 }}
-                  >
-                    <Icon type="user" />
-                    <Popover
-                      overlayClassName="popover-index"
-                      content={<GuideBtns />}
-                      title={tip}
-                      placement="right"
-                      open={this.props.studyTip === 0 && !this.props.study}
-                    >
-                      {group.group_name}
-                    </Popover>
-                  </Menu.Item>
-                );
-              } else {
-                return (
-                  <Menu.Item key={`${group._id}`} className="group-item">
-                    <Icon type="folder-open" />
-                    {group.group_name}
-                  </Menu.Item>
-                );
-              }
-            })}
-          </Menu>
+            items={menuItems}
+          />
         </div>
         {this.state.addGroupModalVisible ? (
           <Modal

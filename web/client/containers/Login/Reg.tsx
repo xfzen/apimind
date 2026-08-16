@@ -1,8 +1,11 @@
 import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Form, Button, Input, message } from 'antd';
 import type { FormInstance } from 'antd';
+import Button from 'antd/es/button';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import message from 'antd/es/message';
 import type { RouteComponentProps } from 'react-router';
 import { withRouter } from 'react-router';
 import Icon from 'client/shims/antdIcon';

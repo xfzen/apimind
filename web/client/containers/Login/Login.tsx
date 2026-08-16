@@ -1,8 +1,12 @@
 import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Form, Button, Input, message, Radio } from 'antd';
 import type { FormInstance, RadioChangeEvent } from 'antd';
+import Button from 'antd/es/button';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import message from 'antd/es/message';
+import Radio from 'antd/es/radio';
 import type { RouteComponentProps } from 'react-router';
 import { withRouter } from 'react-router';
 import Icon from 'client/shims/antdIcon';
@@ -94,20 +98,20 @@ class Login extends Component<LoginProps, LoginState> {
       .validateFields()
       .then(values => {
         if (this.props.isLDAP && this.state.loginType === 'ldap') {
-          this.props.loginLdapActions!(values).then(res => {
-            if (res.payload.data.errcode === 0) {
-              this.props.history!.replace('/group');
-              message.success('登录成功! ');
-            }
-          });
-        } else {
-          this.props.loginActions!(values).then(res => {
+          return this.props.loginLdapActions!(values).then(res => {
             if (res.payload.data.errcode === 0) {
               this.props.history!.replace('/group');
               message.success('登录成功! ');
             }
           });
         }
+
+        return this.props.loginActions!(values).then(res => {
+          if (res.payload.data.errcode === 0) {
+            this.props.history!.replace('/group');
+            message.success('登录成功! ');
+          }
+        });
       })
       .catch(() => {});
   };

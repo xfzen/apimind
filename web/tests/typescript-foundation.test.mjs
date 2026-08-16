@@ -22,6 +22,8 @@ test('TypeScript compiler and direct declaration dependencies are pinned', async
   assert.equal(pkg.devDependencies['@types/core-decorators'], '0.20.0');
   assert.equal(pkg.devDependencies['@types/prop-types'], '15.7.15');
   assert.equal(pkg.devDependencies['@types/underscore'], '1.13.0');
+  assert.equal(pkg.devDependencies['@types/node'], '22.20.0');
+  assert.equal(pkg.devDependencies['@playwright/test'], '1.62.1');
   assert.equal(pkg.scripts.typecheck, 'tsc --project tsconfig.json --pretty false');
 });
 
@@ -41,6 +43,9 @@ test('tsconfig enables strict no-emit checking for repository TypeScript roots',
     'client/**/*.tsx',
     'common/**/*.ts',
     'common/**/*.tsx',
+    'playwright.config.ts',
+    'tests/browser/**/*.ts',
+    'tests/fixtures/**/*.tsx',
     'types/**/*.d.ts'
   ]);
   assert.equal(tsconfig.include.some(path => path === 'exts' || path.startsWith('exts/')), false);

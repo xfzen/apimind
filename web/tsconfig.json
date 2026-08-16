@@ -30,6 +30,8 @@
     "client/**/*.tsx",
     "common/**/*.ts",
     "common/**/*.tsx",
+    "playwright.config.ts",
+    "tests/browser/**/*.ts",
     "tests/fixtures/**/*.tsx",
     "types/**/*.d.ts"
   ],

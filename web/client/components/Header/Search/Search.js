@@ -10,8 +10,6 @@ import { setCurrGroup, fetchGroupMsg } from '../../../reducer/modules/group';
 import { changeMenuItem } from '../../../reducer/modules/menu';
 
 import { fetchInterfaceListMenu } from '../../../reducer/modules/interface';
-const Option = AutoComplete.Option;
-
 @connect(
   state => ({
     groupList: state.group.groupList,
@@ -46,17 +44,17 @@ export default class Srch extends Component {
   };
 
   onSelect = async (value, option) => {
-    if (option.props.type === '分组') {
+    if (option.type === '分组') {
       this.props.changeMenuItem('/group');
-      this.props.history.push('/group/' + option.props['id']);
-      this.props.setCurrGroup({ group_name: value, _id: option.props['id'] - 0 });
-    } else if (option.props.type === '项目') {
-      await this.props.fetchGroupMsg(option.props['groupId']);
-      this.props.history.push('/project/' + option.props['id']);
-    } else if (option.props.type === '接口') {
-      await this.props.fetchInterfaceListMenu(option.props['projectId']);
+      this.props.history.push('/group/' + option.id);
+      this.props.setCurrGroup({ group_name: value, _id: option.id - 0 });
+    } else if (option.type === '项目') {
+      await this.props.fetchGroupMsg(option.groupId);
+      this.props.history.push('/project/' + option.id);
+    } else if (option.type === '接口') {
+      await this.props.fetchInterfaceListMenu(option.projectId);
       this.props.history.push(
-        '/project/' + option.props['projectId'] + '/interface/api/' + option.props['id']
+        '/project/' + option.projectId + '/interface/api/' + option.id
       );
     }
   };
@@ -71,40 +69,33 @@ export default class Srch extends Component {
             res.data.data[title].map(item => {
               switch (title) {
                 case 'group':
-                  dataSource.push(
-                    <Option
-                      key={`分组${item._id}`}
-                      type="分组"
-                      value={`${item.groupName}`}
-                      id={`${item._id}`}
-                    >
-                      {`分组: ${item.groupName}`}
-                    </Option>
-                  );
+                  dataSource.push({
+                    key: `分组${item._id}`,
+                    type: '分组',
+                    value: `${item.groupName}`,
+                    id: `${item._id}`,
+                    label: `分组: ${item.groupName}`
+                  });
                   break;
                 case 'project':
-                  dataSource.push(
-                    <Option
-                      key={`项目${item._id}`}
-                      type="项目"
-                      id={`${item._id}`}
-                      groupId={`${item.groupId}`}
-                    >
-                      {`项目: ${item.name}`}
-                    </Option>
-                  );
+                  dataSource.push({
+                    key: `项目${item._id}`,
+                    type: '项目',
+                    value: `${item.name}`,
+                    id: `${item._id}`,
+                    groupId: `${item.groupId}`,
+                    label: `项目: ${item.name}`
+                  });
                   break;
                 case 'interface':
-                  dataSource.push(
-                    <Option
-                      key={`接口${item._id}`}
-                      type="接口"
-                      id={`${item._id}`}
-                      projectId={`${item.projectId}`}
-                    >
-                      {`接口: ${item.title}`}
-                    </Option>
-                  );
+                  dataSource.push({
+                    key: `接口${item._id}`,
+                    type: '接口',
+                    value: `${item.title}`,
+                    id: `${item._id}`,
+                    projectId: `${item.projectId}`,
+                    label: `接口: ${item.title}`
+                  });
                   break;
                 default:
                   break;
@@ -138,7 +129,7 @@ export default class Srch extends Component {
       <div className="search-wrapper">
         <AutoComplete
           className="search-dropdown"
-          dataSource={dataSource}
+          options={dataSource}
           style={{ width: '100%' }}
           defaultActiveFirstOption={false}
           onSelect={this.onSelect}

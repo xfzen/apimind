@@ -8,6 +8,8 @@ const root = resolve(new URL('../', import.meta.url).pathname);
 const modules = [
   '/client/containers/Login/Login.tsx',
   '/client/containers/Login/Reg.tsx',
+  '/client/containers/Login/LoginWrap.tsx',
+  '/client/containers/Login/LoginContainer.tsx',
   '/tests/fixtures/legacy-decorator-canary.tsx'
 ];
 
@@ -21,6 +23,14 @@ before(async () => {
     optimizeDeps: { noDiscovery: true, include: [] },
     server: { middlewareMode: true }
   });
+});
+
+test('Vite preserves runtime Ant Design imports used only as JSX tags', async () => {
+  const result = await server.transformRequest('/client/containers/Login/LoginContainer.tsx');
+
+  assert.match(result.code, /import Row from/);
+  assert.match(result.code, /import Col from/);
+  assert.match(result.code, /import Card from/);
 });
 
 after(async () => {

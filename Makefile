@@ -71,6 +71,10 @@ test-web: web-install ## Run Web lint and tests.
 	cd web && npm run typecheck
 	cd web && npm test
 
+.PHONY: test-web-browser
+test-web-browser: web-install ## Run deterministic Web browser smoke tests through local Chrome CDP.
+	cd web && npm run test:browser
+
 .PHONY: test-server
 test-server: bootstrap ## Run Server tests.
 	$(MAKE) -C server test

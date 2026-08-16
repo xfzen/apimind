@@ -1,0 +1,7 @@
+{
+  "errcode": 40011,
+  "errmsg": "未登录",
+  "data": null,
+  "ladp": false,
+  "canRegister": true
+}

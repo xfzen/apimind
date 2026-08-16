@@ -1,0 +1,19 @@
+{
+  "errcode": 0,
+  "errmsg": "成功！",
+  "data": [
+    {
+      "_id": 11,
+      "id": 11,
+      "uid": 7,
+      "group_name": "个人空间",
+      "group_desc": "",
+      "type": "private",
+      "role": "owner",
+      "custom_field1": {
+        "name": "",
+        "enable": false
+      }
+    }
+  ]
+}

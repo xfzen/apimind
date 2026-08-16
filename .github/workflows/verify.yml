@@ -76,6 +76,7 @@ jobs:
         run: |
           make test-web
           make build-web
+          make test-web-browser
 
   skills:
     runs-on: ubuntu-latest
