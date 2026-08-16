@@ -120,6 +120,26 @@ export default defineConfig({
         find: /^(?:.*\/)?constants\/variable\.js$/,
         replacement: path.resolve(__dirname, 'client/constants/variable.ts')
       },
+      {
+        find: /^(?:.*\/)?common\/postmanLib\.js$/,
+        replacement: path.resolve(__dirname, 'common/postmanLib.ts')
+      },
+      {
+        find: /^(?:.*\/)?common\/sanitize\.js$/,
+        replacement: path.resolve(__dirname, 'common/sanitize.ts')
+      },
+      {
+        find: /^(?:.*\/)?common\/schema-transformTo-table\.js$/,
+        replacement: path.resolve(__dirname, 'common/schema-transformTo-table.ts')
+      },
+      {
+        find: /^(?:.*\/)?common\/utils\.js$/,
+        replacement: path.resolve(__dirname, 'common/utils.ts')
+      },
+      {
+        find: /^(?:.*\/)?common\/validators\.js$/,
+        replacement: path.resolve(__dirname, 'common/validators.ts')
+      },
       { find: 'client', replacement: path.resolve(__dirname, 'client') },
       { find: 'common', replacement: path.resolve(__dirname, 'common') },
       { find: 'exts', replacement: path.resolve(__dirname, 'exts') },

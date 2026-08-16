@@ -226,6 +226,7 @@
       "!test/server/**/*.js"
     ],
     "require": [
+      "./test/register-typescript.cjs",
       "@babel/register"
     ]
   },

@@ -1,4 +1,8 @@
-export function isSafeEmail(value) {
+export interface EmailRule {
+  validator: (rule: unknown, value: unknown) => Promise<void>;
+}
+
+export function isSafeEmail(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > 254) {
     return false;
   }
@@ -23,9 +27,9 @@ export function isSafeEmail(value) {
   return domain.split('.').every(part => /^[A-Za-z0-9-]{1,63}$/.test(part) && !part.startsWith('-') && !part.endsWith('-'));
 }
 
-export function emailRule(message = '请输入正确的email!') {
+export function emailRule(message = '请输入正确的email!'): EmailRule {
   return {
-    validator: (rule, value) => {
+    validator: (_rule: unknown, value: unknown) => {
       if (!value || isSafeEmail(value)) {
         return Promise.resolve();
       }

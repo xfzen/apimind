@@ -1,8 +1,11 @@
 import * as constants from '../client/constants/variable.js';
 import _ from 'underscore';
+import type { HttpMethod } from '../client/types/runtime';
 
 const HTTP_METHOD = constants.HTTP_METHOD;
-const ContentTypeMap = {
+type ContentKind = 'json' | 'xml' | 'html' | 'text';
+
+const ContentTypeMap: Record<string, ContentKind> = {
   'application/json': 'json',
   'application/xml': 'xml',
   'text/xml': 'xml',
@@ -11,7 +14,7 @@ const ContentTypeMap = {
   other: 'text'
 };
 
-function handleContentType(headers) {
+function handleContentType(headers: Record<string, string> | null | undefined): ContentKind {
   if (!headers || typeof headers !== 'object') return ContentTypeMap.other;
   let contentTypeItem = 'other';
   try {
@@ -29,7 +32,10 @@ function handleContentType(headers) {
   }
 }
 
-function checkRequestBodyIsRaw(method, reqBodyType) {
+function checkRequestBodyIsRaw(
+  method: HttpMethod,
+  reqBodyType: string | null | undefined
+): string | false {
   if (
     reqBodyType &&
     reqBodyType !== 'file' &&
@@ -41,7 +47,7 @@ function checkRequestBodyIsRaw(method, reqBodyType) {
   return false;
 }
 
-function checkNameIsExistInArray(name, arr) {
+function checkNameIsExistInArray<T extends { name: string }>(name: string, arr: readonly T[]): boolean {
   for (let i = 0; i < arr.length; i++) {
     if (arr[i].name === name) {
       return true;
@@ -50,7 +56,10 @@ function checkNameIsExistInArray(name, arr) {
   return false;
 }
 
-function handleCurrDomain(domains, caseEnv) {
+function handleCurrDomain<T extends { name: string }>(
+  domains: readonly T[],
+  caseEnv: string
+): T | undefined {
   return _.find(domains, item => item.name === caseEnv) || domains[0];
 }
 

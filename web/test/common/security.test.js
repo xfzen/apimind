@@ -1,5 +1,5 @@
 import test from 'ava';
-import { isSafeEmail } from '../../common/validators.js';
+import { isSafeEmail } from '../../common/validators.ts';
 
 test('isSafeEmail accepts normal email addresses', t => {
   t.true(isSafeEmail('user.name+tag@example.com'));

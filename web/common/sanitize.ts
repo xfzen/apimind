@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify';
 
-export function sanitizeHTML(value) {
+export function sanitizeHTML(value: unknown): string {
   if (value === undefined || value === null) {
     return '';
   }
