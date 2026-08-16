@@ -5,7 +5,7 @@ import { Tabs, Modal, Button } from 'antd';
 import Edit from './Edit.js';
 import View from './View.js';
 import { Prompt } from 'react-router';
-import { fetchInterfaceData } from '../../../../reducer/modules/interface.js';
+import { fetchInterfaceData } from '../../../../reducer/modules/interface';
 import { withRouter } from 'react-router-dom';
 import plugin from 'client/plugin.js';
 

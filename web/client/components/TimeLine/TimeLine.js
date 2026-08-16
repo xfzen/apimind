@@ -8,7 +8,7 @@ import showDiffMsg from '../../../common/diff-view.ts';
 import variable from '../../constants/variable';
 import { Link } from 'react-router-dom';
 import { fetchNewsData, fetchMoreNews } from '../../reducer/modules/news';
-import { fetchInterfaceList } from '../../reducer/modules/interface.js';
+import { fetchInterfaceList } from '../../reducer/modules/interface';
 import ErrMsg from '../ErrMsg/ErrMsg.js';
 import * as jsondiffpatch from 'jsondiffpatch';
 import * as formattersHtml from 'jsondiffpatch/formatters/html';

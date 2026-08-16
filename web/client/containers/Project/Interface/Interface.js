@@ -16,7 +16,7 @@ import InterfaceColMenu from './InterfaceCol/InterfaceColMenu.js';
 import InterfaceColContent from './InterfaceCol/InterfaceColContent.js';
 import InterfaceCaseContent from './InterfaceCol/InterfaceCaseContent.js';
 import { getProject } from '../../../reducer/modules/project';
-import { setColData } from '../../../reducer/modules/interfaceCol.js';
+import { setColData } from '../../../reducer/modules/interfaceCol';
 import { LAYOUT } from '../../../constants/variable.js';
 const contentRouter = {
   path: '/project/:id/interface/:action/:actionId',

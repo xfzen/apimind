@@ -5,7 +5,7 @@ import Icon from 'client/shims/antdIcon';
 import variable from '../../../../constants/variable';
 import { connect } from 'react-redux';
 const Option = Select.Option;
-import { fetchInterfaceListMenu } from '../../../../reducer/modules/interface.js';
+import { fetchInterfaceListMenu } from '../../../../reducer/modules/interface';
 
 @connect(
   state => {

@@ -9,7 +9,7 @@ import {
   fetchInterfaceListMenu,
   fetchInterfaceList,
   fetchInterfaceCatList
-} from '../../../../reducer/modules/interface.js';
+} from '../../../../reducer/modules/interface';
 import { getProject } from '../../../../reducer/modules/project.js';
 import { Link } from 'react-router-dom';
 import variable from '../../../../constants/variable';

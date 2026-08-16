@@ -6,7 +6,7 @@ import {
   updateInterfaceData,
   fetchInterfaceListMenu,
   fetchInterfaceData
-} from '../../../../reducer/modules/interface.js';
+} from '../../../../reducer/modules/interface';
 import { getProject } from '../../../../reducer/modules/project.js';
 import axios from 'axios';
 import { buildMockUrl, buildWsUrl } from '../../../../utils/backend';
