@@ -43,6 +43,8 @@ export function emitHook(name, registry) {
 function reduxRuntimeStub() {
   const virtualModules = new Map([
     ['redux-test-axios', ['\0apimind-redux-test-axios', axiosModule]],
+    ['redux-test-plugin', ['\0apimind-redux-test-plugin', pluginModule]],
+    ['redux-test-antd', ['\0apimind-redux-test-antd', antdModule]],
     ['antd', ['\0apimind-redux-test-antd', antdModule]],
     ['client/plugin.js', ['\0apimind-redux-test-plugin', pluginModule]]
   ]);
@@ -61,7 +63,10 @@ function reduxRuntimeStub() {
     },
     transform(code, id) {
       if (!id.includes('/client/reducer/') || !/\.[jt]s$/.test(id)) return null;
-      return code.replace(/from ['"]axios['"]/g, "from 'redux-test-axios'");
+      return code
+        .replace(/from ['"]axios['"]/g, "from 'redux-test-axios'")
+        .replace(/from ['"]antd['"]/g, "from 'redux-test-antd'")
+        .replace(/from ['"]client\/plugin\.js['"]/g, "from 'redux-test-plugin'");
     }
   };
 }
