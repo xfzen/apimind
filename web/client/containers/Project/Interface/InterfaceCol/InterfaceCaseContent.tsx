@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
@@ -13,19 +14,56 @@ import {
   fetchCaseList
 } from '../../../../reducer/modules/interfaceCol';
 import { Postman } from '../../../../components';
+import type { RunData } from '../../../../components/Postman/Postman';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { InterfaceCollection } from '../../../../reducer/modules/interfaceCol';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { ApiResponse } from '../../../../types/api';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 import './InterfaceCaseContent.scss';
 
-@connect(
-  state => {
+interface CaseRecord extends RunData {
+  _id: number;
+  project_id: number;
+  interface_id: number;
+  casename: string;
+}
+interface CaseCollection extends UnknownRecord { _id: number; caseList: CaseRecord[] }
+interface ProjectRecord extends UnknownRecord { pre_script?: string; after_script?: string }
+interface ProjectEnvironmentRecord extends UnknownRecord { env: RunData['env'] }
+interface CaseRouteParams { id: string; actionId: string }
+interface InterfaceCaseContentProps extends RouteComponentProps<CaseRouteParams> {
+  interfaceColList: CaseCollection[];
+  currColId: number;
+  currCaseId: number;
+  currCase: CaseRecord;
+  isShowCol: boolean;
+  currProject: ProjectRecord;
+  projectEnv: ProjectEnvironmentRecord;
+  curUid: number;
+  fetchInterfaceColList: (id: string | number) => Promise<{ payload: { data: ApiResponse<CaseCollection[]> } }>;
+  fetchCaseData: (id: string | number) => Promise<unknown>;
+  setColData: (data: UnknownRecord) => unknown;
+  fetchCaseList: (...args: unknown[]) => Promise<unknown>;
+  getEnv: (id: string | number) => Promise<unknown>;
+}
+interface InterfaceCaseContentState { isEditingCasename: boolean; editCasename: string }
+interface InterfaceCaseContent {
+  postman: React.ElementRef<typeof Postman>;
+}
+
+const connectInterfaceCaseContent = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
-      interfaceColList: state.interfaceCol.interfaceColList,
+      interfaceColList: state.interfaceCol.interfaceColList as unknown as CaseCollection[],
       currColId: state.interfaceCol.currColId,
       currCaseId: state.interfaceCol.currCaseId,
-      currCase: state.interfaceCol.currCase,
+      currCase: state.interfaceCol.currCase as CaseRecord,
       isShowCol: state.interfaceCol.isShowCol,
-      currProject: state.project.currProject,
-      projectEnv: state.project.projectEnv,
+      currProject: state.project.currProject as ProjectRecord,
+      projectEnv: state.project.projectEnv as unknown as ProjectEnvironmentRecord,
       curUid: state.user.uid
     };
   },
@@ -36,9 +74,12 @@ import './InterfaceCaseContent.scss';
     fetchCaseList,
     getEnv
   }
-)
-@withRouter
-export default class InterfaceCaseContent extends Component {
+));
+const routeInterfaceCaseContent = asLegacyClassDecorator(withRouter);
+
+@connectInterfaceCaseContent
+@routeInterfaceCaseContent
+class InterfaceCaseContent extends Component<InterfaceCaseContentProps, InterfaceCaseContentState> {
   static propTypes = {
     match: PropTypes.object,
     interfaceColList: PropTypes.array,
@@ -57,16 +98,16 @@ export default class InterfaceCaseContent extends Component {
     curUid: PropTypes.number
   };
 
-  state = {
+  state: InterfaceCaseContentState = {
     isEditingCasename: true,
     editCasename: ''
   };
 
-  constructor(props) {
+  constructor(props: InterfaceCaseContentProps) {
     super(props);
   }
 
-  getColId(colList, currCaseId) {
+  getColId(colList: CaseCollection[], currCaseId: string | number) {
     let currColId = 0;
     colList.forEach(col => {
       col.caseList.forEach(caseItem => {
@@ -83,8 +124,9 @@ export default class InterfaceCaseContent extends Component {
     let { currCaseId } = this.props;
     const params = this.props.match.params;
     const { actionId } = params;
-    currCaseId = +actionId || +currCaseId || result.payload.data.data[0].caseList[0]._id;
-    let currColId = this.getColId(result.payload.data.data, currCaseId);
+    const list = result.payload.data.data as CaseCollection[];
+    currCaseId = +actionId || +currCaseId || list[0].caseList[0]._id;
+    let currColId = this.getColId(list, currCaseId);
     // this.props.history.push('/project/' + params.id + '/interface/case/' + currCaseId);
     await this.props.fetchCaseData(currCaseId);
     this.props.setColData({ currCaseId: +currCaseId, currColId, isShowCol: false });
@@ -95,7 +137,7 @@ export default class InterfaceCaseContent extends Component {
     this.setState({ editCasename: this.props.currCase.casename });
   }
 
-  async componentWillReceiveProps(nextProps) {
+  async componentWillReceiveProps(nextProps: InterfaceCaseContentProps) {
     const oldCaseId = this.props.match.params.actionId;
     const newCaseId = nextProps.match.params.actionId;
     const { interfaceColList } = nextProps;
@@ -109,8 +151,8 @@ export default class InterfaceCaseContent extends Component {
     }
   }
 
-  savePostmanRef = postman => {
-    this.postman = postman;
+  savePostmanRef = (postman: React.ElementRef<typeof Postman> | null) => {
+    if (postman) this.postman = postman;
   };
 
   updateCase = async () => {
@@ -233,3 +275,5 @@ export default class InterfaceCaseContent extends Component {
     );
   }
 }
+
+export default InterfaceCaseContent as unknown as ComponentType<RouteComponentProps<CaseRouteParams>>;

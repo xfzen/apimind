@@ -100,13 +100,13 @@ interface RequestParam extends UnknownRecord {
   required?: number; enable?: boolean; abled?: boolean;
 }
 type Environment = ProjectEnvironment & UnknownRecord;
-interface RunData extends UnknownRecord {
+export interface RunData extends UnknownRecord {
   _id: string | number; project_id: number; interface_up_time?: number; method: HttpMethod; path?: string;
   req_params: RequestParam[]; req_headers: RequestParam[]; req_query: RequestParam[]; req_body_form: RequestParam[];
   req_body_type?: string; req_body_other?: string; req_body_is_json_schema?: boolean;
   case_env?: string; env: Environment[]; enable_script?: boolean; test_script?: string;
 }
-interface RunProps { data: RunData; save?: MouseEventHandler<HTMLElement>; type: 'case' | 'inter'; curUid: number; interfaceId: number; projectId: number }
+interface RunProps { data: RunData; save?: MouseEventHandler<HTMLElement>; saveTip?: string; type: 'case' | 'inter'; curUid: number; interfaceId: number; projectId: number }
 type ParamArrayKey = 'req_params' | 'req_headers' | 'req_query' | 'req_body_form';
 interface RunState extends RunData {
   loading: boolean; resStatusCode: number | null; test_valid_msg: string | null; resStatusText: string | null;

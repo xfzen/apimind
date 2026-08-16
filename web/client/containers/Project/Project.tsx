@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Route, Switch, Redirect, matchPath } from 'react-router-dom';
@@ -6,7 +7,7 @@ import { Subnav } from '../../components/index';
 import { fetchGroupMsg } from '../../reducer/modules/group';
 import { setBreadcrumb } from '../../reducer/modules/user';
 import { getProject } from '../../reducer/modules/project';
-import Interface from './Interface/Interface.js';
+import Interface from './Interface/Interface';
 import Activity from './Activity/Activity';
 import Setting from './Setting/Setting';
 import Loading from '../../components/Loading/Loading';
@@ -15,11 +16,39 @@ import ProjectData from './Setting/ProjectData/ProjectData';
 import TemplateProject from './TemplateProject/TemplateProject';
 import WikiPage from 'exts/yapi-plugin-wiki/wikiPage/index';
 import plugin from 'client/plugin';
-@connect(
-  state => {
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../reducer/types/runtime';
+import type { GroupRecord } from '../../reducer/modules/group';
+import type { BreadcrumbItem } from '../../types/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+
+interface ProjectRouteParams { id: string }
+interface ProjectRecord extends UnknownRecord {
+  group_id: string | number;
+  name: string;
+  kind?: string;
+}
+interface CurrentGroup extends GroupRecord { type?: string }
+interface ProjectProps extends RouteComponentProps<ProjectRouteParams> {
+  curProject: ProjectRecord;
+  currGroup: CurrentGroup;
+  getProject: (id: string | number) => Promise<unknown>;
+  fetchGroupMsg: (id: string | number) => Promise<unknown>;
+  setBreadcrumb: (items: BreadcrumbItem[]) => unknown;
+}
+interface ProjectRouteConfig {
+  name: string;
+  path: string;
+  component: ComponentType<RouteComponentProps<ProjectRouteParams>>;
+}
+interface SubnavItem { name: string; path: string }
+
+const connectProject = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
-      curProject: state.project.currProject,
-      currGroup: state.group.currGroup
+      curProject: state.project.currProject as ProjectRecord,
+      currGroup: state.group.currGroup as CurrentGroup
     };
   },
   {
@@ -27,8 +56,10 @@ import plugin from 'client/plugin';
     fetchGroupMsg,
     setBreadcrumb
   }
-)
-export default class Project extends Component {
+));
+
+@connectProject
+class Project extends Component<ProjectProps> {
   static propTypes = {
     match: PropTypes.object,
     curProject: PropTypes.object,
@@ -39,7 +70,7 @@ export default class Project extends Component {
     currGroup: PropTypes.object
   };
 
-  constructor(props) {
+  constructor(props: ProjectProps) {
     super(props);
   }
 
@@ -58,7 +89,7 @@ export default class Project extends Component {
     ]);
   }
 
-  async componentWillReceiveProps(nextProps) {
+  async componentWillReceiveProps(nextProps: ProjectProps) {
     const currProjectId = this.props.match.params.id;
     const nextProjectId = nextProps.match.params.id;
     if (currProjectId !== nextProjectId) {
@@ -78,18 +109,19 @@ export default class Project extends Component {
 
   render() {
     const { match, location } = this.props;
-    let routers = {
-      interface: { name: '接口', path: '/project/:id/interface/:action', component: Interface },
-      activity: { name: '动态', path: '/project/:id/activity', component: Activity },
-      wiki: { name: 'Wiki', path: '/project/:id/wiki', component: WikiPage },
-      data: { name: '数据管理', path: '/project/:id/data', component: ProjectData },
-      members: { name: '成员管理', path: '/project/:id/members', component: ProjectMember },
-      setting: { name: '设置', path: '/project/:id/setting', component: Setting }
+    let routers: Record<string, ProjectRouteConfig> = {
+      interface: { name: '接口', path: '/project/:id/interface/:action', component: Interface as ComponentType<RouteComponentProps<ProjectRouteParams>> },
+      activity: { name: '动态', path: '/project/:id/activity', component: Activity as ComponentType<RouteComponentProps<ProjectRouteParams>> },
+      wiki: { name: 'Wiki', path: '/project/:id/wiki', component: WikiPage as ComponentType<RouteComponentProps<ProjectRouteParams>> },
+      data: { name: '数据管理', path: '/project/:id/data', component: ProjectData as ComponentType<RouteComponentProps<ProjectRouteParams>> },
+      members: { name: '成员管理', path: '/project/:id/members', component: ProjectMember as ComponentType<RouteComponentProps<ProjectRouteParams>> },
+      setting: { name: '设置', path: '/project/:id/setting', component: Setting as ComponentType<RouteComponentProps<ProjectRouteParams>> }
     };
 
     plugin.emitHook('sub_nav', routers);
 
-    let key, defaultName;
+    let key: string;
+    let defaultName: string | undefined;
     for (key in routers) {
       if (
         matchPath(location.pathname, {
@@ -118,10 +150,10 @@ export default class Project extends Component {
     //   path: `/project/${match.params.id}/setting`
     // }];
 
-    let subnavData = [];
+    let subnavData: SubnavItem[] = [];
     Object.keys(routers).forEach(key => {
       let item = routers[key];
-      let value = {};
+      let value: SubnavItem;
       if (key === 'interface') {
         value = {
           name: item.name,
@@ -151,7 +183,7 @@ export default class Project extends Component {
 
     return (
       <div>
-        <Subnav default={defaultName} data={subnavData} />
+        <Subnav default={defaultName as string} data={subnavData} />
         <Switch>
           <Redirect exact from="/project/:id" to={`/project/${match.params.id}/interface/api`} />
           {/* <Route path={routers.activity.path} component={Activity} />
@@ -179,3 +211,5 @@ export default class Project extends Component {
     );
   }
 }
+
+export default Project as unknown as ComponentType<RouteComponentProps<ProjectRouteParams>>;

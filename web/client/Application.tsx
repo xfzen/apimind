@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Route, BrowserRouter as Router } from 'react-router-dom';
@@ -13,48 +14,58 @@ import { requireAuthentication } from './components/AuthenticatedComponent';
 import { renderInto, unmountFrom } from './shims/reactRoot';
 
 import plugin from 'client/plugin';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from './reducer/modules/reducer';
+import { asLegacyClassDecorator } from './types/legacyDecorators';
 
 const LOADING_STATUS = 0;
 
-let AppRoute = {
+interface AppProps { checkLoginState: () => Promise<unknown>; loginState: number }
+interface AppState { login: number }
+interface AppRouteConfig {
+  path: string;
+  component: ComponentType<RouteComponentProps>;
+}
+
+let AppRoute: Record<string, AppRouteConfig> = {
   home: {
     path: '/',
-    component: Home
+    component: Home as unknown as ComponentType<RouteComponentProps>
   },
   group: {
     path: '/group',
-    component: Group
+    component: Group as unknown as ComponentType<RouteComponentProps>
   },
   project: {
     path: '/project/:id',
-    component: Project
+    component: Project as unknown as ComponentType<RouteComponentProps>
   },
   user: {
     path: '/user',
-    component: User
+    component: User as unknown as ComponentType<RouteComponentProps>
   },
   follow: {
     path: '/follow',
-    component: Follows
+    component: Follows as unknown as ComponentType<RouteComponentProps>
   },
   addProject: {
     path: '/add-project',
-    component: AddProject
+    component: AddProject as unknown as ComponentType<RouteComponentProps>
   },
   templates: {
     path: '/templates',
-    component: Templates
+    component: Templates as unknown as ComponentType<RouteComponentProps>
   },
   login: {
     path: '/login',
-    component: Login
+    component: Login as unknown as ComponentType<RouteComponentProps>
   }
 };
 // 增加路由钩子
 plugin.emitHook('app_route', AppRoute);
 
-@connect(
-  state => {
+const connectApp = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       loginState: state.user.loginState
     };
@@ -62,9 +73,11 @@ plugin.emitHook('app_route', AppRoute);
   {
     checkLoginState
   }
-)
-export default class App extends Component {
-  constructor(props) {
+));
+
+@connectApp
+class App extends Component<AppProps, AppState> {
+  constructor(props: AppProps) {
     super(props);
     this.state = {
       login: LOADING_STATUS
@@ -80,12 +93,12 @@ export default class App extends Component {
     this.props.checkLoginState();
   }
 
-  showConfirm = (msg, callback) => {
+  showConfirm = (msg: string, callback: (confirmed: boolean) => void) => {
     // 自定义 window.confirm
     // http://reacttraining.cn/web/api/BrowserRouter/getUserConfirmation-func
     const container = document.createElement('div');
     document.body.appendChild(container);
-    const close = ok => {
+    const close = (ok: boolean) => {
       callback(ok);
       unmountFrom(container);
       if (container.parentNode) {
@@ -95,8 +108,8 @@ export default class App extends Component {
     renderInto(container, <MyPopConfirm msg={msg} callback={close} />);
   };
 
-  route = status => {
-    let r;
+  route = (status: number): ReactNode => {
+    let r: ReactNode;
     if (status === LOADING_STATUS) {
       return <Loading visible />;
     } else {
@@ -104,7 +117,9 @@ export default class App extends Component {
         <Router getUserConfirmation={this.showConfirm}>
           <div className="g-main">
             <div className="router-main">
-              {this.props.loginState !== 1 ? <Header /> : null}
+              {this.props.loginState !== 1
+                ? React.createElement(Header as unknown as ComponentType)
+                : null}
               <div className="router-container">
                 {Object.keys(AppRoute).map(key => {
                   let item = AppRoute[key];
@@ -144,3 +159,5 @@ export default class App extends Component {
     return this.route(this.props.loginState);
   }
 }
+
+export default App as unknown as ComponentType;

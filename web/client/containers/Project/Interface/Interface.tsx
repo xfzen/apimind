@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { Tabs, Layout } from 'antd';
 import { Route, Switch, matchPath } from 'react-router-dom';
@@ -14,35 +15,46 @@ import DocsInterface from './Docs/DocsInterface';
 
 import InterfaceColMenu from './InterfaceCol/InterfaceColMenu';
 import InterfaceColContent from './InterfaceCol/InterfaceColContent';
-import InterfaceCaseContent from './InterfaceCol/InterfaceCaseContent.js';
+import InterfaceCaseContent from './InterfaceCol/InterfaceCaseContent';
 import { getProject } from '../../../reducer/modules/project';
 import { setColData } from '../../../reducer/modules/interfaceCol';
-import { LAYOUT } from '../../../constants/variable.js';
+import { LAYOUT } from '../../../constants/variable';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { InterfaceColState } from '../../../reducer/modules/interfaceCol';
+import type { UnknownRecord } from '../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
+import { selectInterfaceRoute } from './interfaceRoute';
 const contentRouter = {
   path: '/project/:id/interface/:action/:actionId',
   exact: true
 };
 
-const InterfaceRoute = props => {
-  let C;
-  if (props.match.params.action === 'api') {
-    if (!props.match.params.actionId) {
-      C = InterfaceList;
-    } else if (!isNaN(props.match.params.actionId)) {
-      C = InterfaceContent;
-    } else if (props.match.params.actionId.indexOf('cat_') === 0) {
-      C = InterfaceList;
-    }
-  } else if (props.match.params.action === 'col') {
-    C = InterfaceColContent;
-  } else if (props.match.params.action === 'case') {
-    C = InterfaceCaseContent;
-  } else {
-    const params = props.match.params;
-    props.history.replace('/project/' + params.id + '/interface/api');
+interface InterfaceRouteParams { id: string; action: string; actionId?: string }
+interface InterfaceProject extends UnknownRecord { kind?: string }
+interface InterfaceProps extends RouteComponentProps<InterfaceRouteParams> {
+  isShowCol: boolean;
+  curProject: InterfaceProject;
+  getProject: (id: string | number) => Promise<unknown>;
+  setColData: (data: Partial<InterfaceColState>) => unknown;
+}
+type InterfaceRouteProps = RouteComponentProps<InterfaceRouteParams>;
+
+const InterfaceRoute = (props: InterfaceRouteProps) => {
+  const params = props.match.params;
+  const result = selectInterfaceRoute(params.id, params.action, params.actionId);
+  if (result.kind === 'redirect') {
+    props.history.replace(result.path);
     return null;
   }
-  return <C {...props} />;
+  const components: Partial<Record<typeof result.kind, ComponentType<InterfaceRouteProps>>> = {
+    list: InterfaceList as unknown as ComponentType<InterfaceRouteProps>,
+    content: InterfaceContent as unknown as ComponentType<InterfaceRouteProps>,
+    collection: InterfaceColContent as unknown as ComponentType<InterfaceRouteProps>,
+    case: InterfaceCaseContent as unknown as ComponentType<InterfaceRouteProps>
+  };
+  const RouteComponent = components[result.kind] as ComponentType<InterfaceRouteProps>;
+  return <RouteComponent {...props} />;
 };
 
 InterfaceRoute.propTypes = {
@@ -50,8 +62,8 @@ InterfaceRoute.propTypes = {
   history: PropTypes.object
 };
 
-@connect(
-  state => {
+const connectInterface = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       isShowCol: state.interfaceCol.isShowCol,
       curProject: state.project.currProject
@@ -61,8 +73,10 @@ InterfaceRoute.propTypes = {
     setColData,
     getProject
   }
-)
-class Interface extends Component {
+));
+
+@connectInterface
+class Interface extends Component<InterfaceProps> {
   static propTypes = {
     match: PropTypes.object,
     history: PropTypes.object,
@@ -74,14 +88,14 @@ class Interface extends Component {
     // fetchInterfaceColList: PropTypes.func
   };
 
-  constructor(props) {
+  constructor(props: InterfaceProps) {
     super(props);
     // this.state = {
     //   curkey: this.props.match.params.action === 'api' ? 'api' : 'colOrCase'
     // }
   }
 
-  onChange = action => {
+  onChange = (action: string) => {
     let params = this.props.match.params;
     if (action === 'colOrCase') {
       action = this.props.isShowCol ? 'col' : 'case';
@@ -112,15 +126,21 @@ class Interface extends Component {
               <Tabs.TabPane tab="测试集合" key="colOrCase" />
             </Tabs>
             {activeKey === 'api' ? (
-              <InterfaceMenu
-                router={matchPath(this.props.location.pathname, contentRouter)}
-                projectId={this.props.match.params.id}
-              />
+              React.createElement(InterfaceMenu as unknown as ComponentType<{
+                router?: { params: InterfaceRouteParams };
+                projectId: string;
+              }>, {
+                router: matchPath<InterfaceRouteParams>(this.props.location.pathname, contentRouter) || undefined,
+                projectId: this.props.match.params.id
+              })
             ) : (
-              <InterfaceColMenu
-                router={matchPath(this.props.location.pathname, contentRouter)}
-                projectId={this.props.match.params.id}
-              />
+              React.createElement(InterfaceColMenu as unknown as ComponentType<{
+                router?: { params: InterfaceRouteParams };
+                projectId: string;
+              }>, {
+                router: matchPath<InterfaceRouteParams>(this.props.location.pathname, contentRouter) || undefined,
+                projectId: this.props.match.params.id
+              })
             )}
           </div>
         </Sider>
@@ -146,4 +166,4 @@ class Interface extends Component {
   }
 }
 
-export default Interface;
+export default Interface as unknown as ComponentType<RouteComponentProps<InterfaceRouteParams>>;
