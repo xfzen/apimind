@@ -254,30 +254,6 @@
       "exitCondition": "Phase 1-3 plan produced after the authentication pilot"
     },
     {
-      "path": "client/containers/Login/Login.js",
-      "classification": "migration-target",
-      "reason": "Authentication pilot runtime module",
-      "exitCondition": "Phase 0 authentication pilot"
-    },
-    {
-      "path": "client/containers/Login/LoginContainer.js",
-      "classification": "migration-target",
-      "reason": "Authentication pilot runtime module",
-      "exitCondition": "Phase 0 authentication pilot"
-    },
-    {
-      "path": "client/containers/Login/LoginWrap.js",
-      "classification": "migration-target",
-      "reason": "Authentication pilot runtime module",
-      "exitCondition": "Phase 0 authentication pilot"
-    },
-    {
-      "path": "client/containers/Login/Reg.js",
-      "classification": "migration-target",
-      "reason": "Authentication pilot runtime module",
-      "exitCondition": "Phase 0 authentication pilot"
-    },
-    {
       "path": "client/containers/Project/Activity/Activity.js",
       "classification": "migration-target",
       "reason": "Existing production JavaScript module awaiting TypeScript migration",

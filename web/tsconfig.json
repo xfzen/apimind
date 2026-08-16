@@ -30,6 +30,7 @@
     "client/**/*.tsx",
     "common/**/*.ts",
     "common/**/*.tsx",
+    "tests/fixtures/**/*.tsx",
     "types/**/*.d.ts"
   ],
   "exclude": ["dist", "node_modules", "vendor", "exts", "test", "scripts"]

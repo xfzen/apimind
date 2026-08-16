@@ -1,6 +1,6 @@
 import Header from '../components/Header/Header.js';
 import Home from './Home/Home.js';
-import Login from './Login/LoginContainer.js';
+import Login from './Login/LoginContainer';
 import Group from './Group/Group.js';
 import Project from './Project/Project.js';
 import Follows from './Follows/Follows.js';

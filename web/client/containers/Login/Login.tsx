@@ -2,14 +2,26 @@ import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Form, Button, Input, message, Radio } from 'antd';
-import Icon from 'client/shims/antdIcon';
-import { loginActions, loginLdapActions } from '../../reducer/modules/user';
+import type { FormInstance, RadioChangeEvent } from 'antd';
+import type { RouteComponentProps } from 'react-router';
 import { withRouter } from 'react-router';
+import Icon from 'client/shims/antdIcon';
 import { emailRule as safeEmailRule } from 'common/validators.js';
-const FormItem = Form.Item;
-const RadioGroup = Radio.Group;
+
+import type { AppDispatch, ResolvedPromiseAction } from '../../reducer/promiseTypes';
+import { loginActions, loginLdapActions } from '../../reducer/modules/user';
+import {
+  selectIsLdap,
+  selectUser,
+  type UserRootState
+} from '../../reducer/selectors/user';
+import type { LoginCredentials, LoginResponse, UserState } from '../../types/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
 import './Login.scss';
+
+const FormItem = Form.Item;
+const RadioGroup = Radio.Group;
 
 const formItemStyle = {
   marginBottom: '.16rem'
@@ -19,21 +31,47 @@ const changeHeight = {
   height: '.42rem'
 };
 
-@connect(
-  state => {
-    return {
-      loginData: state.user,
-      isLDAP: state.user.isLDAP
-    };
-  },
-  {
-    loginActions,
-    loginLdapActions
-  }
-)
-@withRouter
-class Login extends Component {
-  constructor(props) {
+type LoginDispatchResult = Promise<ResolvedPromiseAction<LoginResponse>>;
+
+interface LoginProps {
+  form: FormInstance<LoginCredentials>;
+  history?: RouteComponentProps['history'];
+  loginActions?: (values: LoginCredentials) => LoginDispatchResult;
+  loginLdapActions?: (values: LoginCredentials) => LoginDispatchResult;
+  loginData?: UserState;
+  isLDAP?: boolean;
+}
+
+interface LoginState {
+  loginType: 'ldap' | 'normal';
+}
+
+function hasPreventDefault(value: unknown): value is { preventDefault: () => void } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'preventDefault' in value &&
+    typeof value.preventDefault === 'function'
+  );
+}
+
+const mapState = (state: UserRootState) => ({
+  loginData: selectUser(state),
+  isLDAP: selectIsLdap(state)
+});
+
+const mapDispatch = (dispatch: AppDispatch) => ({
+  loginActions: (values: LoginCredentials) => dispatch(loginActions(values)),
+  loginLdapActions: (values: LoginCredentials) => dispatch(loginLdapActions(values))
+});
+
+const connectLogin = asLegacyClassDecorator(connect(mapState, mapDispatch));
+const routeLogin = asLegacyClassDecorator(withRouter);
+
+@connectLogin
+@routeLogin
+class Login extends Component<LoginProps, LoginState> {
+  constructor(props: LoginProps) {
     super(props);
     this.state = {
       loginType: 'ldap'
@@ -48,24 +86,24 @@ class Login extends Component {
     isLDAP: PropTypes.bool
   };
 
-  handleSubmit = e => {
-    if (e && e.preventDefault) {
-      e.preventDefault();
+  handleSubmit = (event: unknown) => {
+    if (hasPreventDefault(event)) {
+      event.preventDefault();
     }
     this.props.form
       .validateFields()
       .then(values => {
         if (this.props.isLDAP && this.state.loginType === 'ldap') {
-          this.props.loginLdapActions(values).then(res => {
-            if (res.payload.data.errcode == 0) {
-              this.props.history.replace('/group');
+          this.props.loginLdapActions!(values).then(res => {
+            if (res.payload.data.errcode === 0) {
+              this.props.history!.replace('/group');
               message.success('登录成功! ');
             }
           });
         } else {
-          this.props.loginActions(values).then(res => {
-            if (res.payload.data.errcode == 0) {
-              this.props.history.replace('/group');
+          this.props.loginActions!(values).then(res => {
+            if (res.payload.data.errcode === 0) {
+              this.props.history!.replace('/group');
               message.success('登录成功! ');
             }
           });
@@ -78,8 +116,9 @@ class Login extends Component {
     //Qsso.attach('qsso-login','/api/user/login_by_token')
     console.log('isLDAP', this.props.isLDAP);
   }
-  handleFormLayoutChange = e => {
-    this.setState({ loginType: e.target.value });
+
+  handleFormLayoutChange = (event: RadioChangeEvent) => {
+    this.setState({ loginType: event.target.value });
   };
 
   render() {
@@ -147,8 +186,11 @@ class Login extends Component {
     );
   }
 }
-function LoginForm(props) {
-  const [form] = Form.useForm();
+
+type LoginFormProps = Omit<Partial<LoginProps>, 'form'>;
+
+function LoginForm(props: LoginFormProps) {
+  const [form] = Form.useForm<LoginCredentials>();
   return <Login {...props} form={form} />;
 }
 

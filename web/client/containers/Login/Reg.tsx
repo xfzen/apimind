@@ -2,10 +2,22 @@ import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Form, Button, Input, message } from 'antd';
-import Icon from 'client/shims/antdIcon';
-import { regActions } from '../../reducer/modules/user';
+import type { FormInstance } from 'antd';
+import type { RouteComponentProps } from 'react-router';
 import { withRouter } from 'react-router';
+import Icon from 'client/shims/antdIcon';
 import { emailRule } from 'common/validators.js';
+
+import type { AppDispatch, ResolvedPromiseAction } from '../../reducer/promiseTypes';
+import { regActions } from '../../reducer/modules/user';
+import { selectUser, type UserRootState } from '../../reducer/selectors/user';
+import type {
+  RegisterCredentials,
+  RegisterResponse,
+  UserState
+} from '../../types/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+
 const FormItem = Form.Item;
 const formItemStyle = {
   marginBottom: '.16rem'
@@ -15,19 +27,43 @@ const changeHeight = {
   height: '.42rem'
 };
 
-@connect(
-  state => {
-    return {
-      loginData: state.user
-    };
-  },
-  {
-    regActions
-  }
-)
-@withRouter
-class Reg extends Component {
-  constructor(props) {
+type RegisterDispatchResult = Promise<ResolvedPromiseAction<RegisterResponse>>;
+
+interface RegProps {
+  form: FormInstance<RegisterCredentials>;
+  history?: RouteComponentProps['history'];
+  regActions?: (values: RegisterCredentials) => RegisterDispatchResult;
+  loginData?: UserState;
+}
+
+interface RegState {
+  confirmDirty: boolean;
+}
+
+function hasPreventDefault(value: unknown): value is { preventDefault: () => void } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'preventDefault' in value &&
+    typeof value.preventDefault === 'function'
+  );
+}
+
+const mapState = (state: UserRootState) => ({
+  loginData: selectUser(state)
+});
+
+const mapDispatch = (dispatch: AppDispatch) => ({
+  regActions: (values: RegisterCredentials) => dispatch(regActions(values))
+});
+
+const connectReg = asLegacyClassDecorator(connect(mapState, mapDispatch));
+const routeReg = asLegacyClassDecorator(withRouter);
+
+@connectReg
+@routeReg
+class Reg extends Component<RegProps, RegState> {
+  constructor(props: RegProps) {
     super(props);
     this.state = {
       confirmDirty: false
@@ -40,16 +76,16 @@ class Reg extends Component {
     regActions: PropTypes.func
   };
 
-  handleSubmit = e => {
-    if (e && e.preventDefault) {
-      e.preventDefault();
+  handleSubmit = (event: unknown) => {
+    if (hasPreventDefault(event)) {
+      event.preventDefault();
     }
     this.props.form
       .validateFields()
       .then(values => {
-        this.props.regActions(values).then(res => {
-          if (res.payload.data.errcode == 0) {
-            this.props.history.replace('/group');
+        this.props.regActions!(values).then(res => {
+          if (res.payload.data.errcode === 0) {
+            this.props.history!.replace('/group');
             message.success('注册成功! ');
           }
         });
@@ -57,7 +93,7 @@ class Reg extends Component {
       .catch(() => {});
   };
 
-  checkPassword = (rule, value) => {
+  checkPassword = (_rule: unknown, value: unknown) => {
     const form = this.props.form;
     if (value && value !== form.getFieldValue('password')) {
       return Promise.reject(new Error('两次输入的密码不一致啊!'));
@@ -65,7 +101,7 @@ class Reg extends Component {
     return Promise.resolve();
   };
 
-  checkConfirm = (rule, value) => {
+  checkConfirm = (_rule: unknown, value: unknown) => {
     const form = this.props.form;
     if (value && this.state.confirmDirty) {
       form.validateFields(['confirm']);
@@ -167,8 +203,11 @@ class Reg extends Component {
     );
   }
 }
-function RegForm(props) {
-  const [form] = Form.useForm();
+
+type RegFormProps = Omit<Partial<RegProps>, 'form'>;
+
+function RegForm(props: RegFormProps) {
+  const [form] = Form.useForm<RegisterCredentials>();
   return <Reg {...props} form={form} />;
 }
 
