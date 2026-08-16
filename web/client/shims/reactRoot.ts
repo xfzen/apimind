@@ -1,8 +1,10 @@
 import { createRoot } from 'react-dom/client';
+import type { ReactNode } from 'react';
+import type { Root } from 'react-dom/client';
 
-const roots = new WeakMap();
+const roots = new WeakMap<Element, Root>();
 
-export function renderInto(container, element) {
+export function renderInto(container: Element, element: ReactNode): Root {
   let root = roots.get(container);
   if (!root) {
     root = createRoot(container);
@@ -12,7 +14,7 @@ export function renderInto(container, element) {
   return root;
 }
 
-export function unmountFrom(container) {
+export function unmountFrom(container: Element): void {
   const root = roots.get(container);
   if (root) {
     root.unmount();

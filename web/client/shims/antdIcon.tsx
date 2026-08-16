@@ -73,8 +73,11 @@ import {
   VideoCameraOutlined,
   WifiOutlined
 } from '@ant-design/icons';
+import type { ComponentProps } from 'react';
 
-const icons = {
+type IconComponent = typeof QuestionCircleOutlined;
+
+const icons: Record<string, IconComponent> = {
   'android-o': AndroidOutlined,
   api: ApiOutlined,
   'apple-o': AppleOutlined,
@@ -150,8 +153,15 @@ const icons = {
   wifi: WifiOutlined
 };
 
-const LegacyIcon = React.forwardRef(function LegacyIcon({ type, icon: _icon, component: _component, ...props }, ref) {
-  const IconComponent = icons[type] || QuestionCircleOutlined;
+interface LegacyIconProps
+  extends Omit<ComponentProps<typeof QuestionCircleOutlined>, 'ref'> {
+  type?: string;
+  icon?: unknown;
+  component?: unknown;
+}
+
+const LegacyIcon = React.forwardRef<HTMLSpanElement, LegacyIconProps>(function LegacyIcon({ type, icon: _icon, component: _component, ...props }, ref) {
+  const IconComponent = (type ? icons[type] : undefined) || QuestionCircleOutlined;
   return <IconComponent ref={ref} {...props} />;
 });
 

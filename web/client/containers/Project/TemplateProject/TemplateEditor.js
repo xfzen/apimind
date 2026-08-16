@@ -2,7 +2,7 @@ import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Input } from 'antd';
 import Icon from 'client/shims/antdIcon';
-import Editor from 'client/shims/tui-editor.js';
+import Editor from 'client/shims/tui-editor';
 
 export default class TemplateEditor extends Component {
   static propTypes = {

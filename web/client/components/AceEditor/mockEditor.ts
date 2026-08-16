@@ -1,4 +1,5 @@
 import ace from 'brace';
+import type * as Ace from 'brace';
 import Mock from '@apimind/mockjs-safe';
 import 'brace/mode/javascript';
 import 'brace/mode/json';
@@ -9,8 +10,78 @@ import 'brace/ext/language_tools.js';
 import json5 from 'json5';
 import MockExtra from 'common/mock-extra.js';
 
-var langTools = ace.acequire('ace/ext/language_tools'),
-  wordList = [
+interface MockWord {
+  name: string;
+  mock: string;
+}
+
+interface MockEditorData {
+  text: string;
+  format: boolean | string;
+  jsonData?: unknown;
+  mockData?: () => unknown;
+}
+
+interface MockEditorOptions {
+  container?: string | HTMLElement;
+  data?: unknown;
+  wordList?: MockWord;
+  readOnly?: boolean;
+  fullScreen?: boolean;
+  onChange?: (this: MockEditorInstance, data: MockEditorData) => void;
+}
+
+export interface MockEditorInstance {
+  curData: MockEditorData;
+  getValue: () => string;
+  setValue: (data: unknown) => void;
+  editor: Ace.Editor;
+  options: MockEditorOptions;
+  insertCode: (code: string) => void;
+}
+
+interface LegacyAceEditor extends Ace.Editor {
+  _fullscreen_yapi?: boolean;
+  setAutoScrollEditorIntoView(enabled: boolean): void;
+  renderer: Ace.VirtualRenderer & {
+    $cursorLayer: { element: HTMLElement };
+  };
+}
+
+interface Completion {
+  name: string;
+  value: string;
+  score: string;
+  meta: string;
+}
+
+interface CompletionProvider {
+  identifierRegexps: RegExp[];
+  getCompletions(
+    editor: Ace.Editor,
+    session: Ace.IEditSession,
+    pos: Ace.Position,
+    prefix: string,
+    callback: (error: null, completions: Completion[]) => void
+  ): void;
+}
+
+interface LanguageTools {
+  addCompleter(completer: CompletionProvider): void;
+}
+
+interface AceDom {
+  toggleCssClass(element: HTMLElement, className: string): boolean;
+  setCssClass(element: HTMLElement, className: string, enabled: boolean): void;
+}
+
+interface MockRuntime {
+  mock(template: unknown): unknown;
+}
+
+const mockRuntime = Mock as unknown as MockRuntime;
+const langTools = ace.acequire('ace/ext/language_tools') as LanguageTools;
+const wordList: MockWord[] = [
     { name: '字符串', mock: '@string' },
     { name: '自然数', mock: '@natural' },
     { name: '浮点数', mock: '@float' },
@@ -58,13 +129,20 @@ var langTools = ace.acequire('ace/ext/language_tools'),
     { name: '挑选（枚举）', mock: '@pick' },
     { name: '打乱数组', mock: '@shuffle' },
     { name: '协议', mock: '@protocol' }
-  ];
+];
 
-let dom = ace.acequire('ace/lib/dom');
-ace.acequire('ace/commands/default_commands').commands.push({
+const dom = ace.acequire('ace/lib/dom') as AceDom;
+const defaultCommands = ace.acequire('ace/commands/default_commands') as {
+  commands: Array<{
+    name: string;
+    bindKey: string;
+    exec: (editor: LegacyAceEditor) => void;
+  }>;
+};
+defaultCommands.commands.push({
   name: 'Toggle Fullscreen',
   bindKey: 'F9',
-  exec: function(editor) {
+  exec: function(editor: LegacyAceEditor) {
     if (editor._fullscreen_yapi) {
       let fullScreen = dom.toggleCssClass(document.body, 'fullScreen');
       dom.setCssClass(editor.container, 'fullScreen', fullScreen);
@@ -74,22 +152,25 @@ ace.acequire('ace/commands/default_commands').commands.push({
   }
 });
 
-export default function run(options) {
-  var editor, mockEditor, rhymeCompleter;
-  function handleJson(json) {
+export default function run(options?: MockEditorOptions): MockEditorInstance {
+  let editor: LegacyAceEditor;
+  let mockEditor: MockEditorInstance;
+  let rhymeCompleter: CompletionProvider;
+  function handleJson(json: string): void {
     var curData = mockEditor.curData;
     try {
       curData.text = json;
       var obj = json5.parse(json);
       curData.format = true;
       curData.jsonData = obj;
-      curData.mockData = () => Mock.mock(MockExtra(obj, {})); //为防止时时 mock 导致页面卡死的问题，改成函数式需要用到再计算
+      curData.mockData = () => mockRuntime.mock(MockExtra(obj, {})); //为防止时时 mock 导致页面卡死的问题，改成函数式需要用到再计算
     } catch (e) {
-      curData.format = e.message;
+      curData.format = (e as { message: string }).message;
     }
   }
   options = options || {};
-  var container, data;
+  let container: string | HTMLElement;
+  let data: unknown;
   container = options.container || 'mock-editor';
   if (
     options.wordList &&
@@ -103,7 +184,9 @@ export default function run(options) {
   options.readOnly = options.readOnly || false;
   options.fullScreen = options.fullScreen || false;
 
-  editor = ace.edit(container);
+  editor = (typeof container === 'string'
+    ? ace.edit(container)
+    : ace.edit(container)) as LegacyAceEditor;
   editor.$blockScrolling = Infinity;
   editor.getSession().setMode('ace/mode/javascript');
   if (options.readOnly === true) {
@@ -119,20 +202,20 @@ export default function run(options) {
   });
   editor._fullscreen_yapi = options.fullScreen;
   mockEditor = {
-    curData: {},
+    curData: {} as MockEditorData,
     getValue: () => mockEditor.curData.text,
-    setValue: function(data) {
+    setValue: function(data: unknown) {
       editor.setValue(handleData(data));
     },
     editor: editor,
     options: options,
-    insertCode: code => {
+    insertCode: (code: string) => {
       let pos = editor.selection.getCursor();
       editor.session.insert(pos, code);
     }
   };
 
-  function formatJson(json) {
+  function formatJson(json: string): string {
     try {
       return JSON.stringify(JSON.parse(json), null, 2);
     } catch (err) {
@@ -140,14 +223,14 @@ export default function run(options) {
     }
   }
 
-  function handleData(data) {
+  function handleData(data: unknown): string {
     data = data || '';
     if (typeof data === 'string') {
       return formatJson(data);
     } else if (typeof data === 'object') {
       return JSON.stringify(data, null, '  ');
     } else {
-      return '' + data;
+      return '' + (data as number | boolean | bigint);
     }
   }
 

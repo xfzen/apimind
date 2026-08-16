@@ -6,7 +6,7 @@ import ProjectEnv from './ProjectEnv/index.js';
 import ProjectRequest from './ProjectRequest/ProjectRequest';
 import ProjectToken from './ProjectToken/ProjectToken';
 import ProjectMock from './ProjectMock/index.js';
-import { builtinSettingTabs } from './settingTabs.js';
+import { builtinSettingTabs } from './settingTabs';
 import { connect } from 'react-redux';
 const TabPane = Tabs.TabPane;
 

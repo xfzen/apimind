@@ -1,8 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ConfigProvider } from 'antd';
+import type { ConfigProviderProps } from 'antd';
+import type { ReactNode } from 'react';
 
-export default function LocaleProvider({ locale, children }) {
+interface LocaleProviderProps {
+  locale?: ConfigProviderProps['locale'];
+  children?: ReactNode;
+}
+
+export default function LocaleProvider({ locale, children }: LocaleProviderProps) {
   return (
     <ConfigProvider locale={locale} warning={{ strict: false }}>
       {children}

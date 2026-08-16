@@ -152,6 +152,10 @@ export default defineConfig({
         find: /^(?:.*\/)?common\/validators\.js$/,
         replacement: path.resolve(__dirname, 'common/validators.ts')
       },
+      {
+        find: /^(?:.*\/)?client\/shims\/tui-editor\.js$/,
+        replacement: path.resolve(__dirname, 'client/shims/tui-editor.ts')
+      },
       { find: 'client', replacement: path.resolve(__dirname, 'client') },
       { find: 'common', replacement: path.resolve(__dirname, 'common') },
       { find: 'exts', replacement: path.resolve(__dirname, 'exts') },
@@ -159,8 +163,8 @@ export default defineConfig({
       { find: 'sass', replacement: 'sass-embedded' },
       { find: /^axios-runtime$/, replacement: path.resolve(__dirname, 'node_modules/axios/index.js') },
       { find: /^axios$/, replacement: path.resolve(__dirname, 'client/utils/request.ts') },
-      { find: /^moment$/, replacement: path.resolve(__dirname, 'client/shims/moment.js') },
-      { find: 'react-is', replacement: path.resolve(__dirname, 'client/shims/react-is.js') }
+      { find: /^moment$/, replacement: path.resolve(__dirname, 'client/shims/moment.ts') },
+      { find: 'react-is', replacement: path.resolve(__dirname, 'client/shims/react-is.ts') }
     ]
   },
   define: {

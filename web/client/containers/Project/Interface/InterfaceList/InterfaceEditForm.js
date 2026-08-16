@@ -11,7 +11,7 @@ import EasyDragSort from '../../../../components/EasyDragSort/EasyDragSort.js';
 import mockEditor from 'client/components/AceEditor/mockEditor';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import axios from 'axios';
-import Editor from 'client/shims/tui-editor.js';
+import Editor from 'client/shims/tui-editor';
 import JsonSchemaEditor from 'client/components/JsonSchemaEditor/JsonSchemaEditor';
 
 const ResBodySchema = JsonSchemaEditor;

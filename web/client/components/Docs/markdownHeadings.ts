@@ -3,10 +3,17 @@ import GithubSlugger from 'github-slugger';
 
 export const markdownRenderer = new MarkdownIt({ html: false, linkify: true, breaks: true });
 
-export function extractHeadings(markdown) {
+export interface MarkdownHeading {
+  id: string;
+  level: number;
+  line: number;
+  text: string;
+}
+
+export function extractHeadings(markdown?: string): MarkdownHeading[] {
   const tokens = markdownRenderer.parse(markdown || '', {});
   const slugger = new GithubSlugger();
-  const headings = [];
+  const headings: MarkdownHeading[] = [];
 
   tokens.forEach((token, index) => {
     if (token.type !== 'heading_open') return;
@@ -22,7 +29,10 @@ export function extractHeadings(markdown) {
   return headings;
 }
 
-export function renderMarkdownWithHeadingIds(markdown) {
+export function renderMarkdownWithHeadingIds(markdown?: string): {
+  html: string;
+  headings: MarkdownHeading[];
+} {
   const headings = extractHeadings(markdown);
   let cursor = 0;
 

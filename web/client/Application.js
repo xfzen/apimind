@@ -12,7 +12,7 @@ import { checkLoginState } from './reducer/modules/user';
 import { requireAuthentication } from './components/AuthenticatedComponent';
 import { renderInto, unmountFrom } from './shims/reactRoot';
 
-import plugin from 'client/plugin.js';
+import plugin from 'client/plugin';
 
 const LOADING_STATUS = 0;
 

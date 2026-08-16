@@ -1,4 +1,12 @@
-export function createExportModules(pid) {
+export interface ExportModule {
+  name: string;
+  route: string;
+  desc: string;
+}
+
+export function createExportModules(
+  pid: string | number
+): Record<string, ExportModule> {
   return {
     html: {
       name: 'html',

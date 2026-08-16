@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux';
 
-import { emitHook } from 'client/plugin.js';
+import { emitHook } from 'client/plugin';
 import addInterface from './addInterface';
 import docs from './docs';
 import follow from './follow';

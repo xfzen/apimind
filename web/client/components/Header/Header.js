@@ -13,7 +13,7 @@ const { Header } = Layout;
 import LogoSVG from '../LogoSVG/index.js';
 import Breadcrumb from '../Breadcrumb/Breadcrumb.js';
 import GuideBtns from '../GuideBtns/GuideBtns.js';
-import plugin from 'client/plugin.js';
+import plugin from 'client/plugin';
 import { buildApiUrl } from '../../utils/backend';
 
 let HeaderMenu = {

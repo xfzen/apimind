@@ -14,7 +14,7 @@ import ProjectMember from './Setting/ProjectMember/ProjectMember.js';
 import ProjectData from './Setting/ProjectData/ProjectData.js';
 import TemplateProject from './TemplateProject/TemplateProject.js';
 import WikiPage from 'exts/yapi-plugin-wiki/wikiPage/index';
-import plugin from 'client/plugin.js';
+import plugin from 'client/plugin';
 @connect(
   state => {
     return {

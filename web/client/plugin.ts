@@ -1,5 +1,20 @@
-let hooks, pluginModule, readyResolve;
-const ready = new Promise((resolve) => { readyResolve = resolve; });
+type HookListener = (...args: unknown[]) => unknown;
+type Hook =
+  | { type: 'component'; mulit: false; listener: unknown }
+  | { type: 'listener'; mulit: false; listener: unknown }
+  | { type: 'listener'; mulit: true; listener: unknown[] };
+
+interface PluginModule {
+  hooks: Record<string, Hook>;
+  bindHook: typeof bindHook;
+  emitHook: typeof emitHook;
+}
+
+type PluginInitializer = (this: PluginModule, options: unknown) => unknown;
+
+let pluginModule: PluginModule;
+let readyResolve: ((ready: boolean) => void) | undefined;
+const ready = new Promise<boolean>((resolve) => { readyResolve = resolve; });
 
 /**
  * type component  组件
@@ -7,7 +22,7 @@ const ready = new Promise((resolve) => { readyResolve = resolve; });
  * mulit 是否绑定多个监听函数
  */
 
-hooks = {
+const hooks: Record<string, Hook> = {
   /**
    * 第三方登录 //可参考 yapi-plugin-qsso 插件
    */
@@ -248,7 +263,7 @@ hooks = {
   }
 };
 
-function bindHook(name, listener) {
+function bindHook(name: string, listener: unknown): void {
   if (!name) {
     throw new Error('缺少hookname');
   }
@@ -262,14 +277,14 @@ function bindHook(name, listener) {
   }
 }
 
-function emitHook(name, ...args) {
+function emitHook(name: string, ...args: unknown[]): unknown {
   if (!hooks[name]) {
     throw new Error('不存在的hook name');
   }
-  let hook = hooks[name];
+  const hook = hooks[name];
   if (hook.mulit === true && hook.type === 'listener') {
     if (Array.isArray(hook.listener)) {
-      let promiseAll = [];
+      const promiseAll: Promise<unknown>[] = [];
       hook.listener.forEach(item => {
         if (typeof item === 'function') {
           promiseAll.push(Promise.resolve(item.call(pluginModule, ...args)));
@@ -299,9 +314,13 @@ import pluginRegistryPromise from './plugin-module.js';
   try {
     const pluginModuleList = await pluginRegistryPromise;
     Object.keys(pluginModuleList).forEach(plugin => {
-      if (!pluginModuleList[plugin]) return null;
-      if (pluginModuleList[plugin] && typeof pluginModuleList[plugin].module === 'function') {
-        pluginModuleList[plugin].module.call(pluginModule, pluginModuleList[plugin].options);
+      const registration = pluginModuleList[plugin];
+      if (!registration) return null;
+      if (typeof registration.module === 'function') {
+        (registration.module as PluginInitializer).call(
+          pluginModule,
+          registration.options
+        );
       }
     });
     if (typeof readyResolve === 'function') readyResolve(true);
