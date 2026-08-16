@@ -10,9 +10,9 @@ import { changeMenuItem } from '../../reducer/modules/menu';
 import { withRouter } from 'react-router';
 import Srch from './Search/Search';
 const { Header } = Layout;
-import LogoSVG from '../LogoSVG/index.js';
-import Breadcrumb from '../Breadcrumb/Breadcrumb.js';
-import GuideBtns from '../GuideBtns/GuideBtns.js';
+import LogoSVG from '../LogoSVG';
+import Breadcrumb from '../Breadcrumb/Breadcrumb';
+import GuideBtns from '../GuideBtns/GuideBtns';
 import plugin from 'client/plugin';
 import { buildApiUrl } from '../../utils/backend';
 

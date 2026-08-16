@@ -4,8 +4,17 @@ import PropTypes from 'prop-types';
 
 // 嵌入到 BrowserRouter 内部，覆盖掉默认的 window.confirm
 // http://reacttraining.cn/web/api/BrowserRouter/getUserConfirmation-func
-class MyPopConfirm extends Component {
-  constructor(props) {
+interface MyPopConfirmProps {
+  msg?: string;
+  callback: (confirmed: boolean) => void;
+}
+
+interface MyPopConfirmState {
+  visible: boolean;
+}
+
+class MyPopConfirm extends Component<MyPopConfirmProps, MyPopConfirmState> {
+  constructor(props: MyPopConfirmProps) {
     super(props);
     this.state = {
       visible: true
@@ -16,7 +25,7 @@ class MyPopConfirm extends Component {
     callback: PropTypes.func
   };
 
-  complete = ok => {
+  complete = (ok: boolean) => {
     this.setState({ visible: false }, () => {
       this.props.callback(ok);
     });

@@ -3,7 +3,29 @@ import PropTypes from 'prop-types';
 import { Button, Input, Radio } from 'antd';
 import MarkdownPreview from './MarkdownPreview';
 import MarkdownRawEditor from './MarkdownRawEditor';
+import type { MarkdownRawEditorHandle } from './MarkdownRawEditor';
 import { extractHeadings } from './markdownHeadings';
+import type { MarkdownHeading } from './markdownHeadings';
+
+type DocsWorkspaceMode = 'viewer' | 'editor' | 'split';
+
+interface DocsWorkspaceProps {
+  canEdit?: boolean;
+  dirty?: boolean;
+  fileName?: string;
+  mode?: DocsWorkspaceMode;
+  title?: string;
+  content?: string;
+  onModeChange: (mode: DocsWorkspaceMode) => void;
+  onTitleChange: (title: string) => void;
+  onContentChange: (content: string) => void;
+  onActiveHeadingChange?: (headingId: string) => void;
+  onSave?: () => void;
+}
+
+export interface DocsWorkspaceHandle {
+  jumpToHeading(heading: MarkdownHeading): void;
+}
 
 const modes = [
   { label: '预览', value: 'viewer' },
@@ -11,7 +33,7 @@ const modes = [
   { label: '分屏', value: 'split' }
 ];
 
-const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
+const DocsWorkspace = forwardRef<DocsWorkspaceHandle, DocsWorkspaceProps>(function DocsWorkspace(props, ref) {
   const {
     canEdit,
     dirty,
@@ -26,21 +48,21 @@ const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
     onSave
   } = props;
   const effectiveMode = canEdit ? mode : 'viewer';
-  const editorRef = useRef(null);
-  const splitEditorRef = useRef(null);
-  const viewerPaneRef = useRef(null);
-  const splitViewerRef = useRef(null);
+  const editorRef = useRef<MarkdownRawEditorHandle>(null);
+  const splitEditorRef = useRef<MarkdownRawEditorHandle>(null);
+  const viewerPaneRef = useRef<HTMLDivElement>(null);
+  const splitViewerRef = useRef<HTMLDivElement>(null);
   const splitSyncLockRef = useRef(false);
   const splitSyncFrameRef = useRef(0);
   const headings = useMemo(() => extractHeadings(content || ''), [content]);
 
-  const jumpEditorToHeading = useCallback((heading, targetRef = editorRef) => {
+  const jumpEditorToHeading = useCallback((heading: MarkdownHeading, targetRef = editorRef) => {
     if (targetRef.current && heading.line) {
       targetRef.current.scrollToLine(heading.line);
     }
   }, []);
 
-  const jumpPreviewToHeading = useCallback(heading => {
+  const jumpPreviewToHeading = useCallback((heading: MarkdownHeading) => {
     if (!heading || !heading.id) return;
     const target = document.getElementById(heading.id);
     if (target) {
@@ -63,7 +85,7 @@ const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
     }
   }), [effectiveMode, jumpEditorToHeading, jumpPreviewToHeading]);
 
-  const updateEditorActiveHeading = lineNumber => {
+  const updateEditorActiveHeading = (lineNumber: number) => {
     let nextActiveId = '';
     headings.forEach(heading => {
       if (heading.line <= lineNumber) {
@@ -91,7 +113,7 @@ const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
       rafId = 0;
       const headingElements = headings
         .map(heading => ({ heading, element: document.getElementById(heading.id) }))
-        .filter(item => item.element);
+        .filter((item): item is { heading: MarkdownHeading; element: HTMLElement } => item.element !== null);
       if (!headingElements.length) return;
 
       const anchorTop = rootScrollable
@@ -132,17 +154,17 @@ const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
     const previewScroll = splitViewerRef.current;
     if (!editorScroll || !previewScroll) return undefined;
 
-    const scrollRatio = source => {
+    const scrollRatio = (source: HTMLElement) => {
       const maxScrollTop = Math.max(0, source.scrollHeight - source.clientHeight);
       return maxScrollTop ? source.scrollTop / maxScrollTop : 0;
     };
 
-    const applyRatio = (target, ratio) => {
+    const applyRatio = (target: HTMLElement, ratio: number) => {
       const maxScrollTop = Math.max(0, target.scrollHeight - target.clientHeight);
       target.scrollTop = maxScrollTop * Math.max(0, Math.min(1, ratio));
     };
 
-    const sync = (source, target) => {
+    const sync = (source: HTMLElement, target: HTMLElement) => {
       if (splitSyncLockRef.current) return;
       splitSyncLockRef.current = true;
       if (splitSyncFrameRef.current) window.cancelAnimationFrame(splitSyncFrameRef.current);
@@ -190,7 +212,7 @@ const DocsWorkspace = forwardRef(function DocsWorkspace(props, ref) {
         {canEdit ? (
           <Radio.Group
             value={effectiveMode}
-            onChange={event => onModeChange(event.target.value)}
+            onChange={event => onModeChange(event.target.value as DocsWorkspaceMode)}
             buttonStyle="solid"
           >
             {modes.map(item => (
@@ -253,9 +275,9 @@ DocsWorkspace.propTypes = {
   mode: PropTypes.oneOf(['viewer', 'editor', 'split']),
   title: PropTypes.string,
   content: PropTypes.string,
-  onModeChange: PropTypes.func,
-  onTitleChange: PropTypes.func,
-  onContentChange: PropTypes.func,
+  onModeChange: PropTypes.func as PropTypes.Validator<DocsWorkspaceProps['onModeChange']>,
+  onTitleChange: PropTypes.func as PropTypes.Validator<DocsWorkspaceProps['onTitleChange']>,
+  onContentChange: PropTypes.func as PropTypes.Validator<DocsWorkspaceProps['onContentChange']>,
   onActiveHeadingChange: PropTypes.func,
   onSave: PropTypes.func
 };

@@ -7,11 +7,11 @@ import Icon from 'client/shims/antdIcon';
 import { Link } from 'react-router-dom';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import { formatTime, safeArray } from '../../../../common.ts';
-import ErrMsg from '../../../../components/ErrMsg/ErrMsg.js';
+import ErrMsg from '../../../../components/ErrMsg/ErrMsg';
 import variable from '../../../../constants/variable';
 import constants from '../../../../constants/variable.js';
 import copy from 'copy-to-clipboard';
-import SchemaTable from '../../../../components/SchemaTable/SchemaTable.js';
+import SchemaTable from '../../../../components/SchemaTable/SchemaTable';
 import { buildApiUrl, buildMockUrl } from '../../../../utils/backend';
 import { sanitizeHTML } from '../../../../../common/sanitize.js';
 

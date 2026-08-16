@@ -2,18 +2,26 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import './Loading.scss';
 
-export default class Loading extends React.PureComponent {
+interface LoadingProps {
+  visible?: boolean;
+}
+
+interface LoadingState {
+  show?: boolean;
+}
+
+export default class Loading extends React.PureComponent<LoadingProps, LoadingState> {
   static defaultProps = {
     visible: false
   };
   static propTypes = {
     visible: PropTypes.bool
   };
-  constructor(props) {
+  constructor(props: LoadingProps) {
     super(props);
     this.state = { show: props.visible };
   }
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: LoadingProps) {
     this.setState({ show: nextProps.visible });
   }
   render() {

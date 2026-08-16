@@ -6,7 +6,25 @@ import { OverPack } from 'rc-scroll-anim';
 import TweenOne from 'rc-tween-one';
 import QueueAnim from 'rc-queue-anim';
 
-const IntroPart = props => (
+interface IntroPartProps {
+  title: string;
+  des: string;
+  iconType?: string;
+}
+
+interface IntroData {
+  title: string;
+  des: string;
+  img: string;
+  detail: IntroPartProps[];
+}
+
+interface IntroProps {
+  intro: IntroData;
+  className?: string;
+}
+
+const IntroPart = (props: IntroPartProps) => (
   <li className="switch-content">
     <div className="icon-switch">
       <Icon type={props.iconType} />
@@ -26,8 +44,8 @@ IntroPart.propTypes = {
   iconType: PropTypes.string
 };
 
-class Intro extends React.PureComponent {
-  constructor(props) {
+class Intro extends React.PureComponent<IntroProps> {
+  constructor(props: IntroProps) {
     super(props);
   }
   static propTypes = {
@@ -48,7 +66,7 @@ class Intro extends React.PureComponent {
     const { intro } = this.props;
     const id = 'motion';
     const animType = {
-      queue: 'right',
+      queue: 'right' as const,
       one: { x: '-=30', opacity: 0, type: 'from' }
     };
     return (

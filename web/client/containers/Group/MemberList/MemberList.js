@@ -14,8 +14,8 @@ import {
   delMember,
   changeMemberRole
 } from '../../../reducer/modules/group';
-import ErrMsg from '../../../components/ErrMsg/ErrMsg.js';
-import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete.js';
+import ErrMsg from '../../../components/ErrMsg/ErrMsg';
+import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete';
 const Option = Select.Option;
 
 function arrayAddKey(arr) {

@@ -1,25 +1,57 @@
 import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
+import type { ChangeEvent, ReactNode } from 'react';
 import Icon from 'client/shims/antdIcon';
 import { parseSchema, serializeSchema } from './schemaContract.mjs';
 import './JsonSchemaEditor.scss';
 
 const TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array'];
 
-function clone(value) {
+interface JsonSchema {
+  type?: string;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  mock?: string | { mock?: string };
+  title?: string;
+  description?: string;
+}
+
+interface JsonSchemaEditorProps {
+  data?: string | JsonSchema;
+  onChange?: (value: string) => void;
+  isMock?: boolean;
+}
+
+interface JsonSchemaEditorState {
+  schema: JsonSchema;
+  expanded: Record<string, boolean>;
+}
+
+interface RenderNodeArgs {
+  schema: JsonSchema;
+  path: string[];
+  parentPath: string[];
+  name: string;
+  level: number;
+  required: boolean;
+  canDelete: boolean;
+}
+
+function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value || {}));
 }
 
-function safeParseSchema(data) {
+function safeParseSchema(data?: string | JsonSchema): JsonSchema {
   try {
-    const schema = parseSchema(data);
-    return normalizeSchema(schema && typeof schema === 'object' ? clone(schema) : {});
+    const schema = parseSchema(data) as unknown;
+    return normalizeSchema(schema && typeof schema === 'object' ? clone(schema as JsonSchema) : {});
   } catch (e) {
     return normalizeSchema({});
   }
 }
 
-function normalizeSchema(schema) {
+function normalizeSchema(schema: JsonSchema): JsonSchema {
   if (!schema.type) {
     schema.type = 'object';
   }
@@ -38,12 +70,13 @@ function normalizeSchema(schema) {
     normalizeSchema(schema.items);
   }
   if (schema.type === 'object') {
-    Object.keys(schema.properties).forEach(key => normalizeSchema(schema.properties[key]));
+    const properties = schema.properties || {};
+    Object.keys(properties).forEach(key => normalizeSchema(properties[key]));
   }
   return schema;
 }
 
-function getMockValue(schema) {
+function getMockValue(schema: JsonSchema): string {
   if (!schema.mock) {
     return '';
   }
@@ -53,7 +86,7 @@ function getMockValue(schema) {
   return schema.mock.mock || '';
 }
 
-function setMockValue(schema, value) {
+function setMockValue(schema: JsonSchema, value: string): void {
   if (!value) {
     delete schema.mock;
     return;
@@ -61,45 +94,47 @@ function setMockValue(schema, value) {
   schema.mock = typeof schema.mock === 'object' ? { ...schema.mock, mock: value } : { mock: value };
 }
 
-function pathKey(path) {
+function pathKey(path: string[]): string {
   return path.length ? path.join('.') : 'root';
 }
 
-function walkSchema(schema, path) {
+function walkSchema(schema: JsonSchema, path: string[]): JsonSchema {
   let current = schema;
   path.forEach(part => {
     if (part === 'items') {
-      current = current.items;
+      current = current.items!;
     } else {
-      current = current.properties[part];
+      current = current.properties![part];
     }
   });
   return current;
 }
 
-function childName(index) {
+function childName(index: number): string {
   return `field_${index + 1}`;
 }
 
-export default class JsonSchemaEditor extends Component {
+export default class JsonSchemaEditor extends Component<JsonSchemaEditorProps, JsonSchemaEditorState> {
   static propTypes = {
     data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     onChange: PropTypes.func,
     isMock: PropTypes.bool
   };
 
-  state = {
+  lastEmitted = '';
+
+  state: JsonSchemaEditorState = {
     schema: safeParseSchema(this.props.data),
     expanded: { root: true }
   };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: JsonSchemaEditorProps) {
     if (prevProps.data !== this.props.data && this.props.data !== this.lastEmitted) {
       this.setState({ schema: safeParseSchema(this.props.data) });
     }
   }
 
-  emitChange(schema) {
+  emitChange(schema: JsonSchema) {
     const normalized = normalizeSchema(schema);
     const text = serializeSchema(normalized);
     this.lastEmitted = text;
@@ -109,13 +144,13 @@ export default class JsonSchemaEditor extends Component {
     }
   }
 
-  updateNode(path, updater) {
+  updateNode(path: string[], updater: (node: JsonSchema, root: JsonSchema) => void) {
     const schema = clone(this.state.schema);
     updater(walkSchema(schema, path), schema);
     this.emitChange(schema);
   }
 
-  toggle(path) {
+  toggle(path: string[]) {
     const key = pathKey(path);
     this.setState(prevState => ({
       expanded: {
@@ -125,7 +160,7 @@ export default class JsonSchemaEditor extends Component {
     }));
   }
 
-  addChild(path) {
+  addChild(path: string[]) {
     const key = pathKey(path);
     const schema = clone(this.state.schema);
     const node = walkSchema(schema, path);
@@ -139,19 +174,19 @@ export default class JsonSchemaEditor extends Component {
       normalizeSchema(node);
     }
 
-    const parent = node.type === 'array' ? node.items : node;
+    const parent: JsonSchema = node.type === 'array' ? node.items! : node;
     if (parent.type !== 'object') {
       parent.type = 'object';
     }
     normalizeSchema(parent);
 
-    let index = Object.keys(parent.properties).length;
+    let index = Object.keys(parent.properties!).length;
     let name = childName(index);
-    while (parent.properties[name]) {
+    while (parent.properties![name]) {
       index += 1;
       name = childName(index);
     }
-    parent.properties[name] = { type: 'string' };
+    parent.properties![name] = { type: 'string' };
 
     this.setState(prevState => ({
       expanded: {
@@ -162,7 +197,7 @@ export default class JsonSchemaEditor extends Component {
     this.emitChange(schema);
   }
 
-  deleteChild(path, name) {
+  deleteChild(path: string[], name: string) {
     const schema = clone(this.state.schema);
     const parent = walkSchema(schema, path);
     if (parent.properties) {
@@ -174,7 +209,7 @@ export default class JsonSchemaEditor extends Component {
     this.emitChange(schema);
   }
 
-  renameChild(path, oldName, newName) {
+  renameChild(path: string[], oldName: string, newName: string) {
     const nextName = newName.trim();
     if (!nextName || nextName === oldName) {
       return;
@@ -185,8 +220,8 @@ export default class JsonSchemaEditor extends Component {
       return;
     }
     const keys = Object.keys(parent.properties);
-    parent.properties = keys.reduce((result, key) => {
-      result[key === oldName ? nextName : key] = parent.properties[key];
+    parent.properties = keys.reduce<Record<string, JsonSchema>>((result, key) => {
+      result[key === oldName ? nextName : key] = parent.properties![key];
       return result;
     }, {});
     if (Array.isArray(parent.required)) {
@@ -195,7 +230,7 @@ export default class JsonSchemaEditor extends Component {
     this.emitChange(schema);
   }
 
-  setRequired(path, name, checked) {
+  setRequired(path: string[], name: string, checked: boolean) {
     const schema = clone(this.state.schema);
     const parent = walkSchema(schema, path);
     if (!Array.isArray(parent.required)) {
@@ -210,7 +245,12 @@ export default class JsonSchemaEditor extends Component {
     this.emitChange(schema);
   }
 
-  renderTextField(className, placeholder, value, onChange) {
+  renderTextField(
+    className: string,
+    placeholder: string,
+    value: string,
+    onChange: (event: ChangeEvent<HTMLInputElement>) => void
+  ): ReactNode {
     return (
       <span className={'schema-addon-field ' + className + '-group'}>
         <input className={className} placeholder={placeholder} value={value} onChange={onChange} />
@@ -221,13 +261,14 @@ export default class JsonSchemaEditor extends Component {
     );
   }
 
-  renderRows(parentSchema, path, level) {
+  renderRows(parentSchema: JsonSchema, path: string[], level: number): ReactNode {
     if (!parentSchema.properties) {
       return null;
     }
-    const names = Object.keys(parentSchema.properties);
+    const properties = parentSchema.properties;
+    const names = Object.keys(properties);
     return names.map(name => {
-      const child = parentSchema.properties[name];
+      const child = properties[name];
       return this.renderNode({
         schema: child,
         path: path.concat(name),
@@ -240,10 +281,10 @@ export default class JsonSchemaEditor extends Component {
     });
   }
 
-  renderNode({ schema, path, parentPath, name, level, required, canDelete }) {
+  renderNode({ schema, path, parentPath, name, level, required, canDelete }: RenderNodeArgs): ReactNode {
     const key = pathKey(path);
     const expandable = schema.type === 'object' || schema.type === 'array';
-    const childRoot = schema.type === 'array' ? schema.items : schema;
+    const childRoot: JsonSchema = schema.type === 'array' ? schema.items || {} : schema;
     const isExpanded = this.state.expanded[key] !== false;
 
     return (

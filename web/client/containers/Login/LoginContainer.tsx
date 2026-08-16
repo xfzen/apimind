@@ -3,7 +3,7 @@ import Card from 'antd/es/card';
 import Col from 'antd/es/grid/col';
 import Row from 'antd/es/grid/row';
 
-import LogoSVG from '../../components/LogoSVG/index.js';
+import LogoSVG from '../../components/LogoSVG';
 import Login from './LoginWrap';
 
 class LoginContainer extends Component {

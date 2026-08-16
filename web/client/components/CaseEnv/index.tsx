@@ -3,14 +3,35 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Select, Row, Col, Tooltip } from 'antd';
+import type { CollapseProps } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import Collapse from 'client/shims/Collapse';
 const Option = Select.Option;
 const Panel = Collapse.Panel;
 import './index.scss';
 
-export default class CaseEnv extends React.Component {
-  constructor(props) {
+interface EnvironmentValue {
+  _id: string | number;
+  name: string;
+  domain: string;
+}
+
+interface EnvironmentItem {
+  _id: string | number;
+  name: string;
+  env: EnvironmentValue[];
+}
+
+interface CaseEnvProps {
+  envList: EnvironmentItem[];
+  currProjectEnvChange: (value: string, environmentId: string | number) => void;
+  changeClose?: (key: string | string[]) => void;
+  collapseKey?: CollapseProps['activeKey'];
+  envValue: Record<string | number, string | undefined>;
+}
+
+export default class CaseEnv extends React.Component<CaseEnvProps> {
+  constructor(props: CaseEnvProps) {
     super(props);
   }
 
@@ -18,11 +39,15 @@ export default class CaseEnv extends React.Component {
     envList: PropTypes.array,
     currProjectEnvChange: PropTypes.func,
     changeClose: PropTypes.func,
-    collapseKey: PropTypes.any,
+    collapseKey: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired)
+    ]),
     envValue: PropTypes.object
   };
 
-  callback = key => {
+  callback = (key: string | string[]) => {
     this.props.changeClose && this.props.changeClose(key);
   };
 

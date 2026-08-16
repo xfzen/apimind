@@ -23,7 +23,7 @@ import {InsertCodeMap} from 'client/components/Postman/Postman.js'
 import { handleCurrDomain, checkNameIsExistInArray } from 'common/postmanLib.js';
 import { getBackendOrigin } from '../../../../utils/backend';
 import CaseEnv from 'client/components/CaseEnv';
-import Label from '../../../../components/Label/Label.js';
+import Label from '../../../../components/Label/Label';
 
 const Option = Select.Option;
 

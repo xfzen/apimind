@@ -3,16 +3,25 @@ import PropTypes from 'prop-types';
 import { Button } from 'antd';
 import { connect } from 'react-redux';
 import { changeStudyTip, finishStudy } from '../../reducer/modules/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-@connect(
+const connectGuideBtns = asLegacyClassDecorator(connect(
   null,
   {
     changeStudyTip,
     finishStudy
   }
-)
-class GuideBtns extends Component {
-  constructor(props) {
+));
+
+interface GuideBtnsProps {
+  changeStudyTip: () => unknown;
+  finishStudy: () => unknown;
+  isLast?: boolean;
+}
+
+@connectGuideBtns
+class GuideBtns extends Component<GuideBtnsProps> {
+  constructor(props: GuideBtnsProps) {
     super(props);
   }
 

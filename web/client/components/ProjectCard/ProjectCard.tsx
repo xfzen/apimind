@@ -6,31 +6,58 @@ import { connect } from 'react-redux';
 import { delFollow, addFollow } from '../../reducer/modules/follow';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
+import type { RouteComponentProps } from 'react-router';
 import { debounce } from '../../common';
 import constants from '../../constants/variable.js';
 import produce from 'immer';
 import { getProject, checkProjectName, copyProjectMsg } from '../../reducer/modules/project';
-import { trim } from '../../common.ts';
+import { trim } from '../../common';
+import type { ApiResponse } from '../../types/api';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 const confirm = Modal.confirm;
 
-@connect(
-  state => {
-    return {
-      uid: state.user.uid,
-      currPage: state.project.currPage
-    };
-  },
-  {
-    delFollow,
-    addFollow,
-    getProject,
-    checkProjectName,
-    copyProjectMsg
-  }
-)
-@withRouter
-class ProjectCard extends Component {
-  constructor(props) {
+interface ProjectData extends UnknownRecord {
+  _id: string | number;
+  projectid?: string | number;
+  name?: string;
+  projectname?: string;
+  group_id: string | number;
+  icon?: string;
+  color?: string;
+  kind?: string;
+  follow?: boolean;
+}
+
+interface ProjectCardProps {
+  projectData: ProjectData;
+  uid: number;
+  inFollowPage?: boolean;
+  callbackResult: () => void;
+  history: RouteComponentProps['history'];
+  delFollow: (id: string | number) => Promise<{ payload: { data: ApiResponse<unknown> } }>;
+  addFollow: (param: UnknownRecord) => Promise<{ payload: { data: ApiResponse<unknown> } }>;
+  isShow?: boolean;
+  getProject: (id: string | number) => Promise<{ payload: { data: ApiResponse<ProjectData> } }>;
+  checkProjectName: (name: string, groupId: string | number) => Promise<unknown>;
+  copyProjectMsg: (data: UnknownRecord) => Promise<unknown>;
+  currPage: number;
+}
+
+const connectProjectCard = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
+    uid: state.user.uid,
+    currPage: state.project.currPage
+  }),
+  { delFollow, addFollow, getProject, checkProjectName, copyProjectMsg }
+));
+const routeProjectCard = asLegacyClassDecorator(withRouter);
+
+@connectProjectCard
+@routeProjectCard
+class ProjectCard extends Component<ProjectCardProps> {
+  constructor(props: ProjectCardProps) {
     super(props);
     this.add = debounce(this.add, 400);
     this.del = debounce(this.del, 400);
@@ -51,11 +78,12 @@ class ProjectCard extends Component {
     currPage: PropTypes.number
   };
 
-  copy = async projectName => {
+  copy = async (projectName: string) => {
     const id = this.props.projectData._id;
 
     let projectData = await this.props.getProject(id);
-    let data = projectData.payload.data.data;
+    const data = projectData.payload.data.data;
+    if (!data) return;
     let newData = produce(data, draftData => {
       draftData.preName = draftData.name;
       draftData.name = projectName;
@@ -91,7 +119,7 @@ class ProjectCard extends Component {
         </div>
       ),
       async onOk() {
-        const projectName = trim(document.getElementById('project_name').value);
+        const projectName = String(trim((document.getElementById('project_name') as HTMLInputElement | null)?.value || '') || '');
 
         // 查询项目名称是否重复
         const group_id = that.props.projectData.group_id;
@@ -100,7 +128,7 @@ class ProjectCard extends Component {
       },
       iconType: 'copy',
       onCancel() {}
-    });
+    } as Parameters<typeof confirm>[0] & { iconType: string });
   };
 
   del = () => {
@@ -147,7 +175,7 @@ class ProjectCard extends Component {
             className="ui-logo"
             style={{
               backgroundColor:
-                constants.PROJECT_COLOR[projectData.color] || constants.PROJECT_COLOR.blue
+                constants.PROJECT_COLOR[projectData.color as keyof typeof constants.PROJECT_COLOR] || constants.PROJECT_COLOR.blue
             }}
           />
           <h4 className="ui-title">{projectData.name || projectData.projectname}</h4>

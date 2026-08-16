@@ -3,9 +3,22 @@ import React, { PureComponent as Component } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { Menu } from 'antd';
+import type { MenuProps } from 'antd';
 
-class Subnav extends Component {
-  constructor(props) {
+interface SubnavItem {
+  name: string;
+  path: string;
+}
+
+interface SubnavProps {
+  data: SubnavItem[];
+  default: string;
+}
+
+class Subnav extends Component<SubnavProps> {
+  handleClick?: MenuProps['onClick'];
+
+  constructor(props: SubnavProps) {
     super(props);
   }
 

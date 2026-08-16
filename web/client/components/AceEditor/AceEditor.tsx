@@ -1,5 +1,7 @@
 import React from 'react';
-import mockEditor from './mockEditor';
+import mockEditor, { type MockEditorInstance } from './mockEditor';
+import type * as Ace from 'brace';
+import type { CSSProperties } from 'react';
 import PropTypes from 'prop-types';
 import './AceEditor.scss';
 
@@ -13,17 +15,40 @@ const ModeMap = {
 
 const defaultStyle = { width: '100%', height: '200px' };
 
-function getMode(mode) {
-  return ModeMap[mode] || ModeMap.text;
+function getMode(mode: string): string {
+  return ModeMap[mode as keyof typeof ModeMap] || ModeMap.text;
 }
 
-class AceEditor extends React.PureComponent {
-  constructor(props) {
+type MockEditorOptions = NonNullable<Parameters<typeof mockEditor>[0]>;
+
+interface AceEditorProps {
+  data?: unknown;
+  onChange?: MockEditorOptions['onChange'];
+  className?: string;
+  mode?: string;
+  readOnly?: boolean;
+  callback?: (editor: Ace.Editor) => void;
+  style?: CSSProperties;
+  fullScreen?: boolean;
+  insertCode?: (code: string) => void;
+}
+
+class AceEditor extends React.PureComponent<AceEditorProps> {
+  editor?: MockEditorInstance;
+  editorElement: HTMLDivElement | null = null;
+
+  constructor(props: AceEditorProps) {
     super(props);
   }
 
   static propTypes = {
-    data: PropTypes.any,
+    data: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.bool,
+      PropTypes.object,
+      PropTypes.array
+    ]),
     onChange: PropTypes.func,
     className: PropTypes.string,
     mode: PropTypes.string, //enum[json, text, javascript], default is javascript
@@ -36,7 +61,7 @@ class AceEditor extends React.PureComponent {
 
   componentDidMount() {
     this.editor = mockEditor({
-      container: this.editorElement,
+      container: this.editorElement as HTMLDivElement,
       data: this.props.data,
       onChange: this.props.onChange,
       readOnly: this.props.readOnly,
@@ -49,7 +74,7 @@ class AceEditor extends React.PureComponent {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: AceEditorProps) {
     if (!this.editor) {
       return;
     }

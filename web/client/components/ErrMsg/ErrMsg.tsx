@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import Icon from 'client/shims/antdIcon';
 import './ErrMsg.scss';
 import { withRouter } from 'react-router';
+import type { ReactNode } from 'react';
+import type { RouteComponentProps } from 'react-router';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
 /**
  * 错误信息提示
@@ -24,9 +27,19 @@ import { withRouter } from 'react-router';
  * @description 一般用于描述错误信息名称
  * @returns {object}
  */
-@withRouter
-class ErrMsg extends Component {
-  constructor(props) {
+interface ErrMsgProps {
+  type?: string;
+  history?: RouteComponentProps['history'];
+  title?: ReactNode;
+  desc?: ReactNode;
+  opration?: ReactNode;
+}
+
+const routeErrMsg = asLegacyClassDecorator(withRouter);
+
+@routeErrMsg
+class ErrMsg extends Component<ErrMsgProps> {
+  constructor(props: ErrMsgProps) {
     super(props);
   }
 
@@ -47,7 +60,7 @@ class ErrMsg extends Component {
           title = '你还没有关注项目呢';
           desc = (
             <span>
-              先去 <a onClick={() => this.props.history.push('/group')}>“项目广场”</a> 逛逛吧,
+              先去 <a onClick={() => this.props.history?.push('/group')}>“项目广场”</a> 逛逛吧,
               那里可以添加关注。
             </span>
           );

@@ -6,13 +6,31 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
 
-const MarkdownRawEditor = forwardRef(function MarkdownRawEditor(props, ref) {
+export interface MarkdownRawEditorHandle {
+  getScrollElement(): HTMLElement | null;
+  scrollToRatio(ratio: number): void;
+  scrollToLine(lineNumber: number): void;
+}
+
+interface MarkdownRawEditorProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  onActiveLineChange?: (lineNumber: number) => void;
+  readOnly?: boolean;
+}
+
+const MarkdownRawEditor = forwardRef<
+  MarkdownRawEditorHandle,
+  MarkdownRawEditorProps
+>(function MarkdownRawEditor(props, ref) {
   const { value, onChange, onActiveLineChange, readOnly } = props;
-  const rootRef = useRef(null);
-  const viewRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
   const valueRef = useRef(value || '');
-  const onChangeRef = useRef(onChange);
-  const onActiveLineChangeRef = useRef(onActiveLineChange);
+  const onChangeRef = useRef<MarkdownRawEditorProps['onChange']>(onChange);
+  const onActiveLineChangeRef = useRef<
+    MarkdownRawEditorProps['onActiveLineChange']
+  >(onActiveLineChange);
   const activeLineRef = useRef(0);
   const activeLineFrameRef = useRef(0);
   const suppressChangeRef = useRef(false);
@@ -30,14 +48,14 @@ const MarkdownRawEditor = forwardRef(function MarkdownRawEditor(props, ref) {
     getScrollElement() {
       return viewRef.current ? viewRef.current.scrollDOM : null;
     },
-    scrollToRatio(ratio) {
+    scrollToRatio(ratio: number) {
       const view = viewRef.current;
       if (!view) return;
       const scrollEl = view.scrollDOM;
       const maxScrollTop = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
       scrollEl.scrollTop = maxScrollTop * Math.max(0, Math.min(1, Number(ratio) || 0));
     },
-    scrollToLine(lineNumber) {
+    scrollToLine(lineNumber: number) {
       const view = viewRef.current;
       if (!view) return;
       const safeLineNumber = Math.max(1, Math.min(Number(lineNumber) || 1, view.state.doc.lines));
@@ -53,7 +71,7 @@ const MarkdownRawEditor = forwardRef(function MarkdownRawEditor(props, ref) {
   useEffect(() => {
     if (!rootRef.current) return undefined;
 
-    const emitActiveLine = view => {
+    const emitActiveLine = (view: EditorView) => {
       if (!onActiveLineChangeRef.current) return;
       const lineNumber = view.state.doc.lineAt(view.viewport.from).number;
       if (lineNumber === activeLineRef.current) return;
@@ -61,7 +79,7 @@ const MarkdownRawEditor = forwardRef(function MarkdownRawEditor(props, ref) {
       onActiveLineChangeRef.current(lineNumber);
     };
 
-    const scheduleActiveLine = view => {
+    const scheduleActiveLine = (view: EditorView) => {
       if (activeLineFrameRef.current) return;
       activeLineFrameRef.current = window.requestAnimationFrame(() => {
         activeLineFrameRef.current = 0;

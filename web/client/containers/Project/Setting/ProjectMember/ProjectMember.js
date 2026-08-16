@@ -17,7 +17,7 @@ import PropTypes from 'prop-types';
 import Icon from 'client/shims/antdIcon';
 import { fetchGroupMsg } from '../../../../reducer/modules/group';
 import { connect } from 'react-redux';
-import ErrMsg from '../../../../components/ErrMsg/ErrMsg.js';
+import ErrMsg from '../../../../components/ErrMsg/ErrMsg';
 import { fetchGroupMemberList } from '../../../../reducer/modules/group';
 import {
   fetchProjectList,
@@ -28,7 +28,7 @@ import {
   changeMemberRole,
   changeMemberEmailNotice
 } from '../../../../reducer/modules/project';
-import UsernameAutoComplete from '../../../../components/UsernameAutoComplete/UsernameAutoComplete.js';
+import UsernameAutoComplete from '../../../../components/UsernameAutoComplete/UsernameAutoComplete';
 import '../Setting.scss';
 import { buildApiUrl } from '../../../../utils/backend';
 

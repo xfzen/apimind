@@ -5,15 +5,25 @@ import PropTypes from 'prop-types';
 import React, { PureComponent as Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { BreadcrumbItem } from '../../types/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-@connect(state => {
+const connectBreadcrumb = asLegacyClassDecorator(connect((state: RootState) => {
   return {
     breadcrumb: state.user.breadcrumb
   };
-})
-@withRouter
-export default class BreadcrumbNavigation extends Component {
-  constructor(props) {
+}));
+const routeBreadcrumb = asLegacyClassDecorator(withRouter);
+
+interface BreadcrumbNavigationProps {
+  breadcrumb: BreadcrumbItem[];
+}
+
+@connectBreadcrumb
+@routeBreadcrumb
+export default class BreadcrumbNavigation extends Component<BreadcrumbNavigationProps> {
+  constructor(props: BreadcrumbNavigationProps) {
     super(props);
   }
 

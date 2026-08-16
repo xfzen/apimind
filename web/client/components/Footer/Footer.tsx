@@ -5,8 +5,32 @@ import { Row, Col } from 'antd';
 import Icon from 'client/shims/antdIcon';
 
 const version = process.env.version;
-class Footer extends Component {
-  constructor(props) {
+
+interface FooterLink {
+  itemTitle: string;
+  itemLink: string;
+}
+
+interface FooterSection {
+  title: string;
+  iconType?: string;
+  linkList: FooterLink[];
+}
+
+interface FooterProps {
+  footList: FooterSection[];
+}
+
+interface FootItemProps {
+  linkList: FooterLink[];
+  title: string;
+  iconType?: string;
+}
+
+class Footer extends Component<FooterProps> {
+  static defaultProps: FooterProps;
+
+  constructor(props: FooterProps) {
     super(props);
   }
   static propTypes = {
@@ -32,8 +56,8 @@ class Footer extends Component {
   }
 }
 
-class FootItem extends Component {
-  constructor(props) {
+class FootItem extends Component<FootItemProps> {
+  constructor(props: FootItemProps) {
     super(props);
   }
   static propTypes = {

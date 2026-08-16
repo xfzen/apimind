@@ -4,8 +4,8 @@ import { connect } from 'react-redux';
 import { Row, Col, Button, Tooltip } from 'antd';
 import { Link } from 'react-router-dom';
 import { addProject, fetchProjectList, delProject } from '../../../reducer/modules/project';
-import ProjectCard from '../../../components/ProjectCard/ProjectCard.js';
-import ErrMsg from '../../../components/ErrMsg/ErrMsg.js';
+import ProjectCard from '../../../components/ProjectCard/ProjectCard';
+import ErrMsg from '../../../components/ErrMsg/ErrMsg';
 import { autobind } from 'core-decorators';
 import { setBreadcrumb } from '../../../reducer/modules/user';
 

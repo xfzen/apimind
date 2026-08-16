@@ -1,3 +1,8 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "pattern": "^Warning: componentWillReceiveProps has been renamed[\\s\\S]*MyPopConfirm$",
+      "reason": "Phase 3 preserves the legacy MyPopConfirm lifecycle and callback timing"
+    }
+  ]
 }

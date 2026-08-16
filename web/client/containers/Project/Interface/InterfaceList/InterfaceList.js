@@ -14,7 +14,7 @@ import { getProject } from '../../../../reducer/modules/project';
 import { Link } from 'react-router-dom';
 import variable from '../../../../constants/variable';
 import './Edit.scss';
-import Label from '../../../../components/Label/Label.js';
+import Label from '../../../../components/Label/Label';
 
 const Option = Select.Option;
 const limit = 20;

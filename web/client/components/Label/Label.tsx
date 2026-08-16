@@ -2,10 +2,22 @@ import React, { Component } from 'react';
 import { Input, Tooltip } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import PropTypes from 'prop-types';
+import type { ChangeEvent } from 'react';
 import './Label.scss';
 
-export default class Label extends Component {
-  constructor(props) {
+interface LabelProps {
+  onChange: (value: string) => void;
+  desc?: string;
+  cat_name?: string;
+}
+
+interface LabelState {
+  inputShow: boolean;
+  inputValue: string;
+}
+
+export default class Label extends Component<LabelProps, LabelState> {
+  constructor(props: LabelProps) {
     super(props);
     this.state = {
       inputShow: false,
@@ -20,10 +32,10 @@ export default class Label extends Component {
   toggle = () => {
     this.setState({ inputShow: !this.state.inputShow });
   };
-  handleChange = event => {
+  handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     this.setState({ inputValue: event.target.value });
   };
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: LabelProps) {
     if (this.props.desc === nextProps.desc) {
       this.setState({
         inputShow: false

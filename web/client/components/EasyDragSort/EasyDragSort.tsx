@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import PropTypes from 'prop-types';
+import type { MouseEvent, ReactElement, ReactNode } from 'react';
 
 /**
  * @author suxiaoxin
@@ -10,19 +11,30 @@ import PropTypes from 'prop-types';
  * {list}
  * </EasyDragSot>
  */
-let curDragIndex = null;
+let curDragIndex: number | null = null;
 
-function isDom(obj) {
+function isDom(obj: unknown): obj is HTMLElement {
   return (
-    obj &&
+    obj !== null &&
     typeof obj === 'object' &&
+    'nodeType' in obj &&
     obj.nodeType === 1 &&
+    'nodeName' in obj &&
     typeof obj.nodeName === 'string' &&
+    'getAttribute' in obj &&
     typeof obj.getAttribute === 'function'
   );
 }
 
-export default class EasyDragSort extends React.Component {
+interface EasyDragSortProps {
+  children: ReactNode[];
+  onChange?: (data: unknown[], from: number | null, to: number) => unknown;
+  onDragEnd?: () => void;
+  data: () => unknown[];
+  onlyChild?: string;
+}
+
+export default class EasyDragSort extends React.Component<EasyDragSortProps> {
   static propTypes = {
     children: PropTypes.array,
     onChange: PropTypes.func,
@@ -36,7 +48,7 @@ export default class EasyDragSort extends React.Component {
     const props = this.props;
     const { onlyChild } = props;
     let container = props.children;
-    const onChange = (from, to) => {
+    const onChange = (from: number | null, to: number) => {
       if (from === to) {
         return;
       }
@@ -52,8 +64,8 @@ export default class EasyDragSort extends React.Component {
     return (
       <div>
         {container.map((item, index) => {
-          if (React.isValidElement(item)) {
-            return React.cloneElement(item, {
+          if (React.isValidElement<Record<string, unknown>>(item)) {
+            return React.cloneElement(item as ReactElement<Record<string, unknown>>, {
               draggable: onlyChild ? false : true,
               ref: 'x' + index,
               'data-ref': 'x' + index,
@@ -64,12 +76,12 @@ export default class EasyDragSort extends React.Component {
                * 控制 dom 是否可拖动
                * @param {*} e
                */
-              onMouseDown(e) {
+              onMouseDown(e: MouseEvent) {
                 if (!onlyChild) {
                   return;
                 }
-                let el = e.target,
-                  target = e.target;
+                let el: HTMLElement | null = isDom(e.target) ? e.target : null;
+                let target: HTMLElement | null = el;
                 if (!isDom(el)) {
                   return;
                 }
@@ -80,13 +92,14 @@ export default class EasyDragSort extends React.Component {
                   if (el && el.tagName == 'DIV' && el.getAttribute('data-ref')) {
                     break;
                   }
-                } while ((el = el.parentNode));
+                } while ((el = el.parentElement));
                 if (!el) {
                   return;
                 }
-                let ref = that.refs[el.getAttribute('data-ref')];
-                let dom = ReactDOM.findDOMNode(ref);
-                if (dom) {
+                const refName = el.getAttribute('data-ref') || '';
+                const ref = (that.refs as Record<string, React.ReactInstance>)[refName];
+                const dom = ReactDOM.findDOMNode(ref);
+                if (isDom(dom) && target) {
                   dom.draggable = target.getAttribute(onlyChild) ? true : false;
                 }
               },
@@ -109,9 +122,9 @@ export default class EasyDragSort extends React.Component {
   }
 }
 
-function arrMove(arr, fromIndex, toIndex) {
-  arr = [].concat(arr);
-  let item = arr.splice(fromIndex, 1)[0];
+function arrMove(arr: unknown[], fromIndex: number | null, toIndex: number): unknown[] {
+  arr = ([] as unknown[]).concat(arr);
+  const item = arr.splice(fromIndex as number, 1)[0];
   arr.splice(toIndex, 0, item);
   return arr;
 }

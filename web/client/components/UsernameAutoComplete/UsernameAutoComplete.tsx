@@ -2,6 +2,7 @@ import React, { PureComponent as Component } from 'react';
 import PropTypes from 'prop-types';
 import { Select } from 'antd';
 import axios from 'axios';
+import type { ApiResponse } from '../../types/api';
 
 const Option = Select.Option;
 
@@ -36,14 +37,36 @@ const Option = Select.Option;
  * }
  *
  */
-class UsernameAutoComplete extends Component {
-  constructor(props) {
+interface SearchUser {
+  username: string;
+  uid: string | number;
+}
+
+interface UserOption {
+  username: string;
+  id: string | number;
+}
+
+interface UsernameAutoCompleteProps {
+  callbackState: (value: string[]) => void;
+}
+
+interface UsernameAutoCompleteState {
+  dataSource: UserOption[];
+  fetching: boolean;
+}
+
+class UsernameAutoComplete extends Component<
+  UsernameAutoCompleteProps,
+  UsernameAutoCompleteState
+> {
+  constructor(props: UsernameAutoCompleteProps) {
     super(props);
     // this.lastFetchId = 0;
     // this.fetchUser = debounce(this.fetchUser, 800);
   }
 
-  state = {
+  state: UsernameAutoCompleteState = {
     dataSource: [],
     fetching: false
   };
@@ -53,17 +76,17 @@ class UsernameAutoComplete extends Component {
   };
 
   // 搜索回调
-  handleSearch = value => {
+  handleSearch = (value: string) => {
     const params = { q: value };
     // this.lastFetchId += 1;
     // const fetchId = this.lastFetchId;
     this.setState({ fetching: true });
-    axios.get('/api/user/search', { params }).then(data => {
+    axios.get<ApiResponse<SearchUser[]>>('/api/user/search', { params }).then(response => {
       // if (fetchId !== this.lastFetchId) { // for fetch callback order
       //   return;
       // }
-      const userList = [];
-      data = data.data.data;
+      const userList: UserOption[] = [];
+      const data = response.data.data;
 
       if (data) {
         data.forEach(v =>
@@ -81,7 +104,7 @@ class UsernameAutoComplete extends Component {
   };
 
   // 选中候选词时
-  handleChange = value => {
+  handleChange = (value: string[]) => {
     this.setState({
       dataSource: [],
       // value,
