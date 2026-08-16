@@ -1,11 +1,9 @@
-const fs = require('node:fs');
-const Module = require('node:module');
 const path = require('node:path');
-const ts = require('typescript');
+const phaseThreeMap = require('../scripts/typescript/phase3-module-map.json');
+const { registerTypeScriptLoader } = require('./typescript-loader.cjs');
 
-const originalResolveFilename = Module._resolveFilename;
 const webRoot = path.resolve(__dirname, '..');
-const migratedModulePaths = new Set(
+const migratedModulePaths = new Map(
   [
     'client/common.js',
     'client/constants/variable.js',
@@ -34,55 +32,17 @@ const migratedModulePaths = new Set(
     'client/reducer/modules/project.js',
     'client/reducer/modules/reducer.js',
     'client/reducer/modules/template.js'
-  ].map(relativePath => path.resolve(webRoot, relativePath))
+  ].map(relativePath => [
+    path.resolve(webRoot, relativePath),
+    path.resolve(webRoot, relativePath.replace(/\.js$/, '.ts'))
+  ])
 );
 
-function resolveRequestedPath(request, parent) {
-  if (path.isAbsolute(request)) return path.resolve(request);
-  if (request.startsWith('.') && parent?.filename) {
-    return path.resolve(path.dirname(parent.filename), request);
-  }
-  if (request.startsWith('client/') || request.startsWith('common/')) {
-    return path.resolve(webRoot, request);
-  }
-  return null;
+for (const entry of phaseThreeMap.entries) {
+  migratedModulePaths.set(
+    path.resolve(webRoot, entry.source),
+    path.resolve(webRoot, entry.target)
+  );
 }
 
-Module._resolveFilename = function resolveMigratedTypeScript(
-  request,
-  parent,
-  isMain,
-  options
-) {
-  try {
-    return originalResolveFilename.call(this, request, parent, isMain, options);
-  } catch (error) {
-    const requestedPath = resolveRequestedPath(request, parent);
-    if (!requestedPath || !migratedModulePaths.has(requestedPath)) {
-      throw error;
-    }
-    const typeScriptRequest = `${requestedPath.slice(0, -3)}.ts`;
-    return originalResolveFilename.call(
-      this,
-      typeScriptRequest,
-      parent,
-      isMain,
-      options
-    );
-  }
-};
-
-require.extensions['.ts'] = function compileTypeScript(module, filename) {
-  const source = fs.readFileSync(filename, 'utf8');
-  const result = ts.transpileModule(source, {
-    fileName: filename,
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      esModuleInterop: true,
-      experimentalDecorators: true,
-      useDefineForClassFields: false
-    }
-  });
-  module._compile(result.outputText, filename);
-};
+registerTypeScriptLoader(migratedModulePaths);

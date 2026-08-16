@@ -14,6 +14,7 @@
     "start": "npm run preview",
     "lint": "node --check vite.config.mjs && node --check scripts/start-chrome-cdp.mjs && node --check scripts/check-repository-boundary.mjs && node --check tests/repository-boundary.test.mjs && node --check tests/build-output.test.mjs && node --check tests/container-config.test.mjs && node --check tests/migration/current-snapshot.test.mjs",
     "test": "ava",
+    "test:phase3:policy": "node --test tests/typescript-phase-3-policy.test.mjs",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "build:vite": "NODE_ENV=production npm run prepare:plugins && vite build",
     "build": "npm run build:vite",
