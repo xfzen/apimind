@@ -42,7 +42,7 @@ export function emitHook(name, registry) {
 
 function reduxRuntimeStub() {
   const virtualModules = new Map([
-    ['axios', ['\0apimind-redux-test-axios', axiosModule]],
+    ['redux-test-axios', ['\0apimind-redux-test-axios', axiosModule]],
     ['antd', ['\0apimind-redux-test-antd', antdModule]],
     ['client/plugin.js', ['\0apimind-redux-test-plugin', pluginModule]]
   ]);
@@ -58,6 +58,10 @@ function reduxRuntimeStub() {
         if (id === virtualId) return source;
       }
       return null;
+    },
+    transform(code, id) {
+      if (!id.includes('/client/reducer/') || !/\.[jt]s$/.test(id)) return null;
+      return code.replace(/from ['"]axios['"]/g, "from 'redux-test-axios'");
     }
   };
 }
@@ -87,6 +91,12 @@ export async function createReduxRuntimeServer(options = {}) {
     configFile: resolve(webRoot, 'vite.config.mjs'),
     logLevel: 'silent',
     plugins: [reduxRuntimeStub(), mockRuntimeStub()],
+    resolve: {
+      alias: [
+        { find: /^antd$/, replacement: '\0apimind-redux-test-antd' },
+        { find: /^client\/plugin\.js$/, replacement: '\0apimind-redux-test-plugin' }
+      ]
+    },
     server: { middlewareMode: true }
   });
 
