@@ -44,6 +44,7 @@ test('tsconfig enables strict no-emit checking for repository TypeScript roots',
     'common/**/*.ts',
     'common/**/*.tsx',
     'playwright.config.ts',
+    'playwright.live.config.ts',
     'tests/browser/**/*.ts',
     'tests/fixtures/**/*.tsx',
     'types/**/*.d.ts'

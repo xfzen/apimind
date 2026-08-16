@@ -75,6 +75,10 @@ test-web: web-install ## Run Web lint and tests.
 test-web-browser: web-install ## Run deterministic Web browser smoke tests through local Chrome CDP.
 	cd web && npm run test:browser
 
+.PHONY: test-web-browser-live
+test-web-browser-live: build-server web-install ## Run isolated live Go/Web authentication smoke.
+	sh web/scripts/smoke/typescript-pilot-live.sh
+
 .PHONY: test-server
 test-server: bootstrap ## Run Server tests.
 	$(MAKE) -C server test

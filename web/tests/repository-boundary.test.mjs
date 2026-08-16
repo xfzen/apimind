@@ -9,6 +9,9 @@ const root = resolve(new URL("../", import.meta.url).pathname);
 test("repository boundary checker rejects cross-component and direct API dependencies", () => {
   const checker = resolve(root, "scripts/check-repository-boundary.mjs");
   assert.equal(existsSync(checker), true, "repository boundary checker is required");
+  const source = readFileSync(checker, "utf8");
+  assert.match(source, /"playwright\.config\.ts"/);
+  assert.match(source, /"scripts\/smoke\/typescript-pilot-live\.sh"/);
   assert.doesNotThrow(() => execFileSync("node", [checker], { cwd: root, stdio: "pipe" }));
 });
 

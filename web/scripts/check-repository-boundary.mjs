@@ -11,6 +11,11 @@ const failures = [];
 const sourceExtensions = /\.(?:c?js|mjs|jsx|ts|tsx|json|ya?ml|toml|sh)$/;
 const ignoredPrefixes = ["docs/", "test/fixtures/", "tests/", "static/prd/"];
 const ignoredFiles = new Set(["scripts/check-repository-boundary.mjs"]);
+const apiTargetInfrastructure = new Set([
+  "vite.config.mjs",
+  "playwright.config.ts",
+  "scripts/smoke/typescript-pilot-live.sh"
+]);
 const crossComponent = /(?:^|[('"`\s])\.\.\/(?:server|apimind|skills|app)(?:\/|[)'"`\s]|$)/m;
 const directRemoteApi = /\b(?:fetch|axios\.(?:get|post|put|patch|delete)|request)\s*\(\s*['"`]https?:\/\//m;
 const legacyBrowserIntegration =
@@ -29,7 +34,7 @@ for (const file of tracked) {
   if (legacyBrowserIntegration.test(content)) {
     failures.push(`${file}: removed browser integration`);
   }
-  if (file !== "vite.config.mjs" && content.includes("YAPI_API_TARGET")) {
+  if (!apiTargetInfrastructure.has(file) && content.includes("YAPI_API_TARGET")) {
     failures.push(`${file}: YAPI_API_TARGET is reserved for the Vite development proxy`);
   }
 }
