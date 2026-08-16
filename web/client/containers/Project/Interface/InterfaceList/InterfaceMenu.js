@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import {
   fetchInterfaceListMenu, fetchInterfaceList, fetchInterfaceCatList, fetchInterfaceData, deleteInterfaceData, deleteInterfaceCatData, initInterface
 } from '../../../../reducer/modules/interface';
-import { getProject } from '../../../../reducer/modules/project.js';
+import { getProject } from '../../../../reducer/modules/project';
 import { Input, Button, Modal, message, Tree, Tooltip } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import AddInterfaceForm from './AddInterfaceForm';

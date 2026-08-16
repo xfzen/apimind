@@ -13,7 +13,7 @@ import {
   addMember,
   delMember,
   changeMemberRole
-} from '../../../reducer/modules/group.js';
+} from '../../../reducer/modules/group';
 import ErrMsg from '../../../components/ErrMsg/ErrMsg.js';
 import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete.js';
 const Option = Select.Option;

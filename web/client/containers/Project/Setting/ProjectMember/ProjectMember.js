@@ -18,7 +18,7 @@ import Icon from 'client/shims/antdIcon';
 import { fetchGroupMsg } from '../../../../reducer/modules/group';
 import { connect } from 'react-redux';
 import ErrMsg from '../../../../components/ErrMsg/ErrMsg.js';
-import { fetchGroupMemberList } from '../../../../reducer/modules/group.js';
+import { fetchGroupMemberList } from '../../../../reducer/modules/group';
 import {
   fetchProjectList,
   getProjectMemberList,
@@ -27,7 +27,7 @@ import {
   delMember,
   changeMemberRole,
   changeMemberEmailNotice
-} from '../../../../reducer/modules/project.js';
+} from '../../../../reducer/modules/project';
 import UsernameAutoComplete from '../../../../components/UsernameAutoComplete/UsernameAutoComplete.js';
 import '../Setting.scss';
 import { buildApiUrl } from '../../../../utils/backend';

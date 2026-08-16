@@ -117,6 +117,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^(?:.*\/)?client\/reducer\/modules\/project\.js$/,
+        replacement: path.resolve(__dirname, 'client/reducer/modules/project.ts')
+      },
+      {
         find: /^(?:.*\/)?constants\/variable\.js$/,
         replacement: path.resolve(__dirname, 'client/constants/variable.ts')
       },

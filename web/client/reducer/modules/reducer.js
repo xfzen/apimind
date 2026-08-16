@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 import user from './user';
-import group from './group.js';
-import project from './project.js';
+import group from './group';
+import project from './project';
 import inter from './interface';
 import interfaceCol from './interfaceCol';
 import news from './news';

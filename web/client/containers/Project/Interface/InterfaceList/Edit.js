@@ -7,7 +7,7 @@ import {
   fetchInterfaceListMenu,
   fetchInterfaceData
 } from '../../../../reducer/modules/interface';
-import { getProject } from '../../../../reducer/modules/project.js';
+import { getProject } from '../../../../reducer/modules/project';
 import axios from 'axios';
 import { buildMockUrl, buildWsUrl } from '../../../../utils/backend';
 import { message, Modal } from 'antd';

@@ -11,7 +11,7 @@ import {
   fetchGroupMsg,
   updateGroupList,
   deleteGroup
-} from '../../../reducer/modules/group.js';
+} from '../../../reducer/modules/group';
 const { TextArea } = Input;
 import { trim } from '../../../common.ts';
 import _ from 'underscore';

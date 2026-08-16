@@ -9,7 +9,7 @@ import {
   upsetProject
 } from '../../../../reducer/modules/project';
 import { fetchGroupMsg } from '../../../../reducer/modules/group';
-import { fetchGroupList } from '../../../../reducer/modules/group.js';
+import { fetchGroupList } from '../../../../reducer/modules/group';
 import { setBreadcrumb } from '../../../../reducer/modules/user';
 import { connect } from 'react-redux';
 const { TextArea } = Input;
