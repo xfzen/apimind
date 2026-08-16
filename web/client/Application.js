@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Route, BrowserRouter as Router } from 'react-router-dom';
 import { Home, Group, Project, Follows, AddProject, Login, Templates } from './containers/index';
-import User from './containers/User/User.js';
+import User from './containers/User/User';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
 import Loading from './components/Loading/Loading';

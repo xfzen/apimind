@@ -1,6 +1,6 @@
 import Breadcrumb from './Breadcrumb/Breadcrumb';
 import Footer from './Footer/Footer';
-import Header from './Header/Header.js';
+import Header from './Header/Header';
 import Intro from './Intro/Intro';
 import Loading from './Loading/Loading';
 import ProjectCard from './ProjectCard/ProjectCard';

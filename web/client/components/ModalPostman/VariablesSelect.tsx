@@ -1,24 +1,60 @@
 import React, { Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { Tree } from 'antd';
 import { connect } from 'react-redux';
 import { fetchVariableParamsList } from '../../reducer/modules/interfaceCol';
+import type { Key } from 'react';
+import type { ApiResponse } from '../../types/api';
+import type { RootState } from '../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
 const CanSelectPathPrefix = 'CanSelectPath-';
 
-function deleteLastObject(str) {
+export function deleteLastObject(str: string): string {
   return str
     .split('.')
     .slice(0, -1)
     .join('.');
 }
 
-function deleteLastArr(str) {
+export function deleteLastArr(str: string): string {
   return str.replace(/\[.*?\]/g, '');
 }
 
-@connect(
-  state => {
+interface VariableRecord extends Record<string, unknown> {
+  _id: string | number;
+  index: number;
+  casename?: string;
+  params?: unknown;
+  body?: unknown;
+}
+
+interface VariableTreeNode {
+  key: string;
+  title: string;
+  disabled?: boolean;
+  children?: VariableTreeNode[];
+}
+
+interface VariablesSelectProps {
+  click: (key: string) => void;
+  currColId: number;
+  fetchVariableParamsList: (id: number) => Promise<{
+    payload: { data: ApiResponse<VariableRecord[]> };
+  }>;
+  clickValue?: string;
+  id: string | number;
+}
+
+interface VariablesSelectState {
+  records: VariableRecord[];
+  expandedKeys: Key[];
+  selectedKeys: Key[];
+}
+
+const connectVariables = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       currColId: state.interfaceCol.currColId
     };
@@ -26,8 +62,9 @@ function deleteLastArr(str) {
   {
     fetchVariableParamsList
   }
-)
-class VariablesSelect extends Component {
+));
+@connectVariables
+class VariablesSelect extends Component<VariablesSelectProps, VariablesSelectState> {
   static propTypes = {
     click: PropTypes.func,
     currColId: PropTypes.number,
@@ -35,14 +72,17 @@ class VariablesSelect extends Component {
     clickValue: PropTypes.string,
     id: PropTypes.number
   };
-  state = {
+  records: VariableRecord[] = [];
+  id: string | number | undefined;
+
+  state: VariablesSelectState = {
     records: [],
     expandedKeys: [],
     selectedKeys: []
   };
 
-  handleRecordsData(id) {
-    let newRecords = [];
+  handleRecordsData(id: string | number) {
+    const newRecords: VariableRecord[] = [];
     this.id = id;
     for (let i = 0; i < this.records.length; i++) {
       if (this.records[i]._id === id) {
@@ -58,7 +98,7 @@ class VariablesSelect extends Component {
   async componentDidMount() {
     const { currColId, fetchVariableParamsList, clickValue } = this.props;
     let result = await fetchVariableParamsList(currColId);
-    let records = result.payload.data.data;
+    const records = result.payload.data.data || [];
     this.records = records.sort((a, b) => {
       return a.index - b.index;
     });
@@ -75,43 +115,50 @@ class VariablesSelect extends Component {
     }
   }
 
-  async componentWillReceiveProps(nextProps) {
+  async componentWillReceiveProps(nextProps: VariablesSelectProps) {
     if (this.records && nextProps.id && this.id !== nextProps.id) {
       this.handleRecordsData(nextProps.id);
     }
   }
 
-  handleSelect = key => {
+  handleSelect = (key: Key) => {
+    const stringKey = String(key || '');
     this.setState({
-      selectedKeys: [key]
+      selectedKeys: [stringKey]
     });
-    if (key && key.indexOf(CanSelectPathPrefix) === 0) {
-      key = key.substr(CanSelectPathPrefix.length);
-      this.props.click(key);
+    if (stringKey.indexOf(CanSelectPathPrefix) === 0) {
+      this.props.click(stringKey.substr(CanSelectPathPrefix.length));
     } else {
       this.setState({
-        expandedKeys: [key]
+        expandedKeys: [stringKey]
       });
     }
   };
 
-  onExpand = keys => {
+  onExpand = (keys: Key[]) => {
     this.setState({ expandedKeys: keys });
   };
 
   render() {
-    const pathSelctByTree = (data, elementKeyPrefix = '$', deepLevel = 0) => {
+    const pathSelctByTree = (
+      data: unknown,
+      elementKeyPrefix = '$',
+      deepLevel = 0
+    ): VariableTreeNode[] => {
+      if (!data || typeof data !== 'object') return [];
       let keys = Object.keys(data);
-      let TreeComponents = keys.map((key, index) => {
-        let item = data[key],
-          casename;
+      const source = data as Record<string, unknown>;
+      const TreeComponents: VariableTreeNode[] = keys.map((key, index) => {
+        let item = source[key];
+        let casename: string | undefined;
         if (deepLevel === 0) {
+          const record = item as VariableRecord;
           elementKeyPrefix = '$';
-          elementKeyPrefix = elementKeyPrefix + '.' + item._id;
-          casename = item.casename;
+          elementKeyPrefix = elementKeyPrefix + '.' + record._id;
+          casename = record.casename;
           item = {
-            params: item.params,
-            body: item.body
+            params: record.params,
+            body: record.body
           };
         } else if (Array.isArray(data)) {
           elementKeyPrefix =
@@ -149,7 +196,7 @@ class VariablesSelect extends Component {
         <Tree
           expandedKeys={this.state.expandedKeys}
           selectedKeys={this.state.selectedKeys}
-          onSelect={([key]) => this.handleSelect(key)}
+          onSelect={([key]) => this.handleSelect(key || '')}
           onExpand={this.onExpand}
           treeData={treeData}
         />
@@ -158,4 +205,7 @@ class VariablesSelect extends Component {
   }
 }
 
-export default VariablesSelect;
+export default VariablesSelect as unknown as ComponentType<Pick<
+  VariablesSelectProps,
+  'click' | 'clickValue' | 'id'
+>>;

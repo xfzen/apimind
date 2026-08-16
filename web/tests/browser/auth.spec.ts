@@ -33,6 +33,12 @@ test('successful login posts credentials and renders the personal group', async 
   await expect(page).toHaveURL(/\/group(?:\/11)?$/);
   await expect(page.getByText('个人空间', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('tab', { name: '项目列表' })).toBeVisible();
+  await page.getByPlaceholder('搜索分组/项目/接口').fill('搜索');
+  await expect(page.getByText('分组: 搜索分组', { exact: true })).toBeVisible();
+  await expect(page.getByText('项目: Phase 3 Project', { exact: true })).toBeVisible();
+  await expect(page.getByText('接口: Get user', { exact: true })).toBeVisible();
+  await page.getByText('分组: 搜索分组', { exact: true }).click();
+  await expect(page).toHaveURL(/\/group\/12$/);
   expect(postedCredentials).toEqual({
     email: 'pilot@example.invalid',
     password: 'pilot-password'

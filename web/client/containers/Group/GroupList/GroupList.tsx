@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ChangeEvent, ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Modal, Input, message, Spin, Row, Menu, Col, Popover, Tooltip } from 'antd';
@@ -6,6 +7,7 @@ import Icon from 'client/shims/antdIcon';
 import { autobind } from 'core-decorators';
 import axios from 'axios';
 import { withRouter } from 'react-router-dom';
+import type { RouteComponentProps } from 'react-router-dom';
 const { TextArea } = Input;
 const Search = Input.Search;
 import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete';
@@ -13,10 +15,19 @@ import GuideBtns from '../../../components/GuideBtns/GuideBtns';
 import { fetchNewsData } from '../../../reducer/modules/news';
 import { fetchGroupList, setCurrGroup, fetchGroupMsg } from '../../../reducer/modules/group';
 import _ from 'underscore';
+import type { ApiResponse } from '../../../types/api';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { GroupRecord } from '../../../reducer/modules/group';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 
 import './GroupList.scss';
 
-function visibleGroups(groups) {
+interface VisibleGroup extends GroupRecord {
+  type?: string;
+  hidden?: boolean;
+  role?: string;
+}
+function visibleGroups(groups: VisibleGroup[]): VisibleGroup[] {
   return (groups || []).filter(group => group.type !== 'system' && !group.hidden);
 }
 
@@ -30,8 +41,30 @@ const tip = (
   </div>
 );
 
-@connect(
-  state => ({
+interface GroupListProps extends RouteComponentProps<{ groupId?: string }> {
+  groupList: VisibleGroup[];
+  currGroup: VisibleGroup;
+  fetchGroupList: () => Promise<unknown>;
+  setCurrGroup: (group: Pick<GroupRecord, '_id'>) => unknown;
+  curUserRole: string | null;
+  curUserRoleInGroup: string;
+  studyTip: number;
+  study: boolean;
+  fetchNewsData: (id: string | number, type: string, page: number, limit?: number, selectValue?: unknown) => unknown;
+  fetchGroupMsg: (id: string | number) => unknown;
+}
+interface GroupListState {
+  addGroupModalVisible: boolean;
+  newGroupName: string;
+  newGroupDesc: string;
+  currGroupName: string;
+  currGroupDesc: string;
+  groupList: VisibleGroup[];
+  owner_uids: string[];
+  group_name?: string;
+}
+const connectGroupList = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
     groupList: state.group.groupList,
     currGroup: state.group.currGroup,
     curUserRole: state.user.role,
@@ -45,9 +78,11 @@ const tip = (
     fetchNewsData,
     fetchGroupMsg
   }
-)
-@withRouter
-export default class GroupList extends Component {
+));
+const routeGroupList = asLegacyClassDecorator(withRouter);
+@connectGroupList
+@routeGroupList
+class GroupList extends Component<GroupListProps, GroupListState> {
   static propTypes = {
     groupList: PropTypes.array,
     currGroup: PropTypes.object,
@@ -64,7 +99,7 @@ export default class GroupList extends Component {
     fetchGroupMsg: PropTypes.func
   };
 
-  state = {
+  state: GroupListState = {
     addGroupModalVisible: false,
     newGroupName: '',
     newGroupDesc: '',
@@ -74,17 +109,18 @@ export default class GroupList extends Component {
     owner_uids: []
   };
 
-  constructor(props) {
+  constructor(props: GroupListProps) {
     super(props);
   }
 
   async UNSAFE_componentWillMount() {
-    const groupId = !isNaN(this.props.match.params.groupId)
-      ? parseInt(this.props.match.params.groupId)
+    const groupIdParam = this.props.match.params.groupId;
+    const groupId = groupIdParam && !isNaN(Number(groupIdParam))
+      ? parseInt(groupIdParam)
       : 0;
     await this.props.fetchGroupList();
     const groups = visibleGroups(this.props.groupList);
-    let currGroup = false;
+    let currGroup: VisibleGroup | undefined;
     if (groups.length && groupId) {
       for (let i = 0; i < groups.length; i++) {
         if (groups[i]._id === groupId) {
@@ -95,7 +131,11 @@ export default class GroupList extends Component {
       this.props.history.push(`/group/${groups[0]._id}`);
     }
     if (!currGroup) {
-      currGroup = groups[0] || { group_name: '', group_desc: '' };
+      currGroup = groups[0] || {
+        group_name: '',
+        group_desc: '',
+        custom_field1: { name: '', enable: false }
+      };
       if (currGroup._id) {
         this.props.history.replace(`${currGroup._id}`);
       }
@@ -122,7 +162,7 @@ export default class GroupList extends Component {
   @autobind
   async addGroup() {
     const { newGroupName: group_name, newGroupDesc: group_desc, owner_uids } = this.state;
-    const res = await axios.post('/api/group/add', { group_name, group_desc, owner_uids });
+    const res = await axios.post<ApiResponse<VisibleGroup>>('/api/group/add', { group_name, group_desc, owner_uids });
     if (!res.data.errcode) {
       this.setState({
         newGroupName: '',
@@ -132,8 +172,11 @@ export default class GroupList extends Component {
       });
       await this.props.fetchGroupList();
       this.setState({ groupList: visibleGroups(this.props.groupList) });
-      this.props.fetchGroupMsg(this.props.currGroup._id);
-      this.props.fetchNewsData(this.props.currGroup._id, 'group', 1, 10);
+      const id = this.props.currGroup._id;
+      if (id !== undefined) {
+        this.props.fetchGroupMsg(id);
+        this.props.fetchNewsData(id, 'group', 1, 10);
+      }
     } else {
       message.error(res.data.errmsg);
     }
@@ -142,7 +185,7 @@ export default class GroupList extends Component {
   async editGroup() {
     const { currGroupName: group_name, currGroupDesc: group_desc } = this.state;
     const id = this.props.currGroup._id;
-    const res = await axios.post('/api/group/up', { group_name, group_desc, id });
+    const res = await axios.post<ApiResponse<VisibleGroup>>('/api/group/up', { group_name, group_desc, id });
     if (res.data.errcode) {
       message.error(res.data.errmsg);
     } else {
@@ -151,46 +194,50 @@ export default class GroupList extends Component {
       const groups = visibleGroups(this.props.groupList);
       this.setState({ groupList: groups });
       const currGroup = _.find(groups, group => {
-        return +group._id === +id;
+        return Number(group._id) === Number(id);
       });
 
-      this.props.setCurrGroup(currGroup);
+      if (currGroup) this.props.setCurrGroup(currGroup);
       // this.props.setCurrGroup({ group_name, group_desc, _id: id });
-      this.props.fetchGroupMsg(this.props.currGroup._id);
-      this.props.fetchNewsData(this.props.currGroup._id, 'group', 1, 10);
+      const activeId = this.props.currGroup._id;
+      if (activeId !== undefined) {
+        this.props.fetchGroupMsg(activeId);
+        this.props.fetchNewsData(activeId, 'group', 1, 10);
+      }
     }
   }
   @autobind
-  inputNewGroupName(e) {
+  inputNewGroupName(e: ChangeEvent<HTMLInputElement>) {
     this.setState({ newGroupName: e.target.value });
   }
   @autobind
-  inputNewGroupDesc(e) {
+  inputNewGroupDesc(e: ChangeEvent<HTMLTextAreaElement>) {
     this.setState({ newGroupDesc: e.target.value });
   }
 
   @autobind
-  selectGroup(e) {
+  selectGroup(e: { key: string }) {
     const groupId = e.key;
     //const currGroup = this.props.groupList.find((group) => { return +group._id === +groupId });
     const currGroup = _.find(this.props.groupList, group => {
-      return +group._id === +groupId;
+      return Number(group._id) === Number(groupId);
     });
+    if (!currGroup) return;
     this.props.setCurrGroup(currGroup);
     this.props.history.replace(`${currGroup._id}`);
     this.props.fetchNewsData(groupId, 'group', 1, 10);
   }
 
   @autobind
-  onUserSelect(uids) {
+  onUserSelect(uids: string[]) {
     this.setState({
       owner_uids: uids
     });
   }
 
   @autobind
-  searchGroup(e, value) {
-    const v = value || e.target.value;
+  searchGroup(e: ChangeEvent<HTMLInputElement> | null, value?: string) {
+    const v = value || (e ? e.target.value : '');
     const groupList = visibleGroups(this.props.groupList);
     if (v === '') {
       this.setState({ groupList });
@@ -201,7 +248,7 @@ export default class GroupList extends Component {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: GroupListProps) {
     // GroupSetting 组件设置的分组信息，通过redux同步到左侧分组菜单中
     if (this.props.groupList !== nextProps.groupList) {
       this.setState({
@@ -314,3 +361,5 @@ export default class GroupList extends Component {
     );
   }
 }
+
+export default GroupList as unknown as ComponentType;

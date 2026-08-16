@@ -1,7 +1,9 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, FocusEvent, SyntheticEvent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Button, Form, Input, Tooltip, Select, message, Row, Col, Radio } from 'antd';
+import type { FormInstance } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { addProject } from '../../reducer/modules/project';
 import { fetchGroupList } from '../../reducer/modules/group';
@@ -14,7 +16,40 @@ const RadioGroup = Radio.Group;
 import { pickRandomProperty, handlePath, nameLengthLimit } from '../../common';
 import constants from '../../constants/variable.js';
 import { withRouter } from 'react-router';
+import type { RouteComponentProps } from 'react-router';
+import type { ApiResponse } from '../../types/api';
+import type { BreadcrumbItem } from '../../types/user';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { GroupRecord } from '../../reducer/modules/group';
+import type { UnknownRecord } from '../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 import './Addproject.scss';
+
+interface AddProjectGroup extends GroupRecord { role?: string }
+interface ProjectFormValues extends UnknownRecord {
+  group: string;
+  group_id?: string;
+  name: string;
+  basepath?: string | null;
+  desc?: string;
+  project_type: string;
+  icon?: string;
+  color?: string;
+}
+interface ProjectListProps extends RouteComponentProps {
+  groupList: AddProjectGroup[];
+  currGroup: AddProjectGroup;
+  form: FormInstance<ProjectFormValues>;
+  addProject: (values: ProjectFormValues) => Promise<{
+    payload: { data: ApiResponse<{ _id: string | number }> };
+  }>;
+  setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+  fetchGroupList: () => Promise<unknown>;
+}
+interface ProjectListState {
+  groupList: AddProjectGroup[];
+  currGroupId: string | number | null;
+}
 
 const formItemLayout = {
   labelCol: {
@@ -30,8 +65,8 @@ const formItemLayout = {
   className: 'form-item'
 };
 
-@connect(
-  state => {
+const connectProjectList = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       groupList: state.group.groupList,
       currGroup: state.group.currGroup
@@ -42,10 +77,12 @@ const formItemLayout = {
     addProject,
     setBreadcrumb
   }
-)
-@withRouter
-class ProjectList extends Component {
-  constructor(props) {
+));
+const routeProjectList = asLegacyClassDecorator(withRouter);
+@connectProjectList
+@routeProjectList
+class ProjectList extends Component<ProjectListProps, ProjectListState> {
+  constructor(props: ProjectListProps) {
     super(props);
     this.state = {
       groupList: [],
@@ -62,7 +99,7 @@ class ProjectList extends Component {
     fetchGroupList: PropTypes.func
   };
 
-  handlePath = e => {
+  handlePath = (e: FocusEvent<HTMLInputElement>) => {
     let val = e.target.value;
     this.props.form.setFieldsValue({
       basepath: handlePath(val)
@@ -71,14 +108,14 @@ class ProjectList extends Component {
 
   // 确认添加项目
   @autobind
-  handleOk(e) {
+  handleOk(e?: SyntheticEvent) {
     const { form, addProject } = this.props;
     if (e && e.preventDefault) {
       e.preventDefault();
     }
     form
       .validateFields()
-      .then(values => {
+      .then((values: ProjectFormValues) => {
         values.group_id = values.group;
         values.icon = constants.PROJECT_ICON[0];
         values.color = pickRandomProperty(constants.PROJECT_COLOR);
@@ -86,7 +123,8 @@ class ProjectList extends Component {
           if (res.payload.data.errcode == 0) {
             form.resetFields();
             message.success('创建成功! ');
-            this.props.history.push('/project/' + res.payload.data.data._id + '/interface/api');
+            const project = res.payload.data.data;
+            if (project) this.props.history.push('/project/' + project._id + '/interface/api');
           }
         });
       })
@@ -102,7 +140,7 @@ class ProjectList extends Component {
       return null;
     }
     this.setState({
-      currGroupId: this.props.currGroup._id ? this.props.currGroup._id : this.props.groupList[0]._id
+      currGroupId: this.props.currGroup._id ? this.props.currGroup._id : this.props.groupList[0]._id ?? null
     });
     this.setState({ groupList: this.props.groupList });
   }
@@ -134,7 +172,7 @@ class ProjectList extends Component {
                     disabled={
                       !(item.role === 'dev' || item.role === 'owner' || item.role === 'admin')
                     }
-                    value={item._id.toString()}
+                    value={String(item._id)}
                     key={index}
                   >
                     {item.group_name}
@@ -218,9 +256,11 @@ class ProjectList extends Component {
   }
 }
 
-function ProjectListForm(props) {
+const ConnectedProjectList = ProjectList as unknown as ComponentType<{ form: FormInstance<ProjectFormValues> }>;
+
+function ProjectListForm() {
   const [form] = Form.useForm();
-  return <ProjectList {...props} form={form} />;
+  return <ConnectedProjectList form={form} />;
 }
 
 export default ProjectListForm;

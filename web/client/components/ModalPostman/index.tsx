@@ -1,24 +1,57 @@
 import React, { Component } from 'react';
+import type { ReactNode } from 'react';
 import PropTypes from 'prop-types';
 import './index.scss';
 import { Alert, Modal, Row, Col, Input, Tooltip } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import Collapse from 'client/shims/Collapse';
-import MockList from './MockList.js';
-import MethodsList from './MethodsList.js';
-import VariablesSelect from './VariablesSelect.js';
-import { trim } from '../../common.ts';
+import MockList from './MockList';
+import MethodsList from './MethodsList';
+import VariablesSelect from './VariablesSelect';
+import { trim } from '../../common';
 
 import { handleParamsValue } from 'common/utils.js';
 const Panel = Collapse.Panel;
 
 // 深拷贝
-function deepEqual(state) {
+interface MethodParam {
+  name: string;
+  params: string[];
+  type?: 'dataSource';
+}
+interface ModalPostmanProps {
+  visible?: boolean;
+  handleCancel: () => void;
+  handleOk: (value: string) => void;
+  inputValue?: string;
+  envType?: string;
+  id: number;
+}
+interface ModalPostmanState {
+  methodsShow: boolean;
+  methodsShowMore: boolean;
+  methodsList: unknown[];
+  constantInput: string;
+  activeKey: string | string[];
+  methodsParamsList: MethodParam[];
+}
+interface MethodsListSourceProps {
+  index: number;
+  value: string;
+  params: string[];
+}
+
+function deepEqual<T>(state: T): T {
   return JSON.parse(JSON.stringify(state));
 }
 
-function closeRightTabsAndAddNewTab(arr, index, name, params) {
-  let newParamsList = [].concat(arr);
+function closeRightTabsAndAddNewTab(
+  arr: MethodParam[],
+  index: number,
+  name?: string,
+  params?: string[]
+): MethodParam[] {
+  const newParamsList = ([] as MethodParam[]).concat(arr);
   newParamsList.splice(index + 1, newParamsList.length - index);
   newParamsList.push({
     name: '',
@@ -35,17 +68,17 @@ function closeRightTabsAndAddNewTab(arr, index, name, params) {
   return newParamsList;
 }
 
-class ModalPostman extends Component {
+class ModalPostman extends Component<ModalPostmanProps, ModalPostmanState> {
   static propTypes = {
     visible: PropTypes.bool,
     handleCancel: PropTypes.func,
     handleOk: PropTypes.func,
-    inputValue: PropTypes.any,
+    inputValue: PropTypes.string,
     envType: PropTypes.string,
     id: PropTypes.number
   };
 
-  constructor(props) {
+  constructor(props: ModalPostmanProps) {
     super(props);
     this.state = {
       methodsShow: false,
@@ -66,13 +99,13 @@ class ModalPostman extends Component {
   componentWillMount() {
     let { inputValue } = this.props;
     this.setState({
-      constantInput: inputValue
+      constantInput: inputValue || ''
     });
     // this.props.inputValue && this.handleConstantsInput(this.props.inputValue, 0);
     inputValue && this.handleInitList(inputValue);
   }
 
-  handleInitList(val) {
+  handleInitList(val: string) {
     val = val.replace(/^\{\{(.+)\}\}$/g, '$1');
     let valArr = val.split('|');
 
@@ -86,9 +119,9 @@ class ModalPostman extends Component {
       });
     }
 
-    let paramsList = [
+    const paramsList: MethodParam[] = [
       {
-        name: trim(valArr[0]),
+        name: String(trim(valArr[0]) || ''),
         params: [],
         type: 'dataSource'
       }
@@ -101,10 +134,10 @@ class ModalPostman extends Component {
       paramArr =
         paramArr &&
         paramArr.map(item => {
-          return trim(item);
+          return String(trim(item) || '');
         });
       let item = {
-        name: trim(nameArr[0]),
+        name: String(trim(nameArr[0]) || ''),
         params: paramArr || []
       };
       paramsList.push(item);
@@ -120,8 +153,8 @@ class ModalPostman extends Component {
     );
   }
 
-  mockClick(index) {
-    return (curname, params) => {
+  mockClick(index: number) {
+    return (curname?: string, params?: string[]) => {
       let newParamsList = closeRightTabsAndAddNewTab(
         this.state.methodsParamsList,
         index,
@@ -134,7 +167,7 @@ class ModalPostman extends Component {
     };
   }
   //  处理常量输入
-  handleConstantsInput = val => {
+  handleConstantsInput = (val: string) => {
     val = val.replace(/^\{\{(.+)\}\}$/g, '$1');
     this.setState({
       constantInput: val
@@ -142,7 +175,7 @@ class ModalPostman extends Component {
     this.mockClick(0)(val);
   };
 
-  handleParamsInput = (e, clickIndex, paramsIndex) => {
+  handleParamsInput = (e: string, clickIndex: number, paramsIndex: number) => {
     let newParamsList = deepEqual(this.state.methodsParamsList);
     newParamsList[clickIndex].params[paramsIndex] = e;
     this.setState({
@@ -151,7 +184,7 @@ class ModalPostman extends Component {
   };
 
   // 方法
-  MethodsListSource = props => {
+  MethodsListSource = (props: MethodsListSourceProps) => {
     return (
       <MethodsList
         click={this.mockClick(props.index)}
@@ -164,8 +197,8 @@ class ModalPostman extends Component {
   };
 
   //  处理表达式
-  handleValue(val) {
-    return handleParamsValue(val, {});
+  handleValue(val: string): ReactNode {
+    return handleParamsValue(val, {}) as ReactNode;
   }
 
   // 处理错误
@@ -180,7 +213,7 @@ class ModalPostman extends Component {
 
   // 初始化
   setInit() {
-    let initParamsList = [
+    const initParamsList: MethodParam[] = [
       {
         name: '',
         params: [],
@@ -198,12 +231,12 @@ class ModalPostman extends Component {
   };
 
   // 处理插入
-  handleOk = installValue => {
+  handleOk = (installValue: string) => {
     this.props.handleOk(installValue);
     this.setInit();
   };
   // 处理面板切换
-  handleCollapse = key => {
+  handleCollapse = (key: string | string[]) => {
     this.setState({
       activeKey: key
     });
@@ -259,7 +292,7 @@ class ModalPostman extends Component {
                     <Input
                       placeholder="基础参数值"
                       value={constantInput}
-                      onChange={e => this.handleConstantsInput(e.target.value, index)}
+                      onChange={e => this.handleConstantsInput(e.target.value)}
                     />
                   </Panel>
                   <Panel header={<h3 className="mock-title">mock数据</h3>} key="2">

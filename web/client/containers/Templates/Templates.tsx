@@ -6,18 +6,33 @@ import { Button, Empty, List } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { fetchTemplateProjects } from '../../reducer/modules/template';
 import { setBreadcrumb } from '../../reducer/modules/user';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { BreadcrumbItem } from '../../types/user';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 import './Templates.scss';
 
-@connect(
-  state => ({
+interface TemplateProject {
+  id: string | number;
+  name: string;
+  workspace: string;
+  kind: string;
+}
+interface TemplatesProps {
+  projects: TemplateProject[];
+  fetchTemplateProjects: () => unknown;
+  setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+}
+const connectTemplates = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
     projects: state.template.projects
   }),
   {
     fetchTemplateProjects,
     setBreadcrumb
   }
-)
-export default class Templates extends Component {
+));
+@connectTemplates
+export default class Templates extends Component<TemplatesProps> {
   static propTypes = {
     projects: PropTypes.array,
     fetchTemplateProjects: PropTypes.func,

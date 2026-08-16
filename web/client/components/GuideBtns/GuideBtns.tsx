@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'antd';
 import { connect } from 'react-redux';
@@ -57,4 +58,4 @@ class GuideBtns extends Component<GuideBtnsProps> {
     );
   }
 }
-export default GuideBtns;
+export default GuideBtns as unknown as ComponentType<Pick<GuideBtnsProps, 'isLast'>>;

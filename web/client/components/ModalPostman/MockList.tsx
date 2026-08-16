@@ -1,17 +1,28 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import type { ChangeEvent } from 'react';
 import { Row, Input } from 'antd';
 import constants from '../../constants/variable.js';
 const wordList = constants.MOCK_SOURCE;
 const Search = Input.Search;
 
-class MockList extends Component {
+type MockItem = (typeof wordList)[number];
+interface MockListProps {
+  click: (value: string) => void;
+  clickValue?: string;
+}
+interface MockListState {
+  filter: string;
+  list: MockItem[];
+}
+
+class MockList extends Component<MockListProps, MockListState> {
   static propTypes = {
     click: PropTypes.func,
     clickValue: PropTypes.string
   };
 
-  constructor(props) {
+  constructor(props: MockListProps) {
     super(props);
     this.state = {
       filter: '',
@@ -25,7 +36,7 @@ class MockList extends Component {
     });
   }
 
-  onFilter = e => {
+  onFilter = (e: ChangeEvent<HTMLInputElement>) => {
     const list = wordList.filter(item => {
       return item.mock.indexOf(e.target.value) !== -1;
     });

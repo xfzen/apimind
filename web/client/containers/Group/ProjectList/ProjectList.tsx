@@ -1,18 +1,54 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Row, Col, Button, Tooltip } from 'antd';
+import type { FormInstance } from 'antd';
 import { Link } from 'react-router-dom';
 import { addProject, fetchProjectList, delProject } from '../../../reducer/modules/project';
 import ProjectCard from '../../../components/ProjectCard/ProjectCard';
 import ErrMsg from '../../../components/ErrMsg/ErrMsg';
 import { autobind } from 'core-decorators';
 import { setBreadcrumb } from '../../../reducer/modules/user';
+import type { ProjectData } from '../../../components/ProjectCard/ProjectCard';
+import type { BreadcrumbItem } from '../../../types/user';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { GroupRecord } from '../../../reducer/modules/group';
+import type { UnknownRecord } from '../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 
 import './ProjectList.scss';
 
-@connect(
-  state => {
+interface ProjectListItem extends ProjectData {
+  follow?: boolean;
+  up_time: number;
+  key?: number;
+}
+interface ProjectListGroup extends GroupRecord {
+  type?: string;
+  hidden?: boolean;
+  role: string;
+}
+interface ProjectListProps {
+  form: FormInstance;
+  fetchProjectList: (id: string | number, page?: number) => unknown;
+  addProject: (data: UnknownRecord) => unknown;
+  delProject: (id: string | number) => unknown;
+  projectList: ProjectListItem[];
+  userInfo: UnknownRecord;
+  tableLoading: boolean;
+  currGroup: ProjectListGroup;
+  setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+  currPage: number;
+}
+interface ProjectListState {
+  visible: boolean;
+  protocol: string;
+  projectData: ProjectListItem[];
+}
+
+const connectProjectList = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       projectList: state.project.projectList,
       userInfo: state.project.userInfo,
@@ -27,9 +63,10 @@ import './ProjectList.scss';
     delProject,
     setBreadcrumb
   }
-)
-class ProjectList extends Component {
-  constructor(props) {
+));
+@connectProjectList
+class ProjectList extends Component<ProjectListProps, ProjectListState> {
+  constructor(props: ProjectListProps) {
     super(props);
     this.state = {
       visible: false,
@@ -64,7 +101,7 @@ class ProjectList extends Component {
 
   // 修改线上域名的协议类型 (http/https)
   @autobind
-  protocolChange(value) {
+  protocolChange(value: string) {
     this.setState({
       protocol: value
     });
@@ -73,10 +110,11 @@ class ProjectList extends Component {
   // 获取 ProjectCard 组件的关注事件回调，收到后更新数据
 
   receiveRes = () => {
-    this.props.fetchProjectList(this.props.currGroup._id, this.props.currPage);
+    const id = this.props.currGroup._id;
+    if (id !== undefined) this.props.fetchProjectList(id, this.props.currPage);
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ProjectListProps) {
     this.props.setBreadcrumb([{ name: '' + (nextProps.currGroup.group_name || '') }]);
 
     // 切换分组
@@ -224,4 +262,4 @@ class ProjectList extends Component {
   }
 }
 
-export default ProjectList;
+export default ProjectList as unknown as ComponentType;

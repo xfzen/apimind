@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
+import type { ComponentType, SyntheticEvent } from 'react';
 import PropTypes from 'prop-types';
 import './index.scss';
 import { Row, Col, Form, Input, Select, Button, AutoComplete, Tooltip } from 'antd';
+import type { FormInstance } from 'antd';
 import Icon from 'client/shims/antdIcon';
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -28,7 +30,34 @@ const initMap = {
   ]
 };
 
-class ProjectEnvContent extends Component {
+export interface EnvironmentEntry { name: string; value: string }
+export interface ProjectEnvironment {
+  _id?: string | number;
+  name: string;
+  domain: string;
+  header: EnvironmentEntry[];
+  global?: EnvironmentEntry[];
+}
+type EnvironmentListName = 'header' | 'cookie' | 'global';
+interface ProjectEnvFormValues {
+  header: EnvironmentEntry[];
+  cookie: EnvironmentEntry[];
+  global: EnvironmentEntry[];
+  env: { name: string; domain: string; protocol: string };
+}
+interface ProjectEnvContentProps {
+  projectMsg: ProjectEnvironment;
+  form: FormInstance<ProjectEnvFormValues>;
+  onSubmit: (value: { env: ProjectEnvironment }) => void;
+  handleEnvInput: (value: string) => void;
+}
+interface ProjectEnvContentState {
+  header: EnvironmentEntry[];
+  cookie: EnvironmentEntry[];
+  global: EnvironmentEntry[];
+}
+
+class ProjectEnvContent extends Component<ProjectEnvContentProps, ProjectEnvContentState> {
   static propTypes = {
     projectMsg: PropTypes.object,
     form: PropTypes.object,
@@ -36,7 +65,7 @@ class ProjectEnvContent extends Component {
     handleEnvInput: PropTypes.func
   };
 
-  initState(curdata) {
+  initState(curdata: ProjectEnvironment): ProjectEnvContentState {
     let header = [
       {
         name: '',
@@ -63,14 +92,14 @@ class ProjectEnvContent extends Component {
     if (curheader && curheader.length !== 0) {
       curheader.forEach(item => {
         if (item.name === 'Cookie') {
-          let cookieStr = item.value;
+          const cookieStr = item.value;
           if (cookieStr) {
-            cookieStr = cookieStr.split(';').forEach(c => {
-              if (c) {
-                c = c.split('=');
+            cookieStr.split(';').forEach(cookiePart => {
+              if (cookiePart) {
+                const parts = cookiePart.split('=');
                 cookie.unshift({
-                  name: c[0] ? c[0].trim() : '',
-                  value: c[1] ? c[1].trim() : ''
+                  name: parts[0] ? parts[0].trim() : '',
+                  value: parts[1] ? parts[1].trim() : ''
                 });
               }
             });
@@ -89,32 +118,33 @@ class ProjectEnvContent extends Component {
     return { header, cookie, global };
   }
 
-  constructor(props) {
+  constructor(props: ProjectEnvContentProps) {
     super(props);
     this.state = Object.assign({}, initMap);
   }
-  addHeader = (value, index, name) => {
+  addHeader = (_value: EnvironmentEntry, index: number, name: EnvironmentListName) => {
     let nextHeader = this.state[name][index + 1];
     if (nextHeader && typeof nextHeader === 'object') {
       return;
     }
-    let newValue = {};
-    let data = { name: '', value: '' };
-    newValue[name] = [].concat(this.state[name], data);
+    const newValue: Pick<ProjectEnvContentState, EnvironmentListName> = {
+      [name]: this.state[name].concat({ name: '', value: '' })
+    } as Pick<ProjectEnvContentState, EnvironmentListName>;
     this.setState(newValue);
   };
 
-  delHeader = (key, name) => {
-    let curValue = this.props.form.getFieldValue(name);
-    let newValue = {};
-    newValue[name] = curValue.filter((val, index) => {
+  delHeader = (key: number, name: EnvironmentListName) => {
+    const curValue = this.props.form.getFieldValue(name) || [];
+    const newValue = {
+      [name]: curValue.filter((_val: EnvironmentEntry, index: number) => {
       return index !== key;
-    });
+      })
+    } as Pick<ProjectEnvContentState, EnvironmentListName>;
     this.props.form.setFieldsValue(newValue);
     this.setState(newValue);
   };
 
-  handleInit(data) {
+  handleInit(data: ProjectEnvironment) {
     this.props.form.resetFields();
     let newValue = this.initState(data);
     this.setState({ ...newValue }, () => {
@@ -129,7 +159,7 @@ class ProjectEnvContent extends Component {
     });
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: ProjectEnvContentProps) {
     let curEnvName = this.props.projectMsg.name;
     let nextEnvName = nextProps.projectMsg.name;
     if (curEnvName !== nextEnvName) {
@@ -137,14 +167,14 @@ class ProjectEnvContent extends Component {
     }
   }
 
-  handleOk = e => {
+  handleOk = (e?: SyntheticEvent) => {
     if (e && e.preventDefault) {
       e.preventDefault();
     }
     const { form, onSubmit, projectMsg } = this.props;
     form
       .validateFields()
-      .then(values => {
+      .then((values: ProjectEnvFormValues) => {
         let header = values.header.filter(val => {
           return val.name !== '';
         });
@@ -160,8 +190,7 @@ class ProjectEnvContent extends Component {
             value: cookie.map(item => item.name + '=' + item.value).join(';')
           });
         }
-        let assignValue = {};
-        assignValue.env = Object.assign(
+        const assignValue = { env: Object.assign(
           { _id: projectMsg._id },
           {
             name: values.env.name,
@@ -169,7 +198,7 @@ class ProjectEnvContent extends Component {
             header: header,
             global
           }
-        );
+        ) };
         onSubmit(assignValue);
       })
       .catch(() => {});
@@ -177,7 +206,7 @@ class ProjectEnvContent extends Component {
 
   render() {
     const { projectMsg } = this.props;
-    const headerTpl = (item, index) => {
+    const headerTpl = (item: EnvironmentEntry, index: number) => {
       const headerLength = this.state.header.length - 1;
       return (
         <Row gutter={2} key={index}>
@@ -194,7 +223,7 @@ class ProjectEnvContent extends Component {
                   placeholder="请输入header名称"
                   onChange={() => this.addHeader(item, index, 'header')}
                   filterOption={(inputValue, option) =>
-                    option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                    String(option?.value || '').toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
                   }
                 />
             </FormItem>
@@ -208,7 +237,7 @@ class ProjectEnvContent extends Component {
               <Input placeholder="请输入参数内容" style={{ width: '90%', marginRight: 8 }} />
             </FormItem>
           </Col>
-          <Col span={2} className={index === headerLength ? ' env-last-row' : null}>
+          <Col span={2} className={index === headerLength ? ' env-last-row' : undefined}>
             {/* 新增的项中，只有最后一项没有有删除按钮 */}
             <Icon
               className="dynamic-delete-button delete"
@@ -223,7 +252,7 @@ class ProjectEnvContent extends Component {
       );
     };
 
-    const commonTpl = (item, index, name) => {
+    const commonTpl = (item: EnvironmentEntry, index: number, name: EnvironmentListName) => {
       const length = this.state[name].length - 1;
       return (
         <Row gutter={2} key={index}>
@@ -249,7 +278,7 @@ class ProjectEnvContent extends Component {
               <Input placeholder="请输入参数内容" style={{ width: '90%', marginRight: 8 }} />
             </FormItem>
           </Col>
-          <Col span={2} className={index === length ? ' env-last-row' : null}>
+          <Col span={2} className={index === length ? ' env-last-row' : undefined}>
             {/* 新增的项中，只有最后一项没有有删除按钮 */}
             <Icon
               className="dynamic-delete-button delete"
@@ -264,7 +293,7 @@ class ProjectEnvContent extends Component {
       );
     };
 
-    const envTpl = data => {
+    const envTpl = (data: ProjectEnvironment) => {
       return (
         <div>
           <h3 className="env-label">环境名称</h3>
@@ -277,7 +306,7 @@ class ProjectEnvContent extends Component {
               {
                 required: false,
                 whitespace: true,
-                validator(rule, value) {
+                validator(_rule: unknown, value: string) {
                   if (value && value.length > 0 && /\S/.test(value)) {
                     return Promise.resolve();
                   }
@@ -302,7 +331,7 @@ class ProjectEnvContent extends Component {
               {
                 required: false,
                 whitespace: true,
-                validator(rule, value) {
+                validator(_rule: unknown, value: string) {
                   if (!value || value.length === 0) {
                     return Promise.reject(new Error('请输入环境域名!'));
                   }
@@ -386,9 +415,11 @@ class ProjectEnvContent extends Component {
     );
   }
 }
-function ProjectEnvContentForm(props) {
+type ProjectEnvContentOwnProps = Omit<ProjectEnvContentProps, 'form'>;
+const ConnectedProjectEnvContent = ProjectEnvContent as unknown as ComponentType<ProjectEnvContentProps>;
+function ProjectEnvContentForm(props: ProjectEnvContentOwnProps) {
   const [form] = Form.useForm();
-  return <ProjectEnvContent {...props} form={form} />;
+  return <ConnectedProjectEnvContent {...props} form={form} />;
 }
 
 export default ProjectEnvContentForm;

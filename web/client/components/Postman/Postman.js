@@ -8,9 +8,9 @@ import AceEditor from 'client/components/AceEditor/AceEditor';
 import _ from 'underscore';
 import { deepCopyJson } from '../../common.ts';
 import axios from 'axios';
-import ModalPostman from '../ModalPostman/index.js';
+import ModalPostman from '../ModalPostman';
 import './Postman.scss';
-import ProjectEnv from '../../containers/Project/Setting/ProjectEnv/index.js';
+import ProjectEnv from '../../containers/Project/Setting/ProjectEnv';
 import json5 from 'json5';
 import { handleParamsValue, ArrayToObject } from 'common/utils.js';
 import {

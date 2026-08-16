@@ -7,20 +7,39 @@ import { getFollowList } from '../../reducer/modules/follow';
 import { setBreadcrumb } from '../../reducer/modules/user';
 import ProjectCard from '../../components/ProjectCard/ProjectCard';
 import ErrMsg from '../../components/ErrMsg/ErrMsg';
+import type { ProjectData } from '../../components/ProjectCard/ProjectCard';
+import type { ApiResponse } from '../../types/api';
+import type { BreadcrumbItem } from '../../types/user';
+import type { RootState } from '../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-const getFollowItems = res => {
+interface FollowProject extends ProjectData {
+  up_time: number;
+}
+type FollowResponse = {
+  payload: { data: ApiResponse<FollowProject[] | { list: FollowProject[] }> };
+};
+interface FollowsProps {
+  data: FollowProject[];
+  uid: number;
+  getFollowList: (uid: number) => Promise<FollowResponse>;
+  setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+}
+interface FollowsState { data: FollowProject[] }
+
+const getFollowItems = (res: FollowResponse): FollowProject[] => {
   const data = res && res.payload && res.payload.data && res.payload.data.data;
   if (Array.isArray(data)) {
     return data;
   }
-  if (data && Array.isArray(data.list)) {
+  if (data && !Array.isArray(data) && Array.isArray(data.list)) {
     return data.list;
   }
   return [];
 };
 
-@connect(
-  state => {
+const connectFollows = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       data: state.follow.data,
       uid: state.user.uid
@@ -30,9 +49,10 @@ const getFollowItems = res => {
     getFollowList,
     setBreadcrumb
   }
-)
-class Follows extends Component {
-  constructor(props) {
+));
+@connectFollows
+class Follows extends Component<FollowsProps, FollowsState> {
+  constructor(props: FollowsProps) {
     super(props);
     this.state = {
       data: []

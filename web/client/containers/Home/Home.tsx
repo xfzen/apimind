@@ -1,17 +1,22 @@
 import './Home.scss';
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Row, Col, Button, Card } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
+import type { RouteComponentProps } from 'react-router';
 import LogoSVG from '../../components/LogoSVG';
 import { changeMenuItem } from '../../reducer/modules/menu';
 import plugin from 'client/plugin';
+import type { RootState } from '../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-const ThirdLogin = plugin.emitHook('third_login');
-const HomeGuest = () => (
+const ThirdLogin = plugin.emitHook('third_login') as ComponentType | null;
+interface HomeGuestProps { introList?: unknown[] }
+const HomeGuest = (_props: HomeGuestProps) => (
   <div className="g-body">
     <div className="m-bg">
       <div className="m-bg-mask m-bg-mask0" />
@@ -112,7 +117,7 @@ const HomeGuest = () => (
                 所有的数据都可以实时随机生成。
               </p>
               <div className="code">
-                <ol start="1">
+                <ol start={1}>
                   <li className="item">
                     <span className="orderNum orderNum-first">1</span>
                     <span>
@@ -200,7 +205,7 @@ const HomeGuest = () => (
                 请求使用，也可以通过服务器代理使用（不需要修改项目一行代码）
               </p>
               <div className="code">
-                <ol start="1">
+                <ol start={1}>
                   <li className="alt">
                     <span className="orderNum orderNum-first">1</span>
                     <span>
@@ -324,17 +329,24 @@ HomeGuest.propTypes = {
   introList: PropTypes.array
 };
 
-@connect(
-  state => ({
+interface HomeProps extends RouteComponentProps {
+  introList?: unknown[];
+  login: boolean;
+  changeMenuItem: (key: string) => unknown;
+}
+const connectHome = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
     login: state.user.isLogin
   }),
   {
     changeMenuItem
   }
-)
-@withRouter
-class Home extends Component {
-  constructor(props) {
+));
+const routeHome = asLegacyClassDecorator(withRouter);
+@connectHome
+@routeHome
+class Home extends Component<HomeProps> {
+  constructor(props: HomeProps) {
     super(props);
   }
 

@@ -1,14 +1,31 @@
 import React, { PureComponent as Component } from 'react';
+import type { ChangeEvent, ComponentType, ReactNode } from 'react';
 import { Row, Col, Input, Button, Select, message, Upload, Tooltip } from 'antd';
+import type { UploadChangeParam, UploadFile } from 'antd/es/upload/interface';
+import type { RcFile } from 'antd/es/upload';
 import axios from 'axios';
-import { formatTime } from '../../common.ts';
+import { formatTime } from '../../common';
 import PropTypes from 'prop-types';
 import { setBreadcrumb, setImageUrl } from '../../reducer/modules/user';
 import { connect } from 'react-redux';
 import { buildApiUrl } from '../../utils/backend';
 import Icon from 'client/shims/antdIcon';
+import type { RouteComponentProps } from 'react-router';
+import type { ApiResponse } from '../../types/api';
+import type { BreadcrumbItem, UserInfo } from '../../types/user';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-const EditButton = props => {
+interface EditButtonProps {
+  isAdmin: boolean;
+  isOwner: boolean;
+  onClick: (name: EditKey, value: boolean) => void;
+  name: EditKey;
+  admin?: boolean;
+  userType?: boolean;
+}
+const EditButton = (props: EditButtonProps) => {
   const { isAdmin, isOwner, onClick, name, admin } = props;
   if (isOwner) {
     // 本人
@@ -49,8 +66,26 @@ EditButton.propTypes = {
   admin: PropTypes.bool
 };
 
-@connect(
-  state => {
+type EditKey = 'usernameEdit' | 'emailEdit' | 'secureEdit' | 'roleEdit';
+type UserField = 'username' | 'email' | 'role';
+type ProfileUser = Partial<UserInfo> & { uid?: number; role?: string; type?: string };
+interface ProfileProps extends RouteComponentProps<{ uid?: string }> {
+  curUid: number | null;
+  userType: string | null;
+  setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+  curRole: string | null;
+  upload?: boolean;
+}
+interface ProfileState {
+  usernameEdit: boolean;
+  emailEdit: boolean;
+  secureEdit: boolean;
+  roleEdit: boolean;
+  userinfo: ProfileUser;
+  _userinfo: ProfileUser;
+}
+const connectProfile = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       curUid: state.user.uid,
       userType: state.user.type,
@@ -60,8 +95,10 @@ EditButton.propTypes = {
   {
     setBreadcrumb
   }
-)
-class Profile extends Component {
+));
+@connectProfile
+class Profile extends Component<ProfileProps, ProfileState> {
+  _uid: string | undefined;
   static propTypes = {
     match: PropTypes.object,
     curUid: PropTypes.number,
@@ -71,14 +108,15 @@ class Profile extends Component {
     upload: PropTypes.bool
   };
 
-  constructor(props) {
+  constructor(props: ProfileProps) {
     super(props);
     this.state = {
       usernameEdit: false,
       emailEdit: false,
       secureEdit: false,
       roleEdit: false,
-      userinfo: {}
+      userinfo: {},
+      _userinfo: {}
     };
   }
 
@@ -87,7 +125,7 @@ class Profile extends Component {
     this.handleUserinfo(this.props);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: ProfileProps) {
     if (!nextProps.match.params.uid) {
       return;
     }
@@ -96,41 +134,40 @@ class Profile extends Component {
     }
   }
 
-  handleUserinfo(props) {
+  handleUserinfo(props: ProfileProps) {
     const uid = props.match.params.uid;
-    this.getUserInfo(uid);
+    if (uid) this.getUserInfo(uid);
   }
 
-  handleEdit = (key, val) => {
-    var s = {};
-    s[key] = val;
-    this.setState(s);
+  handleEdit = (key: EditKey, val: boolean) => {
+    this.setState({ [key]: val } as Pick<ProfileState, EditKey>);
   };
 
-  getUserInfo = id => {
+  getUserInfo = (id: string) => {
     var _this = this;
     const { curUid } = this.props;
 
-    axios.get('/api/user/find?id=' + id).then(res => {
+    axios.get<ApiResponse<ProfileUser>>('/api/user/find?id=' + id).then(res => {
+      const user = res.data.data || {};
       _this.setState({
-        userinfo: res.data.data,
-        _userinfo: res.data.data
+        userinfo: user,
+        _userinfo: user
       });
       if (curUid === +id) {
-        this.props.setBreadcrumb([{ name: res.data.data.username }]);
+        this.props.setBreadcrumb([{ name: user.username || '' }]);
       } else {
-        this.props.setBreadcrumb([{ name: '管理: ' + res.data.data.username }]);
+        this.props.setBreadcrumb([{ name: '管理: ' + (user.username || '') }]);
       }
     });
   };
 
-  updateUserinfo = name => {
+  updateUserinfo = (name: UserField) => {
     var state = this.state;
     let value = this.state._userinfo[name];
-    let params = { uid: state.userinfo.uid };
+    const params: UnknownRecord = { uid: state.userinfo.uid };
     params[name] = value;
 
-    axios.post('/api/user/update', params).then(
+    axios.post<ApiResponse<null>>('/api/user/update', params).then(
       res => {
         let data = res.data;
         if (data.errcode === 0) {
@@ -140,7 +177,12 @@ class Profile extends Component {
             userinfo: userinfo
           });
 
-          this.handleEdit(name + 'Edit', false);
+          const editKey: Record<UserField, EditKey> = {
+            username: 'usernameEdit',
+            email: 'emailEdit',
+            role: 'roleEdit'
+          };
+          this.handleEdit(editKey[name], false);
           message.success('更新用户信息成功');
         } else {
           message.error(data.errmsg);
@@ -152,10 +194,11 @@ class Profile extends Component {
     );
   };
 
-  changeUserinfo = e => {
+  changeUserinfo = (e: ChangeEvent<HTMLInputElement>) => {
     let dom = e.target;
     let name = dom.getAttribute('name');
     let value = dom.value;
+    if (!name) return;
 
     this.setState({
       _userinfo: {
@@ -165,7 +208,7 @@ class Profile extends Component {
     });
   };
 
-  changeRole = val => {
+  changeRole = (val: string) => {
     let userinfo = this.state.userinfo;
     userinfo.role = val;
     this.setState({
@@ -175,9 +218,9 @@ class Profile extends Component {
   };
 
   updatePassword = () => {
-    let old_password = document.getElementById('old_password').value;
-    let password = document.getElementById('password').value;
-    let verify_pass = document.getElementById('verify_pass').value;
+    const old_password = (document.getElementById('old_password') as HTMLInputElement | null)?.value || '';
+    const password = (document.getElementById('password') as HTMLInputElement | null)?.value || '';
+    const verify_pass = (document.getElementById('verify_pass') as HTMLInputElement | null)?.value || '';
     if (password != verify_pass) {
       return message.error('两次输入的密码不一样');
     }
@@ -187,7 +230,7 @@ class Profile extends Component {
       old_password: old_password
     };
 
-    axios.post('/api/user/change_password', params).then(
+    axios.post<ApiResponse<null>>('/api/user/change_password', params).then(
       res => {
         let data = res.data;
         if (data.errcode === 0) {
@@ -212,8 +255,8 @@ class Profile extends Component {
     const Option = Select.Option;
     let userinfo = this.state.userinfo;
     let _userinfo = this.state._userinfo;
-    let roles = { admin: '管理员', member: '会员' };
-    let userType = '';
+    const roles: Record<string, string> = { admin: '管理员', member: '会员' };
+    let userType: boolean;
     if (this.props.userType === 'third') {
       userType = false;
     } else if (this.props.userType === 'site') {
@@ -326,7 +369,7 @@ class Profile extends Component {
     if (this.state.roleEdit === false) {
       roleEditHtml = (
         <div>
-          <span className="text">{roles[userinfo.role]}</span>&nbsp;&nbsp;
+          <span className="text">{roles[userinfo.role || '']}</span>&nbsp;&nbsp;
         </div>
       );
     } else {
@@ -339,7 +382,7 @@ class Profile extends Component {
     }
 
     if (this.state.secureEdit === false) {
-      let btn = '';
+      let btn: ReactNode = '';
       if (userType) {
         btn = (
           <Button
@@ -441,12 +484,12 @@ class Profile extends Component {
           <Row className="user-item" type="flex" justify="start">
             <div className="maoboli" />
             <Col span={4}>创建账号时间</Col>
-            <Col span={12}>{formatTime(userinfo.add_time)}</Col>
+            <Col span={12}>{formatTime(Number(userinfo.add_time || 0))}</Col>
           </Row>
           <Row className="user-item" type="flex" justify="start">
             <div className="maoboli" />
             <Col span={4}>更新账号时间</Col>
-            <Col span={12}>{formatTime(userinfo.up_time)}</Col>
+            <Col span={12}>{formatTime(Number(userinfo.up_time || 0))}</Col>
           </Row>
 
           {userType ? (
@@ -464,8 +507,14 @@ class Profile extends Component {
   }
 }
 
-@connect(
-  state => {
+interface AvatarUploadProps {
+  uid?: number;
+  url?: string;
+  setImageUrl?: (url: string) => unknown;
+  children?: ReactNode;
+}
+const connectAvatar = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       url: state.user.imageUrl
     };
@@ -473,33 +522,36 @@ class Profile extends Component {
   {
     setImageUrl
   }
-)
-class AvatarUpload extends Component {
-  constructor(props) {
+));
+@connectAvatar
+class AvatarUpload extends Component<AvatarUploadProps> {
+  constructor(props: AvatarUploadProps) {
     super(props);
   }
   static propTypes = {
     uid: PropTypes.number,
     setImageUrl: PropTypes.func,
-    url: PropTypes.any
+    url: PropTypes.string
   };
-  uploadAvatar(basecode) {
+  uploadAvatar(basecode: string) {
     axios
       .post('/api/user/upload_avatar', { basecode: basecode })
       .then(() => {
         // this.setState({ imageUrl: basecode });
-        this.props.setImageUrl(basecode);
+        this.props.setImageUrl?.(basecode);
       })
       .catch(e => {
         console.log(e);
       });
   }
-  handleChange(info) {
+  handleChange(info: UploadChangeParam<UploadFile>) {
     if (info.file.status === 'done') {
       // Get this url from response in real world.
-      getBase64(info.file.originFileObj, basecode => {
-        this.uploadAvatar(basecode);
-      });
+      if (info.file.originFileObj) {
+        getBase64(info.file.originFileObj, basecode => {
+          this.uploadAvatar(basecode);
+        });
+      }
     }
   }
   render() {
@@ -539,7 +591,7 @@ class AvatarUpload extends Component {
   }
 }
 
-function beforeUpload(file) {
+function beforeUpload(file: RcFile) {
   const isJPG = file.type === 'image/jpeg';
   const isPNG = file.type === 'image/png';
   if (!isJPG && !isPNG) {
@@ -553,10 +605,12 @@ function beforeUpload(file) {
   return (isPNG || isJPG) && isLt2M;
 }
 
-function getBase64(img, callback) {
+function getBase64(img: Blob, callback: (value: string) => void) {
   const reader = new FileReader();
-  reader.addEventListener('load', () => callback(reader.result));
+  reader.addEventListener('load', () => {
+    if (typeof reader.result === 'string') callback(reader.result);
+  });
   reader.readAsDataURL(img);
 }
 
-export default Profile;
+export default Profile as unknown as ComponentType<RouteComponentProps<{ uid?: string }>>;

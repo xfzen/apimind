@@ -1,9 +1,9 @@
 import React, { PureComponent as Component } from 'react';
-import GroupList from './GroupList/GroupList.js';
-import ProjectList from './ProjectList/ProjectList.js';
-import MemberList from './MemberList/MemberList.js';
-import GroupLog from './GroupLog/GroupLog.js';
-import GroupSetting from './GroupSetting/GroupSetting.js';
+import GroupList from './GroupList/GroupList';
+import ProjectList from './ProjectList/ProjectList';
+import MemberList from './MemberList/MemberList';
+import GroupLog from './GroupLog/GroupLog';
+import GroupSetting from './GroupSetting/GroupSetting';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router-dom';
@@ -16,9 +16,26 @@ import {
 import './Group.scss';
 import axios from 'axios'
 import { LAYOUT } from '../../constants/variable.js';
+import type { ApiResponse } from '../../types/api';
+import type { RootState } from '../../reducer/modules/reducer';
+import type { GroupRecord } from '../../reducer/modules/group';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-@connect(
-  state => {
+interface ActiveGroup extends GroupRecord {
+  type?: string;
+  role?: string;
+}
+interface GroupProps {
+  curGroupId?: string | number;
+  curUserRole: string | null;
+  curUserRoleInGroup: string;
+  currGroup: ActiveGroup;
+  setCurrGroup: (group: Pick<GroupRecord, '_id'>) => unknown;
+}
+interface GroupState { groupId: string | number }
+
+const connectGroup = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       curGroupId: state.group.currGroup._id,
       curUserRole: state.user.role,
@@ -30,9 +47,10 @@ import { LAYOUT } from '../../constants/variable.js';
     fetchNewsData: fetchNewsData,
     setCurrGroup
   }
-)
-export default class Group extends Component {
-  constructor(props) {
+));
+@connectGroup
+export default class Group extends Component<GroupProps, GroupState> {
+  constructor(props: GroupProps) {
     super(props);
 
     this.state = {
@@ -41,9 +59,10 @@ export default class Group extends Component {
   }
 
   async componentDidMount(){
-    let r = await axios.get('/api/group/get_mygroup')
+    const r = await axios.get<ApiResponse<ActiveGroup>>('/api/group/get_mygroup')
     try{
-      let group = r.data.data;
+      const group = r.data.data;
+      if (!group || group._id === undefined) return;
       this.setState({
         groupId: group._id
       })

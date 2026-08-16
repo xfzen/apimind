@@ -1,16 +1,49 @@
 import React, { Component } from 'react';
+import type { ComponentType, MouseEvent } from 'react';
 import PropTypes from 'prop-types';
 import './index.scss';
 import { Layout, Tooltip, message, Row, Popconfirm } from 'antd';
 import Icon from 'client/shims/antdIcon';
 const { Content, Sider } = Layout;
-import ProjectEnvContent from './ProjectEnvContent.js';
+import ProjectEnvContent from './ProjectEnvContent';
+import type { ProjectEnvironment } from './ProjectEnvContent';
 import { connect } from 'react-redux';
 import { updateEnv, getProject, getEnv } from '../../../../reducer/modules/project';
 import EasyDragSort from '../../../../components/EasyDragSort/EasyDragSort';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
-@connect(
-  state => {
+interface ProjectWithEnvironment extends UnknownRecord {
+  _id: string | number;
+  env: ProjectEnvironment[];
+}
+interface EnvironmentAssignment {
+  _id: string | number | null;
+  env: ProjectEnvironment[];
+}
+type ProjectEnvResponse = { payload: { data: ApiResponse<unknown> } };
+interface ProjectEnvProps {
+  projectId: number;
+  updateEnv: (value: EnvironmentAssignment) => Promise<ProjectEnvResponse>;
+  getProject: (id: number) => Promise<unknown>;
+  projectMsg: ProjectWithEnvironment;
+  onOk?: (env: ProjectEnvironment[], index: number) => void;
+  getEnv: (id: number) => unknown;
+}
+interface ProjectEnvState {
+  env: ProjectEnvironment[];
+  _id: string | number | null;
+  currentEnvMsg: ProjectEnvironment;
+  delIcon: number | null;
+  currentKey: number;
+}
+const emptyEnvironment = (): ProjectEnvironment => ({
+  name: '新环境', domain: '', header: [], global: []
+});
+const connectProjectEnv = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       projectMsg: state.project.currProject
     };
@@ -20,8 +53,9 @@ import EasyDragSort from '../../../../components/EasyDragSort/EasyDragSort';
     getProject,
     getEnv
   }
-)
-class ProjectEnv extends Component {
+));
+@connectProjectEnv
+class ProjectEnv extends Component<ProjectEnvProps, ProjectEnvState> {
   static propTypes = {
     projectId: PropTypes.number,
     updateEnv: PropTypes.func,
@@ -31,25 +65,21 @@ class ProjectEnv extends Component {
     getEnv: PropTypes.func
   };
 
-  constructor(props) {
+  _isMounted = false;
+
+  constructor(props: ProjectEnvProps) {
     super(props);
     this.state = {
       env: [],
       _id: null,
-      currentEnvMsg: {},
+      currentEnvMsg: emptyEnvironment(),
       delIcon: null,
       currentKey: -2
     };
   }
 
-  initState(curdata, id) {
-    let newValue = {};
-    newValue['env'] = [].concat(curdata);
-    newValue['_id'] = id;
-    this.setState({
-      ...this.state,
-      ...newValue
-    });
+  initState(curdata: ProjectEnvironment[], id: string | number) {
+    this.setState({ env: curdata.concat(), _id: id });
   }
 
   async componentWillMount() {
@@ -57,14 +87,14 @@ class ProjectEnv extends Component {
     await this.props.getProject(this.props.projectId);
     const { env, _id } = this.props.projectMsg;
     this.initState(env, _id);
-    this.handleClick(0, env[0]);
+    this.handleClick(0, env[0] || emptyEnvironment());
   }
 
   componentWillUnmount() {
     this._isMounted = false;
   }
 
-  handleClick = (key, data) => {
+  handleClick = (key: number, data: ProjectEnvironment) => {
     this.setState({
       currentEnvMsg: data,
       currentKey: key
@@ -72,39 +102,34 @@ class ProjectEnv extends Component {
   };
 
   // 增加环境变量项
-  addParams = (name, data) => {
-    let newValue = {};
-    data = { name: '新环境', domain: '', header: [] };
-    newValue[name] = [].concat(data, this.state[name]);
-    this.setState(newValue);
+  addParams = (_name: 'env') => {
+    const data = emptyEnvironment();
+    this.setState({ env: [data].concat(this.state.env) });
     this.handleClick(0, data);
   };
 
   // 删除提示信息
-  showConfirm(key, name) {
+  showConfirm(key: number, name: 'env') {
     let assignValue = this.delParams(key, name);
     this.onSave(assignValue);
   }
 
   // 删除环境变量项
-  delParams = (key, name) => {
-    let curValue = this.state.env;
-    let newValue = {};
-    newValue[name] = curValue.filter((val, index) => {
+  delParams = (key: number, _name: 'env'): EnvironmentAssignment => {
+    const env = this.state.env.filter((_val, index) => {
       return index !== key;
     });
-    this.setState(newValue);
-    this.handleClick(0, newValue[name][0]);
-    newValue['_id'] = this.state._id;
-    return newValue;
+    this.setState({ env });
+    this.handleClick(0, env[0] || emptyEnvironment());
+    return { env, _id: this.state._id };
   };
 
-  enterItem = key => {
+  enterItem = (key: number) => {
     this.setState({ delIcon: key });
   };
 
   // 保存设置
-  async onSave(assignValue) {
+  async onSave(assignValue: EnvironmentAssignment) {
     await this.props
       .updateEnv(assignValue)
       .then(res => {
@@ -123,31 +148,30 @@ class ProjectEnv extends Component {
   }
 
   //  提交保存信息
-  onSubmit = (value, index) => {
-    let assignValue = {};
-    assignValue['env'] = [].concat(this.state.env);
-    assignValue['env'].splice(index, 1, value['env']);
-    assignValue['_id'] = this.state._id;
+  onSubmit = (value: { env: ProjectEnvironment }, index: number) => {
+    const assignValue: EnvironmentAssignment = {
+      env: this.state.env.concat(),
+      _id: this.state._id
+    };
+    assignValue.env.splice(index, 1, value.env);
     this.onSave(assignValue);
-    this.props.onOk && this.props.onOk(assignValue['env'], index);
+    this.props.onOk && this.props.onOk(assignValue.env, index);
   };
 
   // 动态修改环境名称
-  handleInputChange = (value, currentKey) => {
-    let newValue = [].concat(this.state.env);
+  handleInputChange = (value: string, currentKey: number) => {
+    const newValue = this.state.env.concat();
     newValue[currentKey].name = value || '新环境';
     this.setState({ env: newValue });
   };
 
   // 侧边栏拖拽
-  handleDragMove = name => {
-    return (data, from, to) => {
-      let newValue = {
-        [name]: data
-      };
-      this.setState(newValue);
-      newValue['_id'] = this.state._id;
-      this.handleClick(to, newValue[name][to]);
+  handleDragMove = (_name: 'env') => {
+    return (data: unknown[], _from: number | null, to: number) => {
+      const env = data as ProjectEnvironment[];
+      const newValue: EnvironmentAssignment = { env, _id: this.state._id };
+      this.setState({ env });
+      this.handleClick(to, env[to]);
       this.onSave(newValue);
     };
   };
@@ -164,13 +188,13 @@ class ProjectEnv extends Component {
           onMouseEnter={() => this.enterItem(index)}
         >
           <span className="env-icon-style">
-            <span className="env-name" style={{ color: item.name === '新环境' && '#2395f1' }}>
+            <span className="env-name" style={{ color: item.name === '新环境' ? '#2395f1' : undefined }}>
               {item.name}
             </span>
             <Popconfirm
               title="您确认删除此环境变量?"
-              onConfirm={e => {
-                e.stopPropagation();
+              onConfirm={(e?: MouseEvent<HTMLElement>) => {
+                e?.stopPropagation();
                 this.showConfirm(index, 'env');
               }}
               okText="确定"
@@ -226,4 +250,4 @@ class ProjectEnv extends Component {
   }
 }
 
-export default ProjectEnv;
+export default ProjectEnv as unknown as ComponentType<Pick<ProjectEnvProps, 'projectId' | 'onOk'>>;

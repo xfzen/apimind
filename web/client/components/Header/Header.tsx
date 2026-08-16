@@ -1,13 +1,16 @@
 import './Header.scss';
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, MouseEvent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Layout, Dropdown, message, Tooltip, Popover, Tag } from 'antd';
+import type { MenuProps, PopoverProps } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { checkLoginState, logoutActions, loginTypeAction } from '../../reducer/modules/user';
 import { changeMenuItem } from '../../reducer/modules/menu';
 import { withRouter } from 'react-router';
+import type { RouteComponentProps } from 'react-router';
 import Srch from './Search/Search';
 const { Header } = Layout;
 import LogoSVG from '../LogoSVG';
@@ -15,8 +18,17 @@ import Breadcrumb from '../Breadcrumb/Breadcrumb';
 import GuideBtns from '../GuideBtns/GuideBtns';
 import plugin from 'client/plugin';
 import { buildApiUrl } from '../../utils/backend';
+import type { ApiResponse } from '../../types/api';
+import type { RootState } from '../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 
-let HeaderMenu = {
+interface HeaderMenuEntry {
+  path: string;
+  name: string;
+  icon: string;
+  adminFlag: boolean;
+}
+const HeaderMenu: Record<string, HeaderMenuEntry> = {
   user: {
     path: '/user/profile',
     name: '个人中心',
@@ -33,7 +45,13 @@ let HeaderMenu = {
 
 plugin.emitHook('header_menu', HeaderMenu);
 
-const getUserMenuItems = props => {
+interface UserMenuProps {
+  role: string | null;
+  uid: number | null;
+  logout: (event: MouseEvent<HTMLAnchorElement>) => void;
+}
+
+const getUserMenuItems = (props: UserMenuProps): MenuProps['items'] => {
   const isAdmin = props.role === 'admin';
   const items = Object.keys(HeaderMenu)
     .map(key => {
@@ -48,7 +66,7 @@ const getUserMenuItems = props => {
         label: <Link to={path}>{item.name}</Link>
       };
     })
-    .filter(Boolean);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   items.push({
     key: 'logout',
@@ -93,14 +111,24 @@ const tipDoc = (
   </div>
 );
 
-const ToolUser = props => {
+interface ToolUserProps extends UserMenuProps {
+  user: string | null;
+  msg: string | null;
+  studyTip: number;
+  study: boolean;
+  imageUrl: string;
+  relieveLink: () => void;
+}
+const LegacyPopover = Popover as ComponentType<PopoverProps & { arrowPointAtCenter?: boolean }>;
+
+const ToolUser = (props: ToolUserProps) => {
   let imageUrl = props.imageUrl ? props.imageUrl : buildApiUrl(`/api/user/avatar?uid=${props.uid}`);
   return (
     <ul>
       <li className="toolbar-li item-search">
-        <Srch groupList={props.groupList} />
+        <Srch />
       </li>
-      <Popover
+      <LegacyPopover
         overlayClassName="popover-index"
         content={<GuideBtns />}
         title={tipFollow}
@@ -115,8 +143,8 @@ const ToolUser = props => {
             </Link>
           </li>
         </Tooltip>
-      </Popover>
-      <Popover
+      </LegacyPopover>
+      <LegacyPopover
         overlayClassName="popover-index"
         content={<GuideBtns />}
         title={tipAdd}
@@ -131,8 +159,8 @@ const ToolUser = props => {
             </Link>
           </li>
         </Tooltip>
-      </Popover>
-      <Popover
+      </LegacyPopover>
+      <LegacyPopover
         overlayClassName="popover-index"
         content={<GuideBtns isLast={true} />}
         title={tipDoc}
@@ -147,7 +175,7 @@ const ToolUser = props => {
             </a>
           </li>
         </Tooltip>
-      </Popover>
+      </LegacyPopover>
       <li className="toolbar-li">
         <Dropdown
           placement="bottomRight"
@@ -179,14 +207,28 @@ ToolUser.propTypes = {
   uid: PropTypes.number,
   relieveLink: PropTypes.func,
   logout: PropTypes.func,
-  groupList: PropTypes.array,
   studyTip: PropTypes.number,
   study: PropTypes.bool,
-  imageUrl: PropTypes.any
+  imageUrl: PropTypes.string
 };
 
-@connect(
-  state => {
+type HeaderActionResponse = { payload: { data: ApiResponse<unknown> } };
+interface HeaderProps extends RouteComponentProps {
+  user: string | null;
+  uid: number | null;
+  msg: string | null;
+  role: string | null;
+  login: boolean;
+  studyTip: number;
+  study: boolean;
+  imageUrl: string;
+  loginTypeAction: (index: string) => unknown;
+  logoutActions: () => Promise<HeaderActionResponse>;
+  checkLoginState: Promise<HeaderActionResponse>;
+  changeMenuItem: (key: string) => unknown;
+}
+const connectHeader = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       user: state.user.userName,
       uid: state.user.uid,
@@ -204,10 +246,12 @@ ToolUser.propTypes = {
     checkLoginState,
     changeMenuItem
   }
-)
-@withRouter
-export default class HeaderCom extends Component {
-  constructor(props) {
+));
+const routeHeader = asLegacyClassDecorator(withRouter);
+@connectHeader
+@routeHeader
+export default class HeaderCom extends Component<HeaderProps> {
+  constructor(props: HeaderProps) {
     super(props);
   }
 
@@ -227,9 +271,9 @@ export default class HeaderCom extends Component {
     location: PropTypes.object,
     study: PropTypes.bool,
     studyTip: PropTypes.number,
-    imageUrl: PropTypes.any
+    imageUrl: PropTypes.string
   };
-  linkTo = e => {
+  linkTo = (e: { key: string }) => {
     if (e.key != '/doc') {
       this.props.changeMenuItem(e.key);
       if (!this.props.login) {
@@ -240,7 +284,7 @@ export default class HeaderCom extends Component {
   relieveLink = () => {
     this.props.changeMenuItem('');
   };
-  logout = e => {
+  logout = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     this.props
       .logoutActions()
@@ -253,15 +297,15 @@ export default class HeaderCom extends Component {
           message.error(res.payload.data.errmsg);
         }
       })
-      .catch(err => {
-        message.error(err);
+      .catch((err: unknown) => {
+        message.error(String(err));
       });
   };
-  handleLogin = e => {
+  handleLogin = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     this.props.loginTypeAction('1');
   };
-  handleReg = e => {
+  handleReg = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     this.props.loginTypeAction('2');
   };
@@ -272,7 +316,7 @@ export default class HeaderCom extends Component {
           this.props.history.push('/');
         }
       })
-      .catch(err => {
+      .catch((err: unknown) => {
         console.log(err);
       });
   };

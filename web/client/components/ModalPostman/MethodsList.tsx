@@ -3,14 +3,43 @@ import PropTypes from 'prop-types';
 import { Row, Input, Select, Tooltip } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import _ from 'underscore';
+import type { ReactNode } from 'react';
 const Option = Select.Option;
 
 // 深拷贝
-function deepEqual(state) {
+export function deepEqual<T>(state: T): T {
   return JSON.parse(JSON.stringify(state));
 }
 
-const METHODS_LIST = [
+interface MethodItem {
+  name: string;
+  type: boolean;
+  component?: 'doubleInput' | 'select' | 'input';
+  params?: string[];
+  desc: string;
+}
+
+interface MethodsListProps {
+  show?: boolean;
+  click: (name: string, params?: string[]) => void;
+  clickValue?: string;
+  paramsInput: (value: string, clickIndex: number, index: number) => void;
+  clickIndex: number;
+  params: string[];
+}
+
+interface MethodsListState {
+  list: MethodItem[];
+  moreFlag: boolean;
+}
+
+interface MethodInputProps {
+  clickIndex: number;
+  paramsIndex: number;
+  params: string[];
+}
+
+const METHODS_LIST: MethodItem[] = [
   { name: 'md5', type: false, params: [], desc: 'md5加密' },
   { name: 'lower', type: false, params: [], desc: '所有字母变成小写' },
   { name: 'length', type: false, params: [], desc: '数据长度' },
@@ -24,7 +53,7 @@ const METHODS_LIST = [
   { name: 'number', type: false, desc: '字符串转换为数字类型' }
 ];
 
-class MethodsList extends Component {
+class MethodsList extends Component<MethodsListProps, MethodsListState> {
   static propTypes = {
     show: PropTypes.bool,
     click: PropTypes.func,
@@ -34,7 +63,7 @@ class MethodsList extends Component {
     params: PropTypes.array
   };
 
-  constructor(props) {
+  constructor(props: MethodsListProps) {
     super(props);
     this.state = {
       list: METHODS_LIST,
@@ -57,7 +86,7 @@ class MethodsList extends Component {
     });
   }
 
-  inputComponent = props => {
+  inputComponent = (props: MethodInputProps) => {
     let clickIndex = props.clickIndex;
     let paramsIndex = props.paramsIndex;
     let params = props.params;
@@ -71,7 +100,7 @@ class MethodsList extends Component {
     );
   };
 
-  doubleInputComponent = props => {
+  doubleInputComponent = (props: MethodInputProps) => {
     let clickIndex = props.clickIndex;
     let paramsIndex = props.paramsIndex;
     let params = props.params;
@@ -94,7 +123,7 @@ class MethodsList extends Component {
     );
   };
 
-  selectComponent = props => {
+  selectComponent = (props: MethodInputProps) => {
     const subname = ['sha1', 'sha224', 'sha256', 'sha384', 'sha512'];
     let clickIndex = props.clickIndex;
     let paramsIndex = props.paramsIndex;
@@ -119,9 +148,11 @@ class MethodsList extends Component {
   };
 
   // 处理参数输入
-  handleParamsChange(value, clickIndex, paramsIndex, index) {
+  handleParamsChange(value: string, clickIndex: number, paramsIndex: number, index: number) {
     let newList = deepEqual(this.state.list);
-    newList[paramsIndex].params[index] = value;
+    const params = newList[paramsIndex].params || [];
+    params[index] = value;
+    newList[paramsIndex].params = params;
     this.setState({
       list: newList
     });
@@ -129,7 +160,7 @@ class MethodsList extends Component {
   }
 
   // 组件选择
-  handleComponent(item, clickIndex, index, params) {
+  handleComponent(item: MethodItem, clickIndex: number, index: number, params: string[]): ReactNode {
     let query = {
       clickIndex: clickIndex,
       paramsIndex: index,

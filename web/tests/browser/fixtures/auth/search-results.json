@@ -1,0 +1,9 @@
+{
+  "errcode": 0,
+  "errmsg": "成功",
+  "data": {
+    "group": [{ "_id": 12, "groupName": "搜索分组" }],
+    "project": [{ "_id": 21, "name": "Phase 3 Project", "groupId": 11 }],
+    "interface": [{ "_id": 31, "title": "Get user", "projectId": 21 }]
+  }
+}

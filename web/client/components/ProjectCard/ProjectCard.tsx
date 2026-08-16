@@ -1,5 +1,6 @@
 import './ProjectCard.scss';
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { Card, Tooltip, Modal, Alert, Input, message } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { connect } from 'react-redux';
@@ -18,7 +19,7 @@ import type { UnknownRecord } from '../../reducer/types/runtime';
 import { asLegacyClassDecorator } from '../../types/legacyDecorators';
 const confirm = Modal.confirm;
 
-interface ProjectData extends UnknownRecord {
+export interface ProjectData extends UnknownRecord {
   _id: string | number;
   projectid?: string | number;
   name?: string;
@@ -208,4 +209,7 @@ class ProjectCard extends Component<ProjectCardProps> {
   }
 }
 
-export default ProjectCard;
+export default ProjectCard as unknown as ComponentType<Pick<
+  ProjectCardProps,
+  'projectData' | 'inFollowPage' | 'callbackResult' | 'isShow'
+>>;

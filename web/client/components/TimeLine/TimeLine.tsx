@@ -357,4 +357,4 @@ class TimeTree extends Component<TimeTreeProps, TimeTreeState> {
   }
 }
 
-export default TimeTree;
+export default TimeTree as unknown as ComponentType<Pick<TimeTreeProps, 'type' | 'typeid'>>;

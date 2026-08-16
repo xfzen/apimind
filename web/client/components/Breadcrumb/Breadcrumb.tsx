@@ -3,6 +3,7 @@ import { withRouter } from 'react-router-dom';
 import { Breadcrumb } from 'antd';
 import PropTypes from 'prop-types';
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState } from '../../reducer/modules/reducer';
@@ -22,7 +23,7 @@ interface BreadcrumbNavigationProps {
 
 @connectBreadcrumb
 @routeBreadcrumb
-export default class BreadcrumbNavigation extends Component<BreadcrumbNavigationProps> {
+class BreadcrumbNavigation extends Component<BreadcrumbNavigationProps> {
   constructor(props: BreadcrumbNavigationProps) {
     super(props);
   }
@@ -42,3 +43,5 @@ export default class BreadcrumbNavigation extends Component<BreadcrumbNavigation
     );
   }
 }
+
+export default BreadcrumbNavigation as unknown as ComponentType;

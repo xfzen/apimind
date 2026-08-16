@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ChangeEvent, ComponentType } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Input, Button, message, Card, Alert, Modal, Switch, Row, Col, Tooltip } from 'antd';
@@ -13,13 +14,41 @@ import {
   deleteGroup
 } from '../../../reducer/modules/group';
 const { TextArea } = Input;
-import { trim } from '../../../common.ts';
+import { trim } from '../../../common';
 import _ from 'underscore';
 import './GroupSetting.scss';
+import type { ApiResponse } from '../../../types/api';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { GroupRecord } from '../../../reducer/modules/group';
+import type { UnknownRecord } from '../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 const confirm = Modal.confirm;
 
-@connect(
-  state => {
+interface SettingGroup extends GroupRecord { role?: string }
+type GroupActionResponse = { payload: { data: ApiResponse<unknown> } };
+interface GroupSettingProps {
+  groupList: SettingGroup[];
+  currGroup: SettingGroup;
+  curUserRole: string | null;
+  changeGroupMsg: (data: UnknownRecord) => Promise<GroupActionResponse>;
+  fetchGroupList: (current?: SettingGroup[]) => Promise<unknown>;
+  setCurrGroup: (group: Pick<GroupRecord, '_id'>) => unknown;
+  fetchGroupMsg: (id: string | number) => unknown;
+  fetchNewsData: (id: string | number, type: string, page: number, limit?: number, selectValue?: unknown) => unknown;
+  updateGroupList: (groups: GroupRecord[]) => unknown;
+  deleteGroup: (data: UnknownRecord) => Promise<GroupActionResponse>;
+}
+interface GroupSettingState {
+  currGroupDesc: string;
+  currGroupName: string;
+  showDangerOptions: boolean;
+  custom_field1_name: string;
+  custom_field1_enable: boolean;
+  custom_field1_rule: boolean;
+  groupList?: SettingGroup[];
+}
+const connectGroupSetting = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       groupList: state.group.groupList,
       currGroup: state.group.currGroup,
@@ -35,9 +64,10 @@ const confirm = Modal.confirm;
     updateGroupList,
     deleteGroup
   }
-)
-class GroupSetting extends Component {
-  constructor(props) {
+));
+@connectGroupSetting
+class GroupSetting extends Component<GroupSettingProps, GroupSettingState> {
+  constructor(props: GroupSettingProps) {
     super(props);
     this.state = {
       currGroupDesc: '',
@@ -62,7 +92,7 @@ class GroupSetting extends Component {
     groupList: PropTypes.array
   };
 
-  initState(props) {
+  initState(props: GroupSettingProps) {
     this.setState({
       currGroupName: props.currGroup.group_name,
       currGroupDesc: props.currGroup.group_desc,
@@ -72,20 +102,20 @@ class GroupSetting extends Component {
   }
 
   // 修改分组名称
-  changeName = e => {
+  changeName = (e: ChangeEvent<HTMLInputElement>) => {
     this.setState({
       currGroupName: e.target.value
     });
   };
   // 修改分组描述
-  changeDesc = e => {
+  changeDesc = (e: ChangeEvent<HTMLTextAreaElement>) => {
     this.setState({
       currGroupDesc: e.target.value
     });
   };
 
   // 修改自定义字段名称
-  changeCustomName = e => {
+  changeCustomName = (e: ChangeEvent<HTMLInputElement>) => {
     let custom_field1_rule = this.state.custom_field1_enable ? !e.target.value : false;
     this.setState({
       custom_field1_name: e.target.value,
@@ -94,7 +124,7 @@ class GroupSetting extends Component {
   };
 
   // 修改开启状态
-  changeCustomEnable = e => {
+  changeCustomEnable = (e: boolean) => {
     let custom_field1_rule = e ? !this.state.custom_field1_name : false;
     this.setState({
       custom_field1_enable: e,
@@ -136,11 +166,14 @@ class GroupSetting extends Component {
       await this.props.fetchGroupList(this.props.groupList);
       this.props.updateGroupList(this.props.groupList);
       const currGroup = _.find(this.props.groupList, group => {
-        return +group._id === +id;
+        return Number(group._id) === Number(id);
       });
-      this.props.setCurrGroup(currGroup);
-      this.props.fetchGroupMsg(this.props.currGroup._id);
-      this.props.fetchNewsData(this.props.currGroup._id, 'group', 1, 10);
+      if (currGroup) this.props.setCurrGroup(currGroup);
+      const activeId = this.props.currGroup._id;
+      if (activeId !== undefined) {
+        this.props.fetchGroupMsg(activeId);
+        this.props.fetchNewsData(activeId, 'group', 1, 10);
+      }
     }
   };
 
@@ -153,7 +186,9 @@ class GroupSetting extends Component {
     if (!res.payload.data.errcode) {
       message.success('删除成功');
       await that.props.fetchGroupList();
-      const currGroup = that.props.groupList[0] || { group_name: '', group_desc: '' };
+      const currGroup = that.props.groupList[0] || {
+        group_name: '', group_desc: '', custom_field1: { name: '', enable: false }
+      };
       that.setState({ groupList: that.props.groupList });
       that.props.setCurrGroup(currGroup);
     }
@@ -179,7 +214,7 @@ class GroupSetting extends Component {
         </div>
       ),
       onOk() {
-        const groupName = trim(document.getElementById('group_name').value);
+        const groupName = trim((document.getElementById('group_name') as HTMLInputElement | null)?.value || '');
         if (that.props.currGroup.group_name !== groupName) {
           message.error('分组名称有误');
           return new Promise((resolve, reject) => {
@@ -191,10 +226,10 @@ class GroupSetting extends Component {
       },
       iconType: 'delete',
       onCancel() {}
-    });
+    } as Parameters<typeof confirm>[0] & { iconType: string });
   };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: GroupSettingProps) {
     // 切换分组时，更新分组信息并关闭删除分组操作
     if (this.props.currGroup._id !== nextProps.currGroup._id) {
       this.initState(nextProps);
@@ -304,4 +339,4 @@ class GroupSetting extends Component {
   }
 }
 
-export default GroupSetting;
+export default GroupSetting as unknown as ComponentType;

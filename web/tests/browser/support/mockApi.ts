@@ -5,6 +5,7 @@ import groupList from '../fixtures/auth/group-list.json';
 import loginFailure from '../fixtures/auth/login-failure.json';
 import loginSuccess from '../fixtures/auth/login-success.json';
 import projectList from '../fixtures/auth/project-list.json';
+import searchResults from '../fixtures/auth/search-results.json';
 import statusGuest from '../fixtures/auth/status-guest.json';
 import statusMember from '../fixtures/auth/status-member.json';
 
@@ -16,7 +17,8 @@ const sharedFixtures: Readonly<Record<string, JsonFixture>> = {
   '/api/group/get_mygroup': group,
   '/api/group/list': groupList,
   '/api/group/get': group,
-  '/api/project/list': projectList
+  '/api/project/list': projectList,
+  '/api/project/search': searchResults
 };
 
 async function fulfillJson(route: Route, fixture: JsonFixture) {

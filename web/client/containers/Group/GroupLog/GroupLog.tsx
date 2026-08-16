@@ -2,15 +2,23 @@ import React, { PureComponent as Component } from 'react';
 import TimeTree from '../../../components/TimeLine/TimeLine';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import type { ComponentType } from 'react';
+import type { RootState } from '../../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 // import { Button } from 'antd'
-@connect(state => {
+interface GroupLogProps {
+  uid: string;
+  curGroupId: number;
+}
+const connectGroupLog = asLegacyClassDecorator(connect((state: RootState) => {
   return {
     uid: state.user.uid + '',
     curGroupId: state.group.currGroup._id
   };
-})
-class GroupLog extends Component {
-  constructor(props) {
+}));
+@connectGroupLog
+class GroupLog extends Component<GroupLogProps> {
+  constructor(props: GroupLogProps) {
     super(props);
   }
   static propTypes = {
@@ -29,4 +37,4 @@ class GroupLog extends Component {
   }
 }
 
-export default GroupLog;
+export default GroupLog as unknown as ComponentType;

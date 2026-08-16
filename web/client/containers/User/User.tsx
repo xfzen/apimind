@@ -2,12 +2,21 @@ import './index.scss';
 import React, { PureComponent as Component } from 'react';
 import { connect } from 'react-redux';
 import { Route } from 'react-router-dom';
-import List from './List.js';
+import List from './List';
 import PropTypes from 'prop-types';
-import Profile from './Profile.js';
+import Profile from './Profile';
 import { Row } from 'antd';
-@connect(
-  state => {
+import type { RouteComponentProps } from 'react-router';
+import type { RootState } from '../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+
+interface UserProps extends RouteComponentProps {
+  curUid: number | null;
+  userType: string | null;
+  role: string | null;
+}
+const connectUser = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       curUid: state.user.uid,
       userType: state.user.type,
@@ -15,8 +24,9 @@ import { Row } from 'antd';
     };
   },
   {}
-)
-class User extends Component {
+));
+@connectUser
+class User extends Component<UserProps> {
   static propTypes = {
     match: PropTypes.object,
     curUid: PropTypes.number,
@@ -24,7 +34,7 @@ class User extends Component {
     role: PropTypes.string
   };
 
-  constructor(props) {
+  constructor(props: UserProps) {
     super(props);
   }
 

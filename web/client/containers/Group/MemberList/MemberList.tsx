@@ -1,7 +1,9 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Table, Select, Button, Modal, Row, Col, message, Popconfirm } from 'antd';
+import type { TableColumnsType } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { Link } from 'react-router-dom';
 import './MemberList.scss';
@@ -16,9 +18,20 @@ import {
 } from '../../../reducer/modules/group';
 import ErrMsg from '../../../components/ErrMsg/ErrMsg';
 import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete';
+import type { ApiResponse } from '../../../types/api';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { GroupRecord } from '../../../reducer/modules/group';
+import type { UnknownRecord } from '../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 const Option = Select.Option;
 
-function arrayAddKey(arr) {
+interface GroupMember extends UnknownRecord {
+  uid: string | number;
+  username: string;
+  role: string;
+  key?: number;
+}
+function arrayAddKey(arr: GroupMember[]): GroupMember[] {
   return arr.map((item, index) => {
     return {
       ...item,
@@ -27,8 +40,27 @@ function arrayAddKey(arr) {
   });
 }
 
-@connect(
-  state => {
+type MemberActionResponse<T = unknown> = { payload: { data: ApiResponse<T> } };
+interface MemberListProps {
+  currGroup: GroupRecord;
+  uid: number | null;
+  role: string;
+  fetchGroupMemberList: (id: string | number) => Promise<MemberActionResponse<GroupMember[]>>;
+  fetchGroupMsg: (id: string | number) => Promise<MemberActionResponse<GroupRecord & { role: string }>>;
+  addMember: (data: UnknownRecord) => Promise<MemberActionResponse<{ add_members: unknown[]; exist_members: unknown[] }>>;
+  delMember: (data: UnknownRecord) => Promise<MemberActionResponse>;
+  changeMemberRole: (data: UnknownRecord) => Promise<MemberActionResponse>;
+}
+interface MemberListState {
+  userInfo: GroupMember[];
+  role: string;
+  visible: boolean;
+  dataSource: unknown[];
+  inputUids: string[];
+  inputRole: string;
+}
+const connectMemberList = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       currGroup: state.group.currGroup,
       uid: state.user.uid,
@@ -42,9 +74,12 @@ function arrayAddKey(arr) {
     delMember,
     changeMemberRole
   }
-)
-class MemberList extends Component {
-  constructor(props) {
+));
+@connectMemberList
+class MemberList extends Component<MemberListProps, MemberListState> {
+  _groupId: string | number | undefined;
+
+  constructor(props: MemberListProps) {
     super(props);
     this.state = {
       userInfo: [],
@@ -74,9 +109,11 @@ class MemberList extends Component {
 
   // 重新获取列表
   reFetchList = () => {
-    this.props.fetchGroupMemberList(this.props.currGroup._id).then(res => {
+    const id = this.props.currGroup._id;
+    if (id === undefined) return;
+    this.props.fetchGroupMemberList(id).then(res => {
       this.setState({
-        userInfo: arrayAddKey(res.payload.data.data),
+        userInfo: arrayAddKey(res.payload.data.data || []),
         visible: false
       });
     });
@@ -93,7 +130,9 @@ class MemberList extends Component {
       })
       .then(res => {
         if (!res.payload.data.errcode) {
-          const { add_members, exist_members } = res.payload.data.data;
+          const data = res.payload.data.data;
+          if (!data) return;
+          const { add_members, exist_members } = data;
           const addLength = add_members.length;
           const existLength = exist_members.length;
           this.setState({
@@ -107,7 +146,7 @@ class MemberList extends Component {
   };
   // 添加成员时 选择新增成员权限
 
-  changeNewMemberRole = value => {
+  changeNewMemberRole = (value: string) => {
     this.setState({
       inputRole: value
     });
@@ -115,7 +154,7 @@ class MemberList extends Component {
 
   // 删 - 删除分组成员
 
-  deleteConfirm = member_uid => {
+  deleteConfirm = (member_uid: string | number) => {
     return () => {
       const id = this.props.currGroup._id;
       this.props.delMember({ id, member_uid }).then(res => {
@@ -128,7 +167,7 @@ class MemberList extends Component {
   };
 
   // 改 - 修改成员权限
-  changeUserRole = e => {
+  changeUserRole = (e: string) => {
     const id = this.props.currGroup._id;
     const role = e.split('-')[0];
     const member_uid = e.split('-')[1];
@@ -148,19 +187,21 @@ class MemberList extends Component {
     });
   };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: MemberListProps) {
     if (this._groupId !== this._groupId) {
       return null;
     }
     if (this.props.currGroup._id !== nextProps.currGroup._id) {
-      this.props.fetchGroupMemberList(nextProps.currGroup._id).then(res => {
+      const nextId = nextProps.currGroup._id;
+      if (nextId === undefined) return;
+      this.props.fetchGroupMemberList(nextId).then(res => {
         this.setState({
-          userInfo: arrayAddKey(res.payload.data.data)
+          userInfo: arrayAddKey(res.payload.data.data || [])
         });
       });
-      this.props.fetchGroupMsg(nextProps.currGroup._id).then(res => {
+      this.props.fetchGroupMsg(nextId).then(res => {
         this.setState({
-          role: res.payload.data.data.role
+          role: res.payload.data.data?.role || ''
         });
       });
     }
@@ -168,33 +209,34 @@ class MemberList extends Component {
 
   componentDidMount() {
     const currGroupId = (this._groupId = this.props.currGroup._id);
+    if (currGroupId === undefined) return;
     this.props.fetchGroupMsg(currGroupId).then(res => {
       this.setState({
-        role: res.payload.data.data.role
+        role: res.payload.data.data?.role || ''
       });
     });
     this.props.fetchGroupMemberList(currGroupId).then(res => {
       this.setState({
-        userInfo: arrayAddKey(res.payload.data.data)
+        userInfo: arrayAddKey(res.payload.data.data || [])
       });
     });
   }
 
   @autobind
-  onUserSelect(uids) {
+  onUserSelect(uids: string[]) {
     this.setState({
       inputUids: uids
     });
   }
 
   render() {
-    const columns = [
+    const columns: TableColumnsType<GroupMember> = [
       {
         title:
           this.props.currGroup.group_name + ' 分组成员 (' + this.state.userInfo.length + ') 人',
         dataIndex: 'username',
         key: 'username',
-        render: (text, record) => {
+        render: (text: string, record: GroupMember) => {
           return (
             <div className="m-user">
               <Link to={`/user/profile/${record.uid}`}>
@@ -220,7 +262,7 @@ class MemberList extends Component {
           ),
         key: 'action',
         className: 'member-opration',
-        render: (text, record) => {
+        render: (_text: unknown, record: GroupMember) => {
           if (this.state.role === 'owner' || this.state.role === 'admin') {
             return (
               <div>
@@ -261,9 +303,9 @@ class MemberList extends Component {
       }
     ];
     let userinfo = this.state.userInfo;
-    let ownerinfo = [];
-    let devinfo = [];
-    let guestinfo = [];
+    const ownerinfo: GroupMember[] = [];
+    const devinfo: GroupMember[] = [];
+    const guestinfo: GroupMember[] = [];
     for (let i = 0; i < userinfo.length; i++) {
       if (userinfo[i].role === 'owner') {
         ownerinfo.push(userinfo[i]);
@@ -320,4 +362,4 @@ class MemberList extends Component {
   }
 }
 
-export default MemberList;
+export default MemberList as unknown as ComponentType;
