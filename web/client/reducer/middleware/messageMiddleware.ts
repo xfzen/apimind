@@ -15,11 +15,12 @@ export function messageMiddleware() {
     }
     if (action.error) {
       const payload = isRecord(action.payload) ? action.payload : undefined;
-      message.error((payload && typeof payload.message === 'string' && payload.message) || '服务器错误');
+      const errorMessage = (payload && payload.message) || '服务器错误';
+      message.error(errorMessage as Parameters<typeof message.error>[0]);
     } else if (isRecord(action.payload) && isRecord(action.payload.data)) {
       const data = action.payload.data;
       if (data.errcode && data.errcode !== 40011) {
-        const errorMessage = typeof data.errmsg === 'string' ? data.errmsg : String(data.errmsg);
+        const errorMessage = data.errmsg as string;
         message.error(errorMessage);
         throw new Error(errorMessage);
       }
