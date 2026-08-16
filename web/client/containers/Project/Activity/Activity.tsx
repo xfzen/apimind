@@ -5,15 +5,24 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Button } from 'antd';
 import { buildMockUrl, buildApiUrl } from '../../../utils/backend';
-@connect(state => {
+import type { ComponentType } from 'react';
+import type { RouteComponentProps } from 'react-router';
+import type { RootState } from '../../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
+interface ActivityProps extends RouteComponentProps<{ id: string }> {
+  uid: string;
+  currProject: { _id: string | number; basepath?: string };
+}
+const connectActivity = asLegacyClassDecorator(connect((state: RootState) => {
   return {
     uid: state.user.uid + '',
     curdata: state.inter.curdata,
     currProject: state.project.currProject
   };
-})
-class Activity extends Component {
-  constructor(props) {
+}));
+@connectActivity
+class Activity extends Component<ActivityProps> {
+  constructor(props: ActivityProps) {
     super(props);
   }
   static propTypes = {
@@ -50,4 +59,4 @@ class Activity extends Component {
   }
 }
 
-export default Activity;
+export default Activity as unknown as ComponentType<RouteComponentProps<{ id: string }>>;

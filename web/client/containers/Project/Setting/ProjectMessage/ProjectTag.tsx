@@ -4,20 +4,24 @@ import { Row, Col, Input } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import './ProjectTag.scss';
 
+export interface ProjectTagItem { name: string; desc: string }
+interface ProjectTagProps { tagMsg?: ProjectTagItem[]; tagSubmit?: (tags: ProjectTagItem[]) => void }
+export interface ProjectTagState { tag: ProjectTagItem[] }
+type TagField = keyof ProjectTagItem;
 
-class ProjectTag extends Component {
+export class ProjectTag extends Component<ProjectTagProps, ProjectTagState> {
   static propTypes = {
     tagMsg: PropTypes.array,
     tagSubmit: PropTypes.func
   };
-  constructor(props) {
+  constructor(props: ProjectTagProps) {
     super(props);
     this.state = {
       tag: [{ name: '', desc: '' }]
     };
   }
 
-  initState(curdata) {
+  initState(curdata?: ProjectTagItem[]): ProjectTagState {
     let tag = [
       {
         name: '',
@@ -25,7 +29,7 @@ class ProjectTag extends Component {
       }
     ];
     if (curdata && curdata.length !== 0) {
-      curdata.forEach(item => {
+      curdata.forEach((item: ProjectTagItem) => {
         tag.unshift(item);
       });
     }
@@ -36,40 +40,39 @@ class ProjectTag extends Component {
     this.handleInit(this.props.tagMsg);
   }
 
-  handleInit(data) {
+  handleInit(data?: ProjectTagItem[]) {
     let newValue = this.initState(data);
     this.setState({ ...newValue });
   }
 
-  addHeader = (val, index, name, label) => {
-    let newValue = {};
-    newValue[name] = [].concat(this.state[name]);
+  addHeader = (val: string, index: number, name: 'tag', label: TagField) => {
+    let newValue: ProjectTagState = { tag: this.state.tag.slice() };
     newValue[name][index][label] = val;
     let nextData = this.state[name][index + 1];
     if (!(nextData && typeof nextData === 'object')) {
       let data = { name: '', desc: '' };
-      newValue[name] = [].concat(this.state[name], data);
+      newValue[name] = this.state[name].concat(data);
     }
     this.setState(newValue);
   };
 
-  delHeader = (key, name) => {
+  delHeader = (key: number, name: 'tag') => {
     let curValue = this.state[name];
-    let newValue = {};
-    newValue[name] = curValue.filter((val, index) => {
+    let newValue: ProjectTagState = { tag: [] };
+    newValue[name] = curValue.filter((_val: ProjectTagItem, index: number) => {
       return index !== key;
     });
     this.setState(newValue);
   };
 
-  handleChange = (val, index, name, label) => {
+  handleChange = (val: string, index: number, name: 'tag', label: TagField) => {
     let newValue = this.state;
     newValue[name][index][label] = val;
     this.setState(newValue);
   };
 
   render() {
-    const commonTpl = (item, index, name) => {
+    const commonTpl = (item: ProjectTagItem, index: number, name: 'tag') => {
       const length = this.state[name].length - 1;
       return (
         <Row key={index} className="tag-item">
@@ -89,7 +92,7 @@ class ProjectTag extends Component {
               value={item.desc || ''}
             />
           </Col>
-          <Col span={2} className={index === length ? ' tag-last-row' : null}>
+          <Col span={2} className={index === length ? ' tag-last-row' : undefined}>
             {/* 新增的项中，只有最后一项没有有删除按钮 */}
             <Icon
               className="dynamic-delete-button delete"

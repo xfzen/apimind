@@ -10,7 +10,13 @@ export const actionTypes = {
   GET_TEMPLATE: 'yapi/template/GET_TEMPLATE',
   UPDATE_TEMPLATE: 'yapi/template/UPDATE_TEMPLATE'
 } as const;
-export interface TemplateItem extends UnknownRecord { key: string }
+export interface TemplateItem extends UnknownRecord {
+  key: string;
+  title: string;
+  category?: string;
+  markdown?: string;
+  description?: string;
+}
 export interface TemplateState { projects: UnknownRecord[]; list: TemplateItem[]; current: TemplateItem | null }
 type TemplateAction = ResolvedPromiseAction<ApiResponse<UnknownRecord[] | TemplateItem>> & {
   type: (typeof actionTypes)[keyof typeof actionTypes];
@@ -39,7 +45,7 @@ function getAction<T>(type: string, url: string, params?: UnknownRecord): Promis
 export function fetchTemplateProjects() {
   return getAction<UnknownRecord[]>(actionTypes.FETCH_TEMPLATE_PROJECTS, '/api/templates/projects');
 }
-export function fetchTemplates(params: UnknownRecord) {
+export function fetchTemplates(params?: UnknownRecord) {
   return getAction<TemplateItem[]>(actionTypes.FETCH_TEMPLATES, '/api/templates/list', params);
 }
 export function searchTemplates(params: UnknownRecord) {

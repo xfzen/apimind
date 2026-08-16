@@ -1,12 +1,13 @@
 import './View.scss';
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Table, Row, Col, Tooltip, message } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { Link } from 'react-router-dom';
 import AceEditor from 'client/components/AceEditor/AceEditor';
-import { formatTime, safeArray } from '../../../../common.ts';
+import { formatTime, safeArray } from '../../../../common';
 import ErrMsg from '../../../../components/ErrMsg/ErrMsg';
 import variable from '../../../../constants/variable';
 import constants from '../../../../constants/variable.js';
@@ -14,18 +15,35 @@ import copy from 'copy-to-clipboard';
 import SchemaTable from '../../../../components/SchemaTable/SchemaTable';
 import { buildApiUrl, buildMockUrl } from '../../../../utils/backend';
 import { sanitizeHTML } from '../../../../../common/sanitize.js';
+import type { ColumnsType } from 'antd/es/table/interface';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const HTTP_METHOD = constants.HTTP_METHOD;
 
-@connect(state => {
+interface ParamItem extends UnknownRecord { name?: string; desc?: string; value?: string; example?: string; required?: number | string; type?: string }
+interface ParamRow extends ParamItem { key: number }
+interface ViewInterface extends UnknownRecord {
+  title?: string; method?: string; path?: string; status: 'done' | 'undone'; desc?: string;
+  uid?: string | number; username?: string; up_time?: number; tag?: string[]; custom_field_value?: string;
+  req_headers?: ParamItem[]; req_params?: ParamItem[]; req_query?: ParamItem[]; req_body_form?: ParamItem[];
+  req_body_type?: string; req_body_other?: string; req_body_is_json_schema?: boolean;
+  res_body_type?: string; res_body?: string; res_body_is_json_schema?: boolean;
+}
+interface ViewProject extends UnknownRecord { _id: string | number; basepath: string; is_mock_open?: boolean; strice?: boolean }
+interface ViewProps { curData: ViewInterface; currProject: ViewProject; custom_field: { enable?: boolean; name?: string }; switchToView?: () => void }
+interface ViewState { init: boolean; enter: boolean }
+const connectView = asLegacyClassDecorator(connect((state: RootState) => {
   return {
     curData: state.inter.curdata,
     custom_field: state.group.field,
     currProject: state.project.currProject
   };
-})
-class View extends Component {
-  constructor(props) {
+}));
+@connectView
+class View extends Component<ViewProps, ViewState> {
+  constructor(props: ViewProps) {
     super(props);
     this.state = {
       init: true,
@@ -38,9 +56,9 @@ class View extends Component {
     custom_field: PropTypes.object
   };
 
-  req_body_form(req_body_type, req_body_form) {
+  req_body_form(req_body_type?: string, req_body_form?: ParamItem[]): ReactNode {
     if (req_body_type === 'form') {
-      const columns = [
+      const columns: ColumnsType<ParamRow> = [
         {
           title: '参数名称',
           dataIndex: 'name',
@@ -52,7 +70,7 @@ class View extends Component {
           dataIndex: 'type',
           key: 'type',
           width: 100,
-          render: text => {
+          render: (text?: string) => {
             text = text || '';
             return text.toLowerCase() === 'text' ? (
               <span>
@@ -76,7 +94,7 @@ class View extends Component {
           dataIndex: 'example',
           key: 'example',
           width: 80,
-          render(_, item) {
+          render(_value: unknown, item: ParamRow) {
             return <p style={{ whiteSpace: 'pre-wrap' }}>{item.example}</p>;
           }
         },
@@ -84,15 +102,15 @@ class View extends Component {
           title: '备注',
           dataIndex: 'value',
           key: 'value',
-          render(_, item) {
+          render(_value: unknown, item: ParamRow) {
             return <p style={{ whiteSpace: 'pre-wrap' }}>{item.value}</p>;
           }
         }
       ];
 
-      const dataSource = [];
+      const dataSource: ParamRow[] = [];
       if (req_body_form && req_body_form.length) {
-        req_body_form.map((item, i) => {
+        req_body_form.map((item: ParamItem, i: number) => {
           dataSource.push({
             key: i,
             name: item.name,
@@ -117,10 +135,10 @@ class View extends Component {
       );
     }
   }
-  res_body(res_body_type, res_body, res_body_is_json_schema) {
+  res_body(res_body_type?: string, res_body?: string, res_body_is_json_schema?: boolean): ReactNode {
     if (res_body_type === 'json') {
       if (res_body_is_json_schema) {
-        return <SchemaTable dataSource={res_body} />;
+        return <SchemaTable dataSource={res_body || ''} />;
       } else {
         return (
           <div className="colBody">
@@ -138,7 +156,7 @@ class View extends Component {
     }
   }
 
-  req_body(req_body_type, req_body_other, req_body_is_json_schema) {
+  req_body(req_body_type?: string, req_body_other?: string, req_body_is_json_schema?: boolean): ReactNode {
     if (req_body_other) {
       if (req_body_is_json_schema && req_body_type === 'json') {
         return <SchemaTable dataSource={req_body_other} />;
@@ -157,8 +175,8 @@ class View extends Component {
     }
   }
 
-  req_query(query) {
-    const columns = [
+  req_query(query?: ParamItem[]) {
+    const columns: ColumnsType<ParamRow> = [
       {
         title: '参数名称',
         dataIndex: 'name',
@@ -176,7 +194,7 @@ class View extends Component {
         dataIndex: 'example',
         key: 'example',
         width: 80,
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.example}</p>;
         }
       },
@@ -184,15 +202,15 @@ class View extends Component {
         title: '备注',
         dataIndex: 'value',
         key: 'value',
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.value}</p>;
         }
       }
     ];
 
-    const dataSource = [];
+    const dataSource: ParamRow[] = [];
     if (query && query.length) {
-      query.map((item, i) => {
+      query.map((item: ParamItem, i: number) => {
         dataSource.push({
           key: i,
           name: item.name,
@@ -208,7 +226,7 @@ class View extends Component {
     );
   }
 
-  countEnter(str) {
+  countEnter(str?: string) {
     let i = 0;
     let c = 0;
     if (!str || !str.indexOf) {
@@ -239,12 +257,12 @@ class View extends Component {
     });
   };
 
-  copyUrl = url => {
+  copyUrl = (url: string) => {
     copy(url);
     message.success('已经成功复制到剪切板');
   };
 
-  flagMsg = (mock, strice) => {
+  flagMsg = (mock?: boolean, strice?: boolean) => {
     if (mock && strice) {
       return <span>( 全局mock & 严格模式 )</span>;
     } else if (!mock && strice) {
@@ -257,9 +275,9 @@ class View extends Component {
   };
 
   render() {
-    const dataSource = [];
+    const dataSource: ParamRow[] = [];
     if (this.props.curData.req_headers && this.props.curData.req_headers.length) {
-      this.props.curData.req_headers.map((item, i) => {
+      this.props.curData.req_headers.map((item: ParamItem, i: number) => {
         dataSource.push({
           key: i,
           name: item.name,
@@ -271,9 +289,9 @@ class View extends Component {
       });
     }
 
-    const req_dataSource = [];
+    const req_dataSource: ParamRow[] = [];
     if (this.props.curData.req_params && this.props.curData.req_params.length) {
-      this.props.curData.req_params.map((item, i) => {
+      this.props.curData.req_params.map((item: ParamItem, i: number) => {
         req_dataSource.push({
           key: i,
           name: item.name,
@@ -282,7 +300,7 @@ class View extends Component {
         });
       });
     }
-    const req_params_columns = [
+    const req_params_columns: ColumnsType<ParamRow> = [
       {
         title: '参数名称',
         dataIndex: 'name',
@@ -294,7 +312,7 @@ class View extends Component {
         dataIndex: 'example',
         key: 'example',
         width: 80,
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.example}</p>;
         }
       },
@@ -302,13 +320,13 @@ class View extends Component {
         title: '备注',
         dataIndex: 'desc',
         key: 'desc',
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.desc}</p>;
         }
       }
     ];
 
-    const columns = [
+    const columns: ColumnsType<ParamRow> = [
       {
         title: '参数名称',
         dataIndex: 'name',
@@ -332,7 +350,7 @@ class View extends Component {
         dataIndex: 'example',
         key: 'example',
         width: '80px',
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.example}</p>;
         }
       },
@@ -340,7 +358,7 @@ class View extends Component {
         title: '备注',
         dataIndex: 'desc',
         key: 'desc',
-        render(_, item) {
+        render(_value: unknown, item: ParamRow) {
           return <p style={{ whiteSpace: 'pre-wrap' }}>{item.desc}</p>;
         }
       }
@@ -362,20 +380,15 @@ class View extends Component {
       (this.props.curData.req_query && this.props.curData.req_query.length) ||
       bodyShow;
 
-    let methodColor =
-      variable.METHOD_COLOR[
-        this.props.curData.method ? this.props.curData.method.toLowerCase() : 'get'
-      ];
+    const methodKey = (this.props.curData.method ? this.props.curData.method.toLowerCase() : 'get') as keyof typeof variable.METHOD_COLOR;
+    let methodColor = variable.METHOD_COLOR[methodKey] || variable.METHOD_COLOR.get;
 
     // statusColor = statusColor[this.props.curData.status?this.props.curData.status.toLowerCase():"undone"];
     // const aceEditor = <div style={{ display: this.props.curData.req_body_other && (this.props.curData.req_body_type !== "form") ? "block" : "none" }} className="colBody">
     //   <AceEditor data={this.props.curData.req_body_other} readOnly={true} style={{ minHeight: 300 }} mode={this.props.curData.req_body_type === 'json' ? 'javascript' : 'text'} />
     // </div>
-    if (!methodColor) {
-      methodColor = 'get';
-    }
-
     const { tag, up_time, title, uid, username } = this.props.curData;
+    const tags = safeArray<string>(tag);
 
     let res = (
       <div className="caseContainer">
@@ -410,16 +423,15 @@ class View extends Component {
             <Col span={4} className="colKey">
               更新时间：
             </Col>
-            <Col span={8}>{formatTime(up_time)}</Col>
+            <Col span={8}>{formatTime(up_time || 0)}</Col>
           </Row>
-          {safeArray(tag) &&
-            safeArray(tag).length > 0 && (
+          {tags.length > 0 && (
               <Row className="row remark">
                 <Col span={4} className="colKey">
                   Tag ：
                 </Col>
                 <Col span={18} className="colValue">
-                  {tag.join(' , ')}
+                  {tags.join(' , ')}
                 </Col>
               </Row>
             )}
@@ -537,7 +549,7 @@ class View extends Component {
           style={{
             display:
               this.props.curData.method &&
-              HTTP_METHOD[this.props.curData.method.toUpperCase()].request_body
+              HTTP_METHOD[this.props.curData.method.toUpperCase() as keyof typeof HTTP_METHOD].request_body
                 ? ''
                 : 'none'
           }}
@@ -574,4 +586,4 @@ class View extends Component {
   }
 }
 
-export default View;
+export default View as unknown as ComponentType<Pick<ViewProps, 'switchToView'>>;

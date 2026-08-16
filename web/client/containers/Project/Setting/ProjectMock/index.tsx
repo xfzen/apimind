@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Form, Switch, Button, Tooltip, message } from 'antd';
@@ -6,6 +7,11 @@ import Icon from 'client/shims/antdIcon';
 import AceEditor from '../../../../components/AceEditor/AceEditor';
 const FormItem = Form.Item;
 import { updateProjectMock, getProject } from '../../../../reducer/modules/project';
+import type { MockEditorData } from '../../../../components/AceEditor/mockEditor';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const formItemLayout = {
   labelCol: {
@@ -24,8 +30,16 @@ const tailFormItemLayout = {
   }
 };
 
-@connect(
-  state => {
+type ProjectMockResponse = { payload: { data: ApiResponse<unknown> } };
+interface ProjectMockProps {
+  projectId: number;
+  projectMsg: UnknownRecord & { is_mock_open?: boolean; project_mock_script?: string };
+  updateProjectMock: (data: UnknownRecord) => Promise<ProjectMockResponse>;
+  getProject: (id: number) => Promise<unknown>;
+}
+interface ProjectMockState { is_mock_open: boolean; project_mock_script: string }
+const connectProjectMock = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       projectMsg: state.project.currProject
     };
@@ -34,8 +48,9 @@ const tailFormItemLayout = {
     updateProjectMock,
     getProject
   }
-)
-export default class ProjectMock extends Component {
+));
+@connectProjectMock
+class ProjectMock extends Component<ProjectMockProps, ProjectMockState> {
   static propTypes = {
     form: PropTypes.object,
     match: PropTypes.object,
@@ -45,7 +60,7 @@ export default class ProjectMock extends Component {
     getProject: PropTypes.func
   };
 
-  constructor(props) {
+  constructor(props: ProjectMockProps) {
     super(props);
     this.state = {
       is_mock_open: false,
@@ -72,19 +87,19 @@ export default class ProjectMock extends Component {
 
   componentWillMount() {
     this.setState({
-      is_mock_open: this.props.projectMsg.is_mock_open,
-      project_mock_script: this.props.projectMsg.project_mock_script
+      is_mock_open: this.props.projectMsg.is_mock_open ?? false,
+      project_mock_script: this.props.projectMsg.project_mock_script ?? ''
     });
   }
 
   // 是否开启
-  onChange = v => {
+  onChange = (v: boolean) => {
     this.setState({
       is_mock_open: v
     });
   };
 
-  handleMockJsInput = e => {
+  handleMockJsInput = (e: MockEditorData) => {
     this.setState({
       project_mock_script: e.text
     });
@@ -134,3 +149,5 @@ export default class ProjectMock extends Component {
     );
   }
 }
+
+export default ProjectMock as unknown as ComponentType<Pick<ProjectMockProps, 'projectId'>>;

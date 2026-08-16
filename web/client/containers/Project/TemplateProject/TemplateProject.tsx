@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Button, Input, message } from 'antd';
@@ -13,9 +14,26 @@ import TemplateNav from './TemplateNav';
 import TemplateDocument from './TemplateDocument';
 import TemplateEditor from './TemplateEditor';
 import './TemplateProject.scss';
+import type { ApiResponse } from '../../../types/api';
+import type { RootState } from '../../../reducer/modules/reducer';
+import type { TemplateItem } from '../../../reducer/modules/template';
+import type { UnknownRecord } from '../../../reducer/types/runtime';
+import type { TemplateEditorSaveValue } from './TemplateEditor';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 
-@connect(
-  state => ({
+type TemplateResult<T> = Promise<{ payload: { data: ApiResponse<T> } }>;
+interface TemplateProjectProps {
+  project?: UnknownRecord & { name?: string };
+  templates: TemplateItem[];
+  current: TemplateItem | null;
+  fetchTemplates: (params?: UnknownRecord) => TemplateResult<TemplateItem[]>;
+  getTemplate: (key: string) => TemplateResult<TemplateItem>;
+  updateTemplate: (data: TemplateItem) => TemplateResult<TemplateItem>;
+  searchTemplates: (params: UnknownRecord) => TemplateResult<TemplateItem[]>;
+}
+interface TemplateProjectState { selectedKey: string; editing: boolean; keyword: string }
+const connectTemplateProject = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
     templates: state.template.list,
     current: state.template.current
   }),
@@ -25,8 +43,9 @@ import './TemplateProject.scss';
     updateTemplate,
     searchTemplates
   }
-)
-export default class TemplateProject extends Component {
+));
+@connectTemplateProject
+class TemplateProject extends Component<TemplateProjectProps, TemplateProjectState> {
   static propTypes = {
     project: PropTypes.object,
     templates: PropTypes.array,
@@ -37,7 +56,7 @@ export default class TemplateProject extends Component {
     searchTemplates: PropTypes.func
   };
 
-  constructor(props) {
+  constructor(props: TemplateProjectProps) {
     super(props);
     this.state = {
       selectedKey: '',
@@ -58,13 +77,13 @@ export default class TemplateProject extends Component {
     }
   }
 
-  selectTemplate = async key => {
+  selectTemplate = async (key: string) => {
     if (!key) return;
     this.setState({ selectedKey: key, editing: false });
     await this.props.getTemplate(key);
   };
 
-  search = async value => {
+  search = async (value: string) => {
     this.setState({ keyword: value });
     const action = value ? this.props.searchTemplates({ keyword: value }) : this.props.fetchTemplates();
     const res = await action;
@@ -74,8 +93,8 @@ export default class TemplateProject extends Component {
     }
   };
 
-  saveTemplate = async data => {
-    const res = await this.props.updateTemplate(data);
+  saveTemplate = async (data: TemplateEditorSaveValue) => {
+    const res = await this.props.updateTemplate(data as unknown as TemplateItem);
     const payload = res.payload.data;
     if (payload.errcode !== 0) {
       message.error(payload.errmsg || '保存失败');
@@ -132,3 +151,5 @@ export default class TemplateProject extends Component {
     );
   }
 }
+
+export default TemplateProject as unknown as ComponentType<Pick<TemplateProjectProps, 'project'>>;

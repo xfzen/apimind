@@ -1,24 +1,32 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { Form, Input, Button } from 'antd';
+import type { FormInstance } from 'antd';
 const FormItem = Form.Item;
-function hasErrors(fieldsError) {
+type FormErrors = Array<{ errors: string[] }> | Record<string, unknown>;
+function hasErrors(fieldsError: FormErrors): boolean {
   if (Array.isArray(fieldsError)) {
     return fieldsError.some(field => field.errors.length);
   }
   return Object.keys(fieldsError).some(field => fieldsError[field]);
 }
-class AddInterfaceForm extends Component {
+interface CategoryFormValues { name: string; desc?: string }
+interface CategoryData { name?: string; desc?: string }
+interface AddInterfaceCatProps {
+  form: FormInstance<CategoryFormValues>;
+  onSubmit: (values: CategoryFormValues) => void;
+  onCancel: () => void;
+  catdata?: CategoryData;
+}
+class AddInterfaceForm extends Component<AddInterfaceCatProps> {
   static propTypes = {
     form: PropTypes.object,
     onSubmit: PropTypes.func,
     onCancel: PropTypes.func,
     catdata: PropTypes.object
   };
-  handleSubmit = e => {
-    if (e && e.preventDefault) {
-      e.preventDefault();
-    }
+  handleSubmit = () => {
     this.props.form
       .validateFields()
       .then(values => {
@@ -41,7 +49,7 @@ class AddInterfaceForm extends Component {
     };
 
     return (
-      <Form form={this.props.form} onFinish={this.handleSubmit}>
+      <Form form={this.props.form} onFinish={() => this.handleSubmit()}>
         <FormItem
           {...formItemLayout}
           label="分类名"
@@ -78,9 +86,11 @@ class AddInterfaceForm extends Component {
   }
 }
 
-function AddInterfaceFormWrapper(props) {
+type AddInterfaceCatOwnProps = Omit<AddInterfaceCatProps, 'form'>;
+const ConnectedAddInterfaceForm = AddInterfaceForm as unknown as ComponentType<AddInterfaceCatProps>;
+function AddInterfaceFormWrapper(props: AddInterfaceCatOwnProps) {
   const [form] = Form.useForm();
-  return <AddInterfaceForm {...props} form={form} />;
+  return <ConnectedAddInterfaceForm {...props} form={form} />;
 }
 
 export default AddInterfaceFormWrapper;

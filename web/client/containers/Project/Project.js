@@ -7,12 +7,12 @@ import { fetchGroupMsg } from '../../reducer/modules/group';
 import { setBreadcrumb } from '../../reducer/modules/user';
 import { getProject } from '../../reducer/modules/project';
 import Interface from './Interface/Interface.js';
-import Activity from './Activity/Activity.js';
-import Setting from './Setting/Setting.js';
+import Activity from './Activity/Activity';
+import Setting from './Setting/Setting';
 import Loading from '../../components/Loading/Loading';
-import ProjectMember from './Setting/ProjectMember/ProjectMember.js';
-import ProjectData from './Setting/ProjectData/ProjectData.js';
-import TemplateProject from './TemplateProject/TemplateProject.js';
+import ProjectMember from './Setting/ProjectMember/ProjectMember';
+import ProjectData from './Setting/ProjectData/ProjectData';
+import TemplateProject from './TemplateProject/TemplateProject';
 import WikiPage from 'exts/yapi-plugin-wiki/wikiPage/index';
 import plugin from 'client/plugin';
 @connect(

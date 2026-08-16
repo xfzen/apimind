@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Form, Button, message } from 'antd';
@@ -6,9 +7,22 @@ const FormItem = Form.Item;
 import './project-request.scss';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import { updateProjectScript, getProject } from '../../../../reducer/modules/project';
+import type { MockEditorData } from '../../../../components/AceEditor/mockEditor';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
-@connect(
-  state => {
+type ProjectRequestResponse = { payload: { data: ApiResponse<unknown> } };
+interface ProjectRequestProps {
+  projectId: number;
+  projectMsg: UnknownRecord & { pre_script?: string; after_script?: string };
+  updateProjectScript: (data: UnknownRecord) => Promise<ProjectRequestResponse>;
+  getProject: (id: number) => Promise<unknown>;
+}
+interface ProjectRequestState { pre_script: string; after_script: string }
+const connectProjectRequest = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       projectMsg: state.project.currProject
     };
@@ -17,8 +31,10 @@ import { updateProjectScript, getProject } from '../../../../reducer/modules/pro
     updateProjectScript,
     getProject
   }
-)
-export default class ProjectRequest extends Component {
+));
+@connectProjectRequest
+class ProjectRequest extends Component<ProjectRequestProps, ProjectRequestState> {
+  state: ProjectRequestState = { pre_script: '', after_script: '' };
   static propTypes = {
     projectMsg: PropTypes.object,
     updateProjectScript: PropTypes.func,
@@ -28,8 +44,8 @@ export default class ProjectRequest extends Component {
 
   componentWillMount() {
     this.setState({
-      pre_script: this.props.projectMsg.pre_script,
-      after_script: this.props.projectMsg.after_script
+      pre_script: this.props.projectMsg.pre_script ?? '',
+      after_script: this.props.projectMsg.after_script ?? ''
     });
   }
 
@@ -76,11 +92,11 @@ export default class ProjectRequest extends Component {
 
     return (
       <div className="project-request">
-        <Form onSubmit={this.handleSubmit}>
+        <Form>
           <FormItem {...formItemLayout} label="Pre-request Script(请求参数处理脚本)">
             <AceEditor
               data={pre_script}
-              onChange={editor => this.setState({ pre_script: editor.text })}
+              onChange={(editor: MockEditorData) => this.setState({ pre_script: editor.text })}
               fullScreen={true}
               className="request-editor"
             />
@@ -88,7 +104,7 @@ export default class ProjectRequest extends Component {
           <FormItem {...formItemLayout} label="Pre-response Script(响应数据处理脚本)">
             <AceEditor
               data={after_script}
-              onChange={editor => this.setState({ after_script: editor.text })}
+              onChange={(editor: MockEditorData) => this.setState({ after_script: editor.text })}
               fullScreen={true}
               className="request-editor"
             />
@@ -103,3 +119,5 @@ export default class ProjectRequest extends Component {
     );
   }
 }
+
+export default ProjectRequest as unknown as ComponentType<Pick<ProjectRequestProps, 'projectId'>>;

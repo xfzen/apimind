@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, SyntheticEvent, ChangeEvent } from 'react';
 import { Form, Input, Switch, Select, Tooltip, Button, Row, Col, message, Card, Radio, Alert, Modal, Popover } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import PropTypes from 'prop-types';
@@ -22,8 +23,13 @@ const confirm = Modal.confirm;
 import { nameLengthLimit, entries, trim, htmlFilter } from '../../../../common';
 import '../Setting.scss';
 import _ from 'underscore';
-import ProjectTag from './ProjectTag.js';
+import ProjectTag, { type ProjectTagItem } from './ProjectTag';
 import { getBackendOrigin } from '../../../../utils/backend';
+import type { FormInstance, RadioChangeEvent, ModalFuncProps } from 'antd';
+import type { RouteComponentProps } from 'react-router';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 // layout
 const formItemLayout = {
   labelCol: {
@@ -41,8 +47,28 @@ const formItemLayout = {
 
 const Option = Select.Option;
 
-@connect(
-  state => {
+interface ProjectFormValues extends UnknownRecord {
+  name?: string; basepath?: string; desc?: string; project_type?: string; group_id?: string | number;
+  switch_notice?: boolean; strice?: boolean; is_json5?: boolean; protocol?: string; tag?: ProjectTagItem[];
+}
+interface ProjectMessageData extends ProjectFormValues {
+  _id: string | number; color?: keyof typeof constants.PROJECT_COLOR; icon?: string; role?: string;
+}
+interface GroupItem extends UnknownRecord { _id: string | number; group_name: string }
+interface BreadcrumbItem { name: string; href?: string }
+interface ActionResult { payload: { data: { errcode: number; errmsg?: string; data?: UnknownRecord } } }
+type AsyncAction = (...args: unknown[]) => Promise<ActionResult>;
+interface ProjectMessageProps extends RouteComponentProps {
+  projectId: number;
+  form: FormInstance<ProjectFormValues>;
+  updateProject: AsyncAction; delProject: AsyncAction; getProject: AsyncAction; fetchGroupMsg: AsyncAction;
+  upsetProject: AsyncAction; fetchGroupList: AsyncAction;
+  groupList: GroupItem[]; projectList: UnknownRecord[]; projectMsg: ProjectMessageData;
+  currGroup: Partial<GroupItem>; setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
+}
+interface ProjectMessageState { protocol: string; projectMsg: UnknownRecord; showDangerOptions: boolean }
+const connectProjectMessage = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       projectList: state.project.projectList,
       groupList: state.group.groupList,
@@ -59,10 +85,13 @@ const Option = Select.Option;
     fetchGroupList,
     setBreadcrumb
   }
-)
-@withRouter
-class ProjectMessage extends Component {
-  constructor(props) {
+));
+const routeProjectMessage = asLegacyClassDecorator(withRouter);
+@connectProjectMessage
+@routeProjectMessage
+class ProjectMessage extends Component<ProjectMessageProps, ProjectMessageState> {
+  tag: ProjectTag | null = null;
+  constructor(props: ProjectMessageProps) {
     super(props);
     this.state = {
       protocol: 'http://',
@@ -88,29 +117,29 @@ class ProjectMessage extends Component {
   };
 
   // 确认修改
-  handleOk = e => {
+  handleOk = (e?: SyntheticEvent) => {
     if (e && e.preventDefault) {
       e.preventDefault();
     }
     const { form, updateProject, projectMsg, groupList } = this.props;
     form
       .validateFields()
-      .then(values => {
-        let { tag } = this.tag.state;
+      .then((values: ProjectFormValues) => {
+        let tag = this.tag?.state.tag || [];
         // let tag = this.refs.tag;
-        tag = tag.filter(val => {
+        tag = tag.filter((val: ProjectTagItem) => {
           return val.name !== '';
         });
         let assignValue = Object.assign(projectMsg, values, { tag });
 
         values.protocol = this.state.protocol.split(':')[0];
         const group_id = assignValue.group_id;
-        const selectGroup = _.find(groupList, item => {
+        const selectGroup = _.find(groupList, (item: GroupItem) => {
           return item._id == group_id;
         });
 
         updateProject(assignValue)
-          .then(res => {
+          .then((res: ActionResult) => {
             if (res.payload.data.errcode == 0) {
               this.props.getProject(this.props.projectId);
               message.success('修改成功! ');
@@ -118,10 +147,10 @@ class ProjectMessage extends Component {
               // 如果如果项目所在的分组位置发生改变
               this.props.fetchGroupMsg(group_id);
               // this.props.history.push('/group');
-              let projectName = htmlFilter(assignValue.name);
+              let projectName = htmlFilter(assignValue.name || '');
               this.props.setBreadcrumb([
                 {
-                  name: selectGroup.group_name,
+                  name: selectGroup?.group_name || '',
                   href: '/group/' + group_id
                 },
                 {
@@ -136,7 +165,7 @@ class ProjectMessage extends Component {
       .catch(() => {});
   };
 
-  tagSubmit = tag => {
+  tagSubmit = (tag: ProjectTag | null) => {
     this.tag = tag;
   };
 
@@ -160,14 +189,14 @@ class ProjectMessage extends Component {
         </div>
       ),
       onOk() {
-        let groupName = trim(document.getElementById('project_name').value);
+        let groupName = trim((document.getElementById('project_name') as HTMLInputElement | null)?.value || '');
         if (that.props.projectMsg.name !== groupName) {
           message.error('项目名称有误');
           return new Promise((resolve, reject) => {
             reject('error');
           });
         } else {
-          that.props.delProject(that.props.projectId).then(res => {
+          that.props.delProject(that.props.projectId).then((res: ActionResult) => {
             if (res.payload.data.errcode == 0) {
               message.success('删除成功!');
               that.props.history.push('/group/' + that.props.projectMsg.group_id);
@@ -177,22 +206,22 @@ class ProjectMessage extends Component {
       },
       iconType: 'delete',
       onCancel() {}
-    });
+    } as ModalFuncProps & { iconType: string });
   };
 
   // 修改项目头像的背景颜色
-  changeProjectColor = e => {
+  changeProjectColor = (e: RadioChangeEvent) => {
     const { _id, color, icon } = this.props.projectMsg;
-    this.props.upsetProject({ id: _id, color: e.target.value || color, icon }).then(res => {
+    this.props.upsetProject({ id: _id, color: e.target.value || color, icon }).then((res: ActionResult) => {
       if (res.payload.data.errcode === 0) {
         this.props.getProject(this.props.projectId);
       }
     });
   };
   // 修改项目头像的图标
-  changeProjectIcon = e => {
+  changeProjectIcon = (e: RadioChangeEvent) => {
     const { _id, color, icon } = this.props.projectMsg;
-    this.props.upsetProject({ id: _id, color, icon: e.target.value || icon }).then(res => {
+    this.props.upsetProject({ id: _id, color, icon: e.target.value || icon }).then((res: ActionResult) => {
       if (res.payload.data.errcode === 0) {
         this.props.getProject(this.props.projectId);
       }
@@ -215,7 +244,7 @@ class ProjectMessage extends Component {
   render() {
     const { projectMsg, currGroup } = this.props;
     const mockUrl = `${getBackendOrigin()}/mock/${projectMsg._id}${projectMsg.basepath}+$接口请求路径`;
-    let initFormValues = {};
+    let initFormValues: ProjectFormValues = {};
     const {
       name,
       basepath,
@@ -242,7 +271,7 @@ class ProjectMessage extends Component {
     const colorArr = entries(constants.PROJECT_COLOR);
     const colorSelector = (
       <RadioGroup onChange={this.changeProjectColor} value={projectMsg.color} className="color">
-        {colorArr.map((item, index) => {
+        {colorArr.map((item: [string, string], index: number) => {
           return (
             <RadioButton
               key={index}
@@ -257,7 +286,7 @@ class ProjectMessage extends Component {
     );
     const iconSelector = (
       <RadioGroup onChange={this.changeProjectIcon} value={projectMsg.icon} className="icon">
-        {constants.PROJECT_ICON.map(item => {
+        {constants.PROJECT_ICON.map((item: string) => {
           return (
             <RadioButton key={item} value={item} style={{ fontWeight: 'bold' }}>
               <Icon type={item} />
@@ -284,7 +313,7 @@ class ProjectMessage extends Component {
                   className="ui-logo"
                   style={{
                     backgroundColor:
-                      constants.PROJECT_COLOR[projectMsg.color] || constants.PROJECT_COLOR.blue
+                      (projectMsg.color ? constants.PROJECT_COLOR[projectMsg.color] : undefined) || constants.PROJECT_COLOR.blue
                   }}
                 />
               </Popover>
@@ -323,7 +352,7 @@ class ProjectMessage extends Component {
               ]}
             >
               <Select disabled={!selectDisbaled}>
-                {this.props.groupList.map((item, index) => (
+                {this.props.groupList.map((item: GroupItem, index: number) => (
                   <Option value={item._id.toString()} key={index}>
                     {item.group_name}
                   </Option>
@@ -511,9 +540,11 @@ class ProjectMessage extends Component {
   }
 }
 
-function ProjectMessageForm(props) {
-  const [form] = Form.useForm();
-  return <ProjectMessage {...props} form={form} />;
+type ProjectMessageOwnProps = Pick<ProjectMessageProps, 'projectId'>;
+const ConnectedProjectMessage = ProjectMessage as unknown as ComponentType<ProjectMessageOwnProps & { form: FormInstance<ProjectFormValues> }>;
+function ProjectMessageForm(props: ProjectMessageOwnProps) {
+  const [form] = Form.useForm<ProjectFormValues>();
+  return <ConnectedProjectMessage {...props} form={form} />;
 }
 
 export default ProjectMessageForm;

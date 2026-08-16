@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ChangeEvent, Key } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import PropTypes from 'prop-types';
@@ -8,8 +9,15 @@ import axios from 'axios';
 import ImportInterface from './ImportInterface';
 import { Input, Button, Modal, message, Tooltip, Tree, Form } from 'antd';
 import Icon from 'client/shims/antdIcon';
-import { arrayChangeIndex } from '../../../../common.ts';
+import { arrayChangeIndex } from '../../../../common';
 import _ from 'underscore'
+import type { FormInstance } from 'antd';
+import type { RouteComponentProps } from 'react-router';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { InterfaceCollection } from '../../../../reducer/modules/interfaceCol';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const FormItem = Form.Item;
 const confirm = Modal.confirm;
@@ -17,7 +25,9 @@ const headHeight = 240; // menu顶部到网页顶部部分的高度
 
 import './InterfaceColMenu.scss';
 
-const ColModalForm = React.forwardRef((props, ref) => {
+interface ColFormValues { colName?: string; colDesc?: string }
+interface ColModalProps { visible: boolean; onCancel: () => void; onCreate: () => void; title?: string; type?: string }
+const ColModalForm = React.forwardRef<FormInstance<ColFormValues>, ColModalProps>((props, ref) => {
   const { visible, onCancel, onCreate, title } = props;
   const [form] = Form.useForm();
   React.useImperativeHandle(ref, () => form);
@@ -35,12 +45,38 @@ const ColModalForm = React.forwardRef((props, ref) => {
   );
 });
 
-@connect(
-  state => {
+interface InterfaceCase extends UnknownRecord { _id: number; col_id?: number; project_id?: number; casename: string; path: string }
+interface Collection extends UnknownRecord {
+  _id: number; name: string; uid: number; project_id: number; desc: string; add_time: number; up_time: number;
+  caseList: InterfaceCase[];
+}
+interface CaseData extends UnknownRecord { _id?: number; col_id?: number; project_id?: number; casename?: string }
+interface MenuProject extends UnknownRecord { group_id: string | number }
+interface ActionResult<T> { payload: { data: ApiResponse<T> } }
+interface ColRouteParams { id: string; action?: string; actionId?: string }
+interface InterfaceColMenuProps extends RouteComponentProps<ColRouteParams> {
+  interfaceColList: Collection[]; currCase: CaseData; isRander?: boolean; currCaseId: number;
+  curProject: MenuProject; router?: { params: ColRouteParams };
+  fetchInterfaceColList: (id: string | number) => Promise<ActionResult<Collection[]>>;
+  fetchCaseData: (id: string | number) => Promise<ActionResult<CaseData>>;
+  fetchCaseList: (...args: unknown[]) => Promise<unknown>;
+  setColData: (data: UnknownRecord) => unknown;
+  fetchProjectList: (...args: unknown[]) => Promise<unknown>;
+}
+interface InterfaceColMenuState {
+  colModalType: string; colModalVisible: boolean; editColId: number; filterValue: string;
+  importInterVisible: boolean; importInterIds: Key[]; importColId: number; expands: Key[] | null;
+  list: Collection[]; delIcon: Key | null; selectedProject: string | null;
+  visible: boolean;
+}
+interface LegacyTreeNode { props: { pos: string; eventKey: string } }
+interface LegacyDropEvent { node: LegacyTreeNode; dragNode: LegacyTreeNode }
+const connectInterfaceColMenu = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       interfaceColList: state.interfaceCol.interfaceColList,
       currCase: state.interfaceCol.currCase,
-      isRander: state.interfaceCol.isRander,
+      isRander: state.interfaceCol.isRender,
       currCaseId: state.interfaceCol.currCaseId,
       // list: state.inter.list,
       // 当前项目的信息
@@ -56,9 +92,13 @@ const ColModalForm = React.forwardRef((props, ref) => {
     setColData,
     fetchProjectList
   }
-)
-@withRouter
-export default class InterfaceColMenu extends Component {
+));
+const routeInterfaceColMenu = asLegacyClassDecorator(withRouter);
+@connectInterfaceColMenu
+@routeInterfaceColMenu
+class InterfaceColMenu extends Component<InterfaceColMenuProps, InterfaceColMenuState> {
+  form: FormInstance<ColFormValues> | null = null;
+  _copyInterfaceSign = false;
   static propTypes = {
     match: PropTypes.object,
     interfaceColList: PropTypes.array,
@@ -79,7 +119,7 @@ export default class InterfaceColMenu extends Component {
     // projectList: PropTypes.array
   };
 
-  state = {
+  state: InterfaceColMenuState = {
     colModalType: '',
     colModalVisible: false,
     editColId: 0,
@@ -91,9 +131,10 @@ export default class InterfaceColMenu extends Component {
     list: [],
     delIcon: null,
     selectedProject: null
+    ,visible: false
   };
 
-  constructor(props) {
+  constructor(props: InterfaceColMenuProps) {
     super(props);
   }
 
@@ -101,7 +142,7 @@ export default class InterfaceColMenu extends Component {
     this.getList();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: InterfaceColMenuProps) {
     if (this.props.interfaceColList !== nextProps.interfaceColList) {
       this.setState({
         list: nextProps.interfaceColList
@@ -112,41 +153,41 @@ export default class InterfaceColMenu extends Component {
   async getList() {
     let r = await this.props.fetchInterfaceColList(this.props.match.params.id);
     this.setState({
-      list: r.payload.data.data
+      list: r.payload.data.data || []
     });
     return r;
   }
 
   addorEditCol = async () => {
-    const { colName: name, colDesc: desc } = this.form.getFieldsValue();
+    const { colName: name, colDesc: desc } = this.form?.getFieldsValue() || {};
     const { colModalType, editColId: col_id } = this.state;
     const project_id = this.props.match.params.id;
-    let res = {};
+    let res;
     if (colModalType === 'add') {
       res = await axios.post('/api/col/add_col', { name, desc, project_id });
     } else if (colModalType === 'edit') {
       res = await axios.post('/api/col/up_col', { name, desc, col_id });
     }
-    if (!res.data.errcode) {
+    if (res && !res.data.errcode) {
       this.setState({
         colModalVisible: false
       });
       message.success(colModalType === 'edit' ? '修改集合成功' : '添加集合成功');
       // await this.props.fetchInterfaceColList(project_id);
       this.getList();
-    } else {
+    } else if (res) {
       message.error(res.data.errmsg);
     }
   };
 
-  onExpand = keys => {
+  onExpand = (keys: Key[]) => {
     this.setState({ expands: keys });
   };
 
-  onSelect = _.debounce(keys => {
+  onSelect = _.debounce((keys: Key[]) => {
     if (keys.length) {
-      const type = keys[0].split('_')[0];
-      const id = keys[0].split('_')[1];
+      const type = String(keys[0]).split('_')[0];
+      const id = String(keys[0]).split('_')[1];
       const project_id = this.props.match.params.id;
       if (type === 'col') {
         this.props.setColData({
@@ -165,7 +206,7 @@ export default class InterfaceColMenu extends Component {
     });
   }, 500);
 
-  showDelColConfirm = colId => {
+  showDelColConfirm = (colId: string | number) => {
     let that = this;
     const params = this.props.match.params;
     confirm({
@@ -178,7 +219,7 @@ export default class InterfaceColMenu extends Component {
         if (!res.data.errcode) {
           message.success('删除集合成功');
           const result = await that.getList();
-          const nextColId = result.payload.data.data[0]._id;
+          const nextColId = result.payload.data.data?.[0]._id;
 
           that.props.history.push('/project/' + params.id + '/interface/col/' + nextColId);
         } else {
@@ -189,7 +230,7 @@ export default class InterfaceColMenu extends Component {
   };
 
   // 复制测试集合
-  copyInterface = async item => {
+  copyInterface = async (item: Collection) => {
     if (this._copyInterfaceSign === true) {
       return;
     }
@@ -234,28 +275,29 @@ export default class InterfaceColMenu extends Component {
       content: '温馨提示：建议不要删除'
     });
   };
-  caseCopy = async caseId=> {
+  caseCopy = async (caseId: string | number) => {
     let that = this;
     let caseData = await that.props.fetchCaseData(caseId);
     let data = caseData.payload.data.data;
-    data = JSON.parse(JSON.stringify(data));
-    data.casename=`${data.casename}_copy`
-    delete data._id 
-    const res = await axios.post('/api/col/add_case',data);
-      if (!res.data.errcode) {
-        message.success('克隆用例成功');
-        let colId = res.data.data.col_id;
-        let projectId=res.data.data.project_id;
-        await this.getList();
-        this.props.history.push('/project/' + projectId + '/interface/col/' + colId);
-        this.setState({
-          visible: false
-        });
-      } else {
-        message.error(res.data.errmsg);
-      }
+    if (!data) return;
+    const cloned = JSON.parse(JSON.stringify(data)) as CaseData;
+    cloned.casename = `${cloned.casename}_copy`;
+    delete cloned._id;
+    const res = await axios.post('/api/col/add_case', cloned);
+    if (!res.data.errcode) {
+      message.success('克隆用例成功');
+      let colId = res.data.data.col_id;
+      let projectId = res.data.data.project_id;
+      await this.getList();
+      this.props.history.push('/project/' + projectId + '/interface/col/' + colId);
+      this.setState({
+        visible: false
+      });
+    } else {
+      message.error(res.data.errmsg);
+    }
   };
-  showDelCaseConfirm = caseId => {
+  showDelCaseConfirm = (caseId: string | number) => {
     let that = this;
     const params = this.props.match.params;
     confirm({
@@ -281,25 +323,25 @@ export default class InterfaceColMenu extends Component {
       }
     });
   };
-  showColModal = (type, col) => {
+  showColModal = (type: string, col?: Collection) => {
     const editCol =
-      type === 'edit' ? { colName: col.name, colDesc: col.desc } : { colName: '', colDesc: '' };
+      type === 'edit' && col ? { colName: col.name, colDesc: col.desc } : { colName: '', colDesc: '' };
     this.setState({
       colModalVisible: true,
       colModalType: type || 'add',
-      editColId: col && col._id
+      editColId: col ? col._id : 0
     });
-    this.form.setFieldsValue(editCol);
+    this.form?.setFieldsValue(editCol);
   };
-  saveFormRef = form => {
+  saveFormRef = (form: FormInstance<ColFormValues> | null) => {
     this.form = form;
   };
 
-  selectInterface = (importInterIds, selectedProject) => {
+  selectInterface = (importInterIds: Key[], selectedProject: string) => {
     this.setState({ importInterIds, selectedProject });
   };
 
-  showImportInterfaceModal = async colId => {
+  showImportInterfaceModal = async (colId: number) => {
     // const projectId = this.props.match.params.id;
     // console.log('project', this.props.curProject)
     const groupId = this.props.curProject.group_id;
@@ -331,7 +373,7 @@ export default class InterfaceColMenu extends Component {
     this.setState({ importInterVisible: false });
   };
 
-  filterCol = e => {
+  filterCol = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // console.log('list', this.props.interfaceColList);
     // const newList = produce(this.props.interfaceColList, draftList => {})
@@ -343,13 +385,13 @@ export default class InterfaceColMenu extends Component {
     });
   };
 
-  onDrop = async e => {
+  onDrop = async (e: LegacyDropEvent) => {
     // const projectId = this.props.match.params.id;
     const { interfaceColList } = this.props;
-    const dropColIndex = e.node.props.pos.split('-')[1];
+    const dropColIndex = Number(e.node.props.pos.split('-')[1]);
     const dropColId = interfaceColList[dropColIndex]._id;
     const id = e.dragNode.props.eventKey;
-    const dragColIndex = e.dragNode.props.pos.split('-')[1];
+    const dragColIndex = Number(e.dragNode.props.pos.split('-')[1]);
     const dragColId = interfaceColList[dragColIndex]._id;
 
     const dropPos = e.node.props.pos.split('-');
@@ -375,7 +417,7 @@ export default class InterfaceColMenu extends Component {
     }
   };
 
-  enterItem = id => {
+  enterItem = (id: Key) => {
     this.setState({ delIcon: id });
   };
 
@@ -435,7 +477,7 @@ export default class InterfaceColMenu extends Component {
       }
     };
 
-    const itemInterfaceColCreate = interfaceCase => {
+    const itemInterfaceColCreate = (interfaceCase: InterfaceCase) => {
       return {
         style: { width: '100%' },
         key: 'case_' + interfaceCase._id,
@@ -481,10 +523,10 @@ export default class InterfaceColMenu extends Component {
     let list = this.state.list;
 
     if (this.state.filterValue) {
-      let arr = [];
-      list = list.filter(item => {
+      let arr: string[] = [];
+      list = list.filter((item: Collection) => {
 
-        item.caseList = item.caseList.filter(inter => {
+        item.caseList = item.caseList.filter((inter: InterfaceCase) => {
           if (inter.casename.indexOf(this.state.filterValue) === -1 
           && inter.path.indexOf(this.state.filterValue) === -1
           ) {
@@ -505,7 +547,7 @@ export default class InterfaceColMenu extends Component {
     // console.log('list', list);
     // console.log('currentKey', currentKes)
 
-    const treeData = list.map(col => ({
+    const treeData = list.map((col: Collection) => ({
       key: 'col_' + col._id,
       title: (
         <div className="menu-title">
@@ -575,7 +617,7 @@ export default class InterfaceColMenu extends Component {
             </Button>
           </Tooltip>
         </div>
-        <div className="tree-wrapper" style={{ maxHeight: parseInt(document.body.clientHeight) - headHeight + 'px'}}>
+        <div className="tree-wrapper" style={{ maxHeight: document.body.clientHeight - headHeight + 'px'}}>
           <Tree
             className="col-list-tree"
             defaultExpandedKeys={currentKes.expands}
@@ -586,7 +628,7 @@ export default class InterfaceColMenu extends Component {
             autoExpandParent
             draggable
             onExpand={this.onExpand}
-            onDrop={this.onDrop}
+            onDrop={this.onDrop as unknown as NonNullable<React.ComponentProps<typeof Tree>['onDrop']>}
             treeData={treeData}
           />
         </div>
@@ -614,3 +656,5 @@ export default class InterfaceColMenu extends Component {
     );
   }
 }
+
+export default InterfaceColMenu as unknown as ComponentType<RouteComponentProps<ColRouteParams>>;

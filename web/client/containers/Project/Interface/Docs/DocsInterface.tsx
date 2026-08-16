@@ -1,59 +1,134 @@
 import React, { Component } from 'react';
+import type { ComponentType, Key } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Layout, Tree, Input, Button, Empty, Modal, message, Tooltip } from 'antd';
+import type { InputRef } from 'antd';
+import type { RouteComponentProps } from 'react-router-dom';
 import Icon from 'client/shims/antdIcon';
 import { fetchDocs, fetchDoc, createDoc, updateDoc, moveDoc, deleteDoc } from '../../../../reducer/modules/docs';
 import DocsWorkspace from '../../../../components/Docs/DocsWorkspace';
+import type { DocsWorkspaceHandle } from '../../../../components/Docs/DocsWorkspace';
 import { extractHeadings } from '../../../../components/Docs/markdownHeadings';
-import { LAYOUT } from '../../../../constants/variable.js';
+import type { MarkdownHeading } from '../../../../components/Docs/markdownHeadings';
+import { LAYOUT } from '../../../../constants/variable';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { ResolvedPromiseAction } from '../../../../reducer/promiseTypes';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { ApiResponse } from '../../../../types/api';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 import '../../../../components/Docs/docs.scss';
 import './docsInterface.scss';
 
 const { Content, Sider } = Layout;
 
-function yapiData(action) {
-  return action && action.payload && action.payload.data
-    ? action.payload.data
-    : { errcode: 500, errmsg: '请求失败' };
+type DocsWorkspaceMode = 'viewer' | 'editor' | 'split';
+
+interface DocRecord extends UnknownRecord {
+  id: number;
+  parent_id?: number;
+  sort?: number;
+  doc_type?: string;
+  slug?: string;
+  title: string;
+  content_md?: string;
+  tags?: unknown[];
 }
 
-function sortDocs(items) {
-  return [].concat(items || []).sort((a, b) => {
+interface ProjectRecord extends UnknownRecord {
+  _id?: number;
+  group_id?: number;
+  role?: string;
+}
+
+type ApiAction<T> = ResolvedPromiseAction<ApiResponse<T>>;
+
+interface DocsInterfaceProps extends RouteComponentProps<{ id: string }> {
+  projectMsg: ProjectRecord;
+  docs: DocRecord[];
+  current: DocRecord | null;
+  fetchDocs: (workspaceId: string | number, projectId?: string | number) => Promise<ApiAction<DocRecord[]>>;
+  fetchDoc: (id: string | number) => Promise<ApiAction<DocRecord>>;
+  createDoc: (payload: UnknownRecord) => Promise<ApiAction<DocRecord>>;
+  updateDoc: (payload: UnknownRecord) => Promise<ApiAction<DocRecord>>;
+  moveDoc: (payload: UnknownRecord) => Promise<ApiAction<DocRecord>>;
+  deleteDoc: (id: string | number) => Promise<ApiAction<DocRecord>>;
+}
+
+interface DocsInterfaceState {
+  filter: string;
+  mode: DocsWorkspaceMode;
+  navMode: 'list' | 'toc';
+  searchMode: boolean;
+  activeTocId: string;
+  title: string;
+  content: string;
+  originalTitle: string;
+  originalContent: string;
+  pendingDocId: string | null;
+  confirmVisible: boolean;
+  renameVisible: boolean;
+  renameDoc: DocRecord | null;
+  renameTitle: string;
+  hoverDocId: number | 'public' | null;
+  docExpandedKeys: Key[] | null;
+}
+
+interface LegacyTreeNode {
+  key?: Key;
+  props?: { eventKey?: Key };
+}
+
+interface LegacyDropInfo {
+  dragNode: LegacyTreeNode;
+  node: LegacyTreeNode;
+  dropToGap: boolean;
+}
+
+function yapiData<T>(action: ApiAction<T> | null | undefined): ApiResponse<T> & { data: T } {
+  return action && action.payload && action.payload.data
+    ? action.payload.data as ApiResponse<T> & { data: T }
+    : { errcode: 500, errmsg: '请求失败', data: null as T };
+}
+
+function sortDocs(items?: DocRecord[] | null): DocRecord[] {
+  return [...(items || [])].sort((a, b) => {
     if ((a.parent_id || 0) === (b.parent_id || 0)) return (a.sort || 0) - (b.sort || 0);
     return (a.parent_id || 0) - (b.parent_id || 0);
   });
 }
 
-function isDocGroup(item) {
-  return item && item.doc_type === 'group';
+function isDocGroup(item: DocRecord | null | undefined): boolean {
+  return Boolean(item && item.doc_type === 'group');
 }
 
-function isDocItem(item) {
-  return item && item.doc_type !== 'group';
+function isDocItem(item: DocRecord | null | undefined): boolean {
+  return Boolean(item && item.doc_type !== 'group');
 }
 
-function markdownFileName(value) {
+function markdownFileName(value: unknown): string {
   const name = String(value || '').trim() || 'untitled';
   return /\.(md|markdown)$/i.test(name) ? name : `${name}.md`;
 }
 
-function docFileName(item, fallbackTitle) {
+function docFileName(item: DocRecord | null | undefined, fallbackTitle?: string): string {
   if (item && item.slug) {
     return markdownFileName(item.slug);
   }
   return markdownFileName(fallbackTitle || (item && item.title));
 }
 
-@connect(
-  state => ({
-    projectMsg: state.project.currProject,
-    docs: state.docs.list,
-    current: state.docs.current
+const connectDocsInterface = asLegacyClassDecorator(connect(
+  (state: RootState) => ({
+    projectMsg: state.project.currProject as ProjectRecord,
+    docs: state.docs.list as DocRecord[],
+    current: state.docs.current as DocRecord | null
   }),
   { fetchDocs, fetchDoc, createDoc, updateDoc, moveDoc, deleteDoc }
-)
-export default class DocsInterface extends Component {
+));
+
+@connectDocsInterface
+class DocsInterface extends Component<DocsInterfaceProps, DocsInterfaceState> {
   static propTypes = {
     match: PropTypes.object,
     history: PropTypes.object,
@@ -69,7 +144,7 @@ export default class DocsInterface extends Component {
     deleteDoc: PropTypes.func
   };
 
-  state = {
+  state: DocsInterfaceState = {
     filter: '',
     mode: 'viewer',
     navMode: 'list',
@@ -88,13 +163,15 @@ export default class DocsInterface extends Component {
     docExpandedKeys: null
   };
 
-  searchInputRef = React.createRef();
+  searchInputRef = React.createRef<InputRef>();
 
-  workspaceRef = React.createRef();
+  workspaceRef = React.createRef<DocsWorkspaceHandle>();
 
   tocJumpTargetId = '';
 
-  tocJumpTimer = null;
+  tocJumpTimer: ReturnType<typeof setTimeout> | null = null;
+
+  isRestoringLocation = false;
 
   componentDidMount() {
     document.body.classList.add('apimind-docs-fixed-scroll');
@@ -102,7 +179,7 @@ export default class DocsInterface extends Component {
     this.loadDocs();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: DocsInterfaceProps) {
     const prevProject = prevProps.match.params.id;
     const nextProject = this.props.match.params.id;
     const prevDoc = this.docIdFromPath(prevProps.location && prevProps.location.pathname);
@@ -133,7 +210,7 @@ export default class DocsInterface extends Component {
         this.props.history.replace(prevProps.location.pathname);
         return;
       }
-      if (nextDoc && !isNaN(nextDoc)) {
+      if (nextDoc && !Number.isNaN(Number(nextDoc))) {
         this.selectDoc(nextDoc);
       }
     }
@@ -145,25 +222,25 @@ export default class DocsInterface extends Component {
     this.unbindBeforeUnload();
   }
 
-  workspaceId() {
-    return (this.props.projectMsg || {}).group_id;
+  workspaceId(): number {
+    return this.props.projectMsg.group_id || 0;
   }
 
-  projectId() {
+  projectId(): number {
     return Number(this.props.match.params.id);
   }
 
-  docIdFromPath(pathname) {
+  docIdFromPath(pathname?: string): string {
     const match = String(pathname || '').match(/\/interface\/api\/([^/]+)/);
     return match ? match[1] : '';
   }
 
-  canEdit() {
-    const project = this.props.projectMsg || {};
-    return ['admin', 'owner', 'dev'].indexOf(project.role) > -1;
+  canEdit(): boolean {
+    const project = this.props.projectMsg;
+    return ['admin', 'owner', 'dev'].indexOf(project.role || '') > -1;
   }
 
-  isDirty() {
+  isDirty(): boolean {
     return this.state.title !== this.state.originalTitle ||
       this.state.content !== this.state.originalContent;
   }
@@ -176,7 +253,7 @@ export default class DocsInterface extends Component {
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
   }
 
-  handleBeforeUnload = event => {
+  handleBeforeUnload = (event: BeforeUnloadEvent) => {
     if (!this.isDirty()) return undefined;
     event.preventDefault();
     event.returnValue = '';
@@ -189,13 +266,13 @@ export default class DocsInterface extends Component {
     if (!workspaceId || !projectId || Number((this.props.projectMsg || {})._id) !== projectId) {
       return;
     }
-    const res = yapiData(await this.props.fetchDocs(workspaceId, projectId));
+    const res = yapiData<DocRecord[]>(await this.props.fetchDocs(workspaceId, projectId));
     if (res.errcode !== 0) {
       message.error(res.errmsg);
       return;
     }
     const actionId = this.docIdFromPath(this.props.location && this.props.location.pathname);
-    if (actionId && !isNaN(actionId)) {
+    if (actionId && !Number.isNaN(Number(actionId))) {
       await this.selectDoc(actionId);
       return;
     }
@@ -206,7 +283,7 @@ export default class DocsInterface extends Component {
     }
   }
 
-  selectDoc = async id => {
+  selectDoc = async (id: string | number) => {
     const res = yapiData(await this.props.fetchDoc(id));
     if (res.errcode === 0) {
       if (isDocGroup(res.data)) {
@@ -230,7 +307,7 @@ export default class DocsInterface extends Component {
     }
   };
 
-  createNewDoc = async parentId => {
+  createNewDoc = async (parentId: number) => {
     if (!this.canEdit()) {
       return;
     }
@@ -286,7 +363,7 @@ export default class DocsInterface extends Component {
     return this.props.fetchDocs(this.workspaceId(), this.projectId());
   };
 
-  renameDoc = item => {
+  renameDoc = (item: DocRecord) => {
     if (!this.canEdit()) {
       return;
     }
@@ -328,7 +405,7 @@ export default class DocsInterface extends Component {
     }
   };
 
-  copyDoc = async item => {
+  copyDoc = async (item: DocRecord) => {
     if (!this.canEdit()) {
       return;
     }
@@ -357,14 +434,14 @@ export default class DocsInterface extends Component {
     }
   };
 
-  deleteDocItem = async item => {
+  deleteDocItem = async (item: DocRecord) => {
     const res = yapiData(await this.props.deleteDoc(item.id));
     if (res.errcode !== 0) {
       message.error(res.errmsg);
       return;
     }
     message.success(isDocGroup(item) ? '分组已删除' : '文档已删除');
-    const listRes = yapiData(await this.refreshDocs());
+    const listRes = yapiData<DocRecord[]>(await this.refreshDocs());
     const next = listRes.data && sortDocs(listRes.data).find(doc => doc.id !== item.id && isDocItem(doc));
     const navigate = () => {
       if (next) {
@@ -385,7 +462,7 @@ export default class DocsInterface extends Component {
     navigate();
   };
 
-  showDeleteConfirm = item => {
+  showDeleteConfirm = (item: DocRecord) => {
     if (!this.canEdit()) {
       return;
     }
@@ -431,7 +508,7 @@ export default class DocsInterface extends Component {
     return true;
   };
 
-  onSelect = selectedKeys => {
+  onSelect = (selectedKeys: Key[]) => {
     const key = selectedKeys[0];
     const docId = this.docIdFromTreeKey(key);
     if (!key || key === 'root' || key === 'public' || String(key).indexOf('group_') === 0) {
@@ -472,7 +549,7 @@ export default class DocsInterface extends Component {
     return this.state.docExpandedKeys || this.defaultTreeExpandedKeys();
   }
 
-  expandedKeysWith(key, shouldExpand) {
+  expandedKeysWith(key: Key, shouldExpand: boolean): Key[] {
     const keys = this.currentDocExpandedKeys();
     if (shouldExpand) {
       return keys.indexOf(key) > -1 ? keys : keys.concat(key);
@@ -480,7 +557,7 @@ export default class DocsInterface extends Component {
     return keys.filter(item => item !== key);
   }
 
-  toggleDocExpanded = key => {
+  toggleDocExpanded = (key: Key) => {
     const keys = this.currentDocExpandedKeys();
     this.setState({
       docExpandedKeys: keys.indexOf(key) > -1
@@ -489,22 +566,22 @@ export default class DocsInterface extends Component {
     });
   };
 
-  onDocExpand = expandedKeys => {
+  onDocExpand = (expandedKeys: Key[]) => {
     this.setState({ docExpandedKeys: expandedKeys });
   };
 
-  docIdFromTreeKey(key) {
+  docIdFromTreeKey(key: Key | undefined): string {
     const value = String(key || '');
     if (value.indexOf('doc_') === 0) {
       return value.slice(4);
     }
-    if (!isNaN(value)) {
+    if (!Number.isNaN(Number(value))) {
       return value;
     }
     return '';
   }
 
-  itemFromTreeKey(key) {
+  itemFromTreeKey(key: Key | undefined): DocRecord | null | undefined {
     const value = String(key || '');
     if (value.indexOf('group_') === 0) {
       const id = Number(value.slice(6));
@@ -514,21 +591,21 @@ export default class DocsInterface extends Component {
       const id = Number(value.slice(4));
       return (this.props.docs || []).find(doc => doc.id === id);
     }
-    if (!isNaN(value)) {
+    if (!Number.isNaN(Number(value))) {
       const id = Number(value);
       return (this.props.docs || []).find(doc => doc.id === id);
     }
     return null;
   }
 
-  onDrop = async info => {
+  onDrop = async (info: LegacyDropInfo) => {
     if (!this.canEdit()) {
       return;
     }
-    const dragKey = info.dragNode.key || info.dragNode.props.eventKey;
-    const dropKey = info.node.key || info.node.props.eventKey;
+    const dragKey = info.dragNode.key || info.dragNode.props?.eventKey;
+    const dropKey = info.node.key || info.node.props?.eventKey;
     const dragID = Number(this.docIdFromTreeKey(dragKey) || String(dragKey).replace('group_', ''));
-    const dropIDRaw = info.node.key || info.node.props.eventKey;
+    const dropIDRaw = info.node.key || info.node.props?.eventKey;
     const dropID = this.docIdFromTreeKey(dropIDRaw) ? Number(this.docIdFromTreeKey(dropIDRaw)) : Number(String(dropIDRaw).replace('group_', ''));
     const dragItem = (this.props.docs || []).find(item => item.id === dragID);
     if (!dragItem) {
@@ -541,7 +618,7 @@ export default class DocsInterface extends Component {
     } else if (dropKey === 'public' || dropKey === 'root') {
       parentID = 0;
     } else if (!info.dropToGap && isDocGroup(dropItem)) {
-      parentID = dropItem.id;
+      parentID = dropItem?.id || 0;
     } else {
       parentID = this.parentIdForDoc(dropID);
     }
@@ -559,7 +636,7 @@ export default class DocsInterface extends Component {
     await this.refreshDocs();
   };
 
-  parentIdForDoc(id) {
+  parentIdForDoc(id: number): number {
     if (!id) {
       return 0;
     }
@@ -567,7 +644,7 @@ export default class DocsInterface extends Component {
     return item ? item.parent_id || 0 : 0;
   }
 
-  enterItem = id => {
+  enterItem = (id: number | 'public') => {
     this.setState({ hoverDocId: id });
   };
 
@@ -597,16 +674,16 @@ export default class DocsInterface extends Component {
     });
   };
 
-  docHeadings() {
+  docHeadings(): MarkdownHeading[] {
     return extractHeadings(this.state.content || '').filter(item => item.level <= 3);
   }
 
-  filteredDocHeadings() {
+  filteredDocHeadings(): MarkdownHeading[] {
     return this.docHeadings();
   }
 
-  defaultTreeExpandedKeys() {
-    const keys = ['root', 'public'];
+  defaultTreeExpandedKeys(): Key[] {
+    const keys: Key[] = ['root', 'public'];
     (this.props.docs || []).forEach(item => {
       if (isDocGroup(item) && (item.parent_id || 0) === 0) {
         keys.push(`group_${item.id}`);
@@ -623,13 +700,13 @@ export default class DocsInterface extends Component {
     this.tocJumpTargetId = '';
   };
 
-  startTocJumpLock = targetId => {
+  startTocJumpLock = (targetId: string) => {
     this.clearTocJumpLock();
     this.tocJumpTargetId = targetId;
     this.tocJumpTimer = setTimeout(this.clearTocJumpLock, 1500);
   };
 
-  setActiveTocId = (activeTocId, options = {}) => {
+  setActiveTocId = (activeTocId: string, options: { fromJump?: boolean } = {}) => {
     if (this.tocJumpTargetId && !options.fromJump) {
       if (activeTocId !== this.tocJumpTargetId) {
         return;
@@ -648,7 +725,7 @@ export default class DocsInterface extends Component {
     });
   };
 
-  jumpToDocHeading = heading => {
+  jumpToDocHeading = (heading: MarkdownHeading) => {
     this.startTocJumpLock(heading.id);
     this.setActiveTocId(heading.id, { fromJump: true });
     if (this.workspaceRef.current && this.workspaceRef.current.jumpToHeading) {
@@ -665,21 +742,21 @@ export default class DocsInterface extends Component {
     const keyword = String(this.state.filter || '').trim();
     const allItems = sortDocs(this.props.docs || []);
     const groups = allItems.filter(item => isDocGroup(item) && (item.parent_id || 0) === 0);
-    const groupIds = groups.reduce((map, item) => {
+    const groupIds = groups.reduce<Record<number, true>>((map, item) => {
       map[item.id] = true;
       return map;
     }, {});
     const visibleDocs = allItems
       .filter(isDocItem)
       .filter(item => !keyword || item.title.indexOf(keyword) > -1);
-    const docsForParent = parentId => visibleDocs.filter(item => {
+    const docsForParent = (parentId: number) => visibleDocs.filter(item => {
       const itemParent = item.parent_id || 0;
       if (!parentId) {
         return itemParent === 0 || !groupIds[itemParent];
       }
       return itemParent === parentId;
     });
-    const makeDocNodes = parentId => docsForParent(parentId).map(item => ({
+    const makeDocNodes = (parentId: number) => docsForParent(parentId).map(item => ({
       key: `doc_${item.id}`,
       title: (
         <div
@@ -732,7 +809,7 @@ export default class DocsInterface extends Component {
       )
     }));
 
-    const makeGroupNode = item => ({
+    const makeGroupNode = (item: DocRecord) => ({
       key: `group_${item.id}`,
       title: (
         <div
@@ -923,7 +1000,7 @@ export default class DocsInterface extends Component {
     );
   }
 
-  renderDocList(selectedKey) {
+  renderDocList(selectedKey: Key) {
     return (
       <React.Fragment>
         <div className="tree-wrappper">
@@ -968,7 +1045,7 @@ export default class DocsInterface extends Component {
     );
   }
 
-  renderSideNav(selectedKey) {
+  renderSideNav(selectedKey: Key) {
     const showList = this.state.searchMode || this.state.navMode !== 'toc';
     return (
       <React.Fragment>
@@ -1030,3 +1107,5 @@ export default class DocsInterface extends Component {
     );
   }
 }
+
+export default DocsInterface as unknown as ComponentType<RouteComponentProps<{ id: string }>>;

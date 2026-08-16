@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ChangeEvent } from 'react';
 import { Upload, message, Select, Tooltip, Button, Spin, Switch, Modal, Radio, Input, Checkbox } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import PropTypes from 'prop-types';
@@ -13,31 +14,53 @@ import { saveImportData } from '../../../../reducer/modules/interface';
 import { fetchUpdateLogData } from '../../../../reducer/modules/news';
 import { handleSwaggerUrlData } from '../../../../reducer/modules/project';
 import { createExportModules } from './exporters';
+import type { ExportModule } from './exporters';
 import { createImportModules } from './importers';
+import type { ImportModule, ImportResult } from './importers';
 const Option = Select.Option;
 const confirm = Modal.confirm;
 const RadioGroup = Radio.Group;
 import HandleImportData from 'common/HandleImportData';
 import { sanitizeHTML } from 'common/sanitize.js';
-function handleExportRouteParams(url, status, isWiki) {
+import type { CheckboxChangeEvent, RadioChangeEvent, ModalFuncProps, UploadProps } from 'antd';
+import type { UploadChangeParam, UploadFile } from 'antd/es/upload/interface';
+import type { UploadRequestOption } from '@rc-component/upload/lib/interface';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { ImportPayload, ExistingCategory } from '../../../../../common/types/import-export';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
+function handleExportRouteParams(url: string | undefined, status: string, isWiki: boolean): string | undefined {
   if (!url) {
     return;
   }
-  let urlObj = URL.parse(url, true),
-    query = {};
-  query = Object.assign(query, urlObj.query, { status, isWiki });
+  let urlObj = URL.parse(url, true);
+  const query = Object.assign({}, urlObj.query, { status, isWiki: String(isWiki) });
   return URL.format({
     pathname: urlObj.pathname,
     query
   });
 }
 
-@connect(
-  state => {
+interface MenuCategory extends ExistingCategory { _id: string | number; name: string }
+interface UpdateLog extends UnknownRecord { content: string }
+interface ActionResult<T> { payload: { data: { data: T | null } } }
+interface ProjectDataProps extends RouteComponentProps<{ id: string }> {
+  curCatid: number; basePath: string; updateLogList: UpdateLog[]; swaggerUrlData: string;
+  saveImportData: (...args: unknown[]) => Promise<unknown>;
+  fetchUpdateLogData: (...args: unknown[]) => Promise<ActionResult<UpdateLog[]>>;
+  handleSwaggerUrlData: (...args: unknown[]) => Promise<unknown>;
+}
+interface ProjectDataState {
+  selectCatid: string | number; menuList: MenuCategory[]; curImportType: string; curExportType: string;
+  showLoading: boolean; dataSync: string; exportContent: string; isSwaggerUrl: boolean; swaggerUrl: string; isWiki: boolean;
+}
+const connectProjectData = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
-      curCatid: -(-state.inter.curdata.catid),
+      curCatid: Number(state.inter.curdata.catid),
       basePath: state.project.currProject.basepath,
-      updateLogList: state.news.updateLogList,
+      updateLogList: state.news.newsData.list as unknown as UpdateLog[],
       swaggerUrlData: state.project.swaggerUrlData
     };
   },
@@ -46,9 +69,12 @@ function handleExportRouteParams(url, status, isWiki) {
     fetchUpdateLogData,
     handleSwaggerUrlData
   }
-)
-class ProjectData extends Component {
-  constructor(props) {
+));
+@connectProjectData
+class ProjectData extends Component<ProjectDataProps, ProjectDataState> {
+  importDataModule: Record<string, ImportModule>;
+  exportDataModule: Record<string, ExportModule>;
+  constructor(props: ProjectDataProps) {
     super(props);
     this.importDataModule = createImportModules();
     this.exportDataModule = createExportModules(props.match.params.id);
@@ -88,17 +114,17 @@ class ProjectData extends Component {
     });
     const names = Object.keys(this.importDataModule);
     this.setState({
-      curImportType: names.includes(this.state.curImportType) ? this.state.curImportType : names[0] || null
+      curImportType: names.includes(this.state.curImportType) ? this.state.curImportType : names[0] || ''
     });
   }
 
-  selectChange(value) {
+  selectChange(value: string) {
     this.setState({
       selectCatid: +value
     });
   }
 
-  uploadChange = info => {
+  uploadChange = (info: UploadChangeParam<UploadFile>) => {
     const status = info.file.status;
     if (status !== 'uploading') {
       console.log(info.file, info.fileList);
@@ -110,7 +136,7 @@ class ProjectData extends Component {
     }
   };
 
-  handleAddInterface = async res => {
+  handleAddInterface = async (res: ImportPayload) => {
     return await HandleImportData(
       res,
       this.props.match.params.id,
@@ -120,32 +146,35 @@ class ProjectData extends Component {
       this.state.dataSync,
       message.error,
       message.success,
-      () => this.setState({ showLoading: false })
+      () => this.setState({ showLoading: false }),
+      '',
+      0
     );
   };
 
   // 本地文件上传
-  handleFile = info => {
+  handleFile = (info: UploadRequestOption) => {
     if (!this.state.curImportType) {
-      return message.error('请选择导入数据的方式');
+      message.error('请选择导入数据的方式');
+      return;
     }
     if (this.state.selectCatid) {
       this.setState({ showLoading: true });
       let reader = new FileReader();
-      reader.readAsText(info.file);
-      reader.onload = async res => {
+      reader.readAsText(info.file as Blob);
+      reader.onload = async (res: ProgressEvent<FileReader>) => {
         const importer = this.importDataModule[this.state.curImportType];
         if (!importer || typeof importer.run !== 'function') {
           this.setState({ showLoading: false });
           return message.error('当前导入方式不可用，请检查导入插件是否已加载');
         }
-        res = await importer.run(res.target.result);
+        const imported = await importer.run(String(res.target?.result || '')) as ImportResult;
         if (this.state.dataSync === 'merge') {
           // 开启同步
-          this.showConfirm(res);
+          this.showConfirm(imported);
         } else {
           // 未开启同步
-          await this.handleAddInterface(res);
+          await this.handleAddInterface(imported);
         }
       };
     } else {
@@ -153,10 +182,10 @@ class ProjectData extends Component {
     }
   };
 
-  showConfirm = async res => {
+  showConfirm = async (res: ImportPayload) => {
     let that = this;
     let typeid = this.props.match.params.id;
-    let apiCollections = res.apis.map(item => {
+    let apiCollections = res.apis.map((item: UnknownRecord) => {
       return {
         method: item.method,
         path: item.path
@@ -167,7 +196,7 @@ class ProjectData extends Component {
       typeid,
       apis: apiCollections
     });
-    let domainData = result.payload.data.data;
+    let domainData = result.payload.data.data || [];
     const ref = confirm({
       title: '您确认要进行数据同步????',
       width: 600,
@@ -179,7 +208,7 @@ class ProjectData extends Component {
       content: (
         <div className="postman-dataImport-modal">
           <div className="postman-dataImport-modal-content">
-            {domainData.map((item, index) => {
+            {domainData.map((item: UpdateLog, index: number) => {
               return (
                 <div key={index} className="postman-dataImport-show-diff">
                   <span className="logcontent" dangerouslySetInnerHTML={{ __html: sanitizeHTML(item.content) }} />
@@ -197,17 +226,17 @@ class ProjectData extends Component {
         that.setState({ showLoading: false, dataSync: 'normal' });
         ref.destroy();
       }
-    });
+    } as ModalFuncProps & { iconType: string });
   };
 
-  handleImportType = val => {
+  handleImportType = (val: string) => {
     this.setState({
       curImportType: val,
       isSwaggerUrl: false
     });
   };
 
-  handleExportType = val => {
+  handleExportType = (val: string) => {
     this.setState({
       curExportType: val,
       isWiki: false
@@ -215,21 +244,21 @@ class ProjectData extends Component {
   };
 
   // 处理导入信息同步
-  onChange = checked => {
+  onChange = (checked: string) => {
     this.setState({
       dataSync: checked
     });
   };
 
   // 处理swagger URL 导入
-  handleUrlChange = checked => {
+  handleUrlChange = (checked: boolean) => {
     this.setState({
       isSwaggerUrl: checked
     });
   };
 
   // 记录输入的url
-  swaggerUrlInput = url => {
+  swaggerUrlInput = (url: string) => {
     this.setState({
       swaggerUrl: url
     });
@@ -255,7 +284,7 @@ class ProjectData extends Component {
           this.setState({ showLoading: false });
           return message.error('当前导入方式不可用，请检查导入插件是否已加载');
         }
-        let res = await importer.run(this.props.swaggerUrlData);
+        let res = await importer.run(this.props.swaggerUrlData) as ImportResult;
         if (this.state.dataSync === 'merge') {
           // merge
           this.showConfirm(res);
@@ -263,9 +292,9 @@ class ProjectData extends Component {
           // 未开启同步
           await this.handleAddInterface(res);
         }
-      } catch (e) {
+      } catch (e: unknown) {
         this.setState({ showLoading: false });
-        message.error(e.message);
+        message.error(e instanceof Error ? e.message : String(e));
       }
     } else {
       message.error('请选择上传的默认分类');
@@ -273,12 +302,12 @@ class ProjectData extends Component {
   };
 
   // 处理导出接口是全部还是公开
-  handleChange = e => {
+  handleChange = (e: RadioChangeEvent) => {
     this.setState({ exportContent: e.target.value });
   };
 
   //  处理是否开启wiki导出
-  handleWikiChange = e => {
+  handleWikiChange = (e: CheckboxChangeEvent) => {
     this.setState({
       isWiki: e.target.checked
     });
@@ -291,7 +320,7 @@ class ProjectData extends Component {
    * @memberof ProjectData
    */
   render() {
-    const uploadMess = {
+    const uploadMess: UploadProps = {
       name: 'interfaceData',
       multiple: true,
       showUploadList: false,
@@ -353,11 +382,12 @@ class ProjectData extends Component {
                   placeholder="请选择数据导入的默认分类"
                   optionFilterProp="children"
                   onChange={this.selectChange.bind(this)}
-                  filterOption={(input, option) =>
-                    option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
+                  filterOption={(input, option) => {
+                    const legacyOption = option as unknown as { props?: { children?: unknown } };
+                    return String(legacyOption.props?.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0;
+                  }}
                 >
-                  {this.state.menuList.map((item, key) => {
+                  {this.state.menuList.map((item: MenuCategory, key: number) => {
                     return (
                       <Option key={key} value={item._id + ''}>
                         {item.name}
@@ -524,4 +554,4 @@ class ProjectData extends Component {
   }
 }
 
-export default ProjectData;
+export default ProjectData as unknown as ComponentType<RouteComponentProps<{ id: string }>>;

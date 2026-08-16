@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Tree } from 'antd';
 import Icon from 'client/shims/antdIcon';
+import type { Key } from 'react';
+import type { TemplateDocumentValue } from './TemplateDocument';
 
-function groupedTemplates(list) {
-  return (list || []).reduce((acc, item) => {
+function groupedTemplates(list: TemplateDocumentValue[]): Record<string, TemplateDocumentValue[]> {
+  return (list || []).reduce<Record<string, TemplateDocumentValue[]>>((acc, item) => {
     const name = item.category || '未分类';
     if (!acc[name]) acc[name] = [];
     acc[name].push(item);
@@ -12,7 +14,12 @@ function groupedTemplates(list) {
   }, {});
 }
 
-export default function TemplateNav(props) {
+interface TemplateNavProps {
+  list: TemplateDocumentValue[];
+  selectedKey?: string;
+  onSelect: (key: string) => void;
+}
+export default function TemplateNav(props: TemplateNavProps) {
   const groups = useMemo(() => groupedTemplates(props.list), [props.list]);
   const categoryKeys = useMemo(() => Object.keys(groups).map(category => `cat_${category}`), [groups]);
   const [expandedKeys, setExpandedKeys] = useState(categoryKeys);
@@ -48,10 +55,10 @@ export default function TemplateNav(props) {
         className="template-nav__tree"
         expandedKeys={expandedKeys}
         selectedKeys={props.selectedKey ? [props.selectedKey] : []}
-        onExpand={keys => setExpandedKeys(keys)}
+        onExpand={(keys: Key[]) => setExpandedKeys(keys.map(String))}
         onSelect={(keys, event) => {
           if (!event.node.children && keys[0]) {
-            props.onSelect(keys[0]);
+            props.onSelect(String(keys[0]));
           }
         }}
         treeData={treeData}

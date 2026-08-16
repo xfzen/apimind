@@ -6,10 +6,20 @@ import { connect } from 'react-redux';
 import { Tooltip, message, Modal } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import copy from 'copy-to-clipboard';
+import type { ComponentType } from 'react';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 const confirm = Modal.confirm;
 
-@connect(
-  state => {
+interface ProjectTokenProps {
+  projectId: number;
+  token: string;
+  curProjectRole?: string;
+  getToken: (id: number) => Promise<unknown>;
+  updateToken: (id: number) => Promise<unknown>;
+}
+const connectProjectToken = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       token: state.project.token
     };
@@ -18,8 +28,9 @@ const confirm = Modal.confirm;
     getToken,
     updateToken
   }
-)
-class ProjectToken extends Component {
+));
+@connectProjectToken
+class ProjectToken extends Component<ProjectTokenProps> {
   static propTypes = {
     projectId: PropTypes.number,
     getToken: PropTypes.func,
@@ -97,4 +108,4 @@ class ProjectToken extends Component {
   }
 }
 
-export default ProjectToken;
+export default ProjectToken as unknown as ComponentType<Pick<ProjectTokenProps, 'projectId' | 'curProjectRole'>>;

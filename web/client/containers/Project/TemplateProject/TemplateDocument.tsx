@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import PropTypes from 'prop-types';
 import MarkdownIt from 'markdown-it';
 
@@ -8,8 +9,18 @@ const md = new MarkdownIt({
   breaks: true
 });
 
-export default function TemplateDocument(props) {
-  const template = props.template || {};
+export interface TemplateDocumentValue {
+  key: string;
+  title: string;
+  category?: string;
+  markdown?: string;
+}
+interface TemplateDocumentProps {
+  template?: TemplateDocumentValue;
+  action?: ReactNode;
+}
+export default function TemplateDocument(props: TemplateDocumentProps) {
+  const template: Partial<TemplateDocumentValue> = props.template || {};
   return (
     <div className="template-document">
       <div className="template-document__header">

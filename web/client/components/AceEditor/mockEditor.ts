@@ -15,7 +15,7 @@ interface MockWord {
   mock: string;
 }
 
-interface MockEditorData {
+export interface MockEditorData {
   text: string;
   format: boolean | string;
   jsonData?: unknown;

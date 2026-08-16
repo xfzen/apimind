@@ -4,14 +4,43 @@ import { Button, Input } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import Editor from 'client/shims/tui-editor';
 
-export default class TemplateEditor extends Component {
+export interface TemplateEditorValue {
+  key?: string;
+  title?: string;
+  description?: string;
+  markdown?: string;
+}
+export interface TemplateEditorSaveValue {
+  key?: string;
+  title: string;
+  description: string;
+  markdown: string;
+  change_reason: string;
+  change_summary: string;
+}
+interface TemplateEditorProps {
+  template?: TemplateEditorValue;
+  onCancel: () => void;
+  onSave: (value: TemplateEditorSaveValue) => void;
+}
+interface TemplateEditorState {
+  title: string;
+  description: string;
+  changeReason: string;
+  changeSummary: string;
+}
+
+export default class TemplateEditor extends Component<TemplateEditorProps, TemplateEditorState> {
   static propTypes = {
     template: PropTypes.object,
     onCancel: PropTypes.func,
     onSave: PropTypes.func
   };
 
-  constructor(props) {
+  editor: InstanceType<typeof Editor> | null = null;
+  editorEl: HTMLDivElement | null = null;
+
+  constructor(props: TemplateEditorProps) {
     super(props);
     const template = props.template || {};
     this.state = {
@@ -24,7 +53,7 @@ export default class TemplateEditor extends Component {
 
   componentDidMount() {
     this.editor = new Editor({
-      el: this.editorEl,
+      el: this.editorEl!,
       height: '560px',
       initialEditType: 'markdown',
       previewStyle: 'vertical',

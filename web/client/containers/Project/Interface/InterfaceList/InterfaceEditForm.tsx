@@ -1,9 +1,10 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ReactNode, SyntheticEvent, ChangeEvent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import _ from 'underscore';
 import constants from '../../../../constants/variable.js';
-import { handlePath, nameLengthLimit } from '../../../../common.ts';
+import { handlePath, nameLengthLimit } from '../../../../common';
 import { changeEditStatus } from '../../../../reducer/modules/interface';
 import json5 from 'json5';
 import { message, Affix, Tabs, Modal } from 'antd';
@@ -13,6 +14,13 @@ import AceEditor from 'client/components/AceEditor/AceEditor';
 import axios from 'axios';
 import Editor from 'client/shims/tui-editor';
 import JsonSchemaEditor from 'client/components/JsonSchemaEditor/JsonSchemaEditor';
+import type { FormInstance, FormItemProps, RadioChangeEvent } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { MockEditorData, MockEditorInstance } from '../../../../components/AceEditor/mockEditor';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
+import { createSchemaPreviewRequest } from './requestContracts';
 
 const ResBodySchema = JsonSchemaEditor;
 const ReqBodySchema = JsonSchemaEditor;
@@ -22,31 +30,31 @@ const TabPane = Tabs.TabPane;
 import './editor.css';
 
 
-function checkIsJsonSchema(json) {
+function checkIsJsonSchema(json: string): string | false {
   try {
-    json = json5.parse(json);
-    if (json.properties && typeof json.properties === 'object' && !json.type) {
-      json.type = 'object';
+    const parsed = json5.parse(json) as UnknownRecord;
+    if (parsed.properties && typeof parsed.properties === 'object' && !parsed.type) {
+      parsed.type = 'object';
     }
-    if (json.items && typeof json.items === 'object' && !json.type) {
-      json.type = 'array';
+    if (parsed.items && typeof parsed.items === 'object' && !parsed.type) {
+      parsed.type = 'array';
     }
-    if (!json.type) {
+    if (typeof parsed.type !== 'string') {
       return false;
     }
-    json.type = json.type.toLowerCase();
+    parsed.type = parsed.type.toLowerCase();
     let types = ['object', 'string', 'number', 'array', 'boolean', 'integer'];
-    if (types.indexOf(json.type) === -1) {
+    if (types.indexOf(String(parsed.type)) === -1) {
       return false;
     }
-    return JSON.stringify(json);
+    return JSON.stringify(parsed);
   } catch (e) {
     return false;
   }
 }
 
-let EditFormContext;
-const validJson = json => {
+let EditFormContext: InterfaceEditForm | null = null;
+const validJson = (json: string) => {
   try {
     json5.parse(json);
     return true;
@@ -76,7 +84,8 @@ const InputGroup = Input.Group;
 const RadioButton = Radio.Button;
 const RadioGroup = Radio.Group;
 
-function Field({ name, initialValue, rules, valuePropName, children }) {
+interface FieldProps { name: NamePath; initialValue?: unknown; rules?: FormItemProps['rules']; valuePropName?: string; children: ReactNode }
+function Field({ name, initialValue, rules, valuePropName, children }: FieldProps) {
   return (
     <FormItem
       name={name}
@@ -92,7 +101,7 @@ function Field({ name, initialValue, rules, valuePropName, children }) {
 
 Field.propTypes = {
   name: PropTypes.oneOfType([PropTypes.string, PropTypes.array]).isRequired,
-  initialValue: PropTypes.any,
+  initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool, PropTypes.object, PropTypes.array]),
   rules: PropTypes.array,
   valuePropName: PropTypes.string,
   children: PropTypes.node
@@ -115,8 +124,33 @@ const HTTP_METHOD = constants.HTTP_METHOD;
 const HTTP_METHOD_KEYS = Object.keys(HTTP_METHOD);
 const HTTP_REQUEST_HEADER = constants.HTTP_REQUEST_HEADER;
 
-@connect(
-  state => {
+type ParamListName = keyof typeof dataTpl;
+interface InterfaceParam extends UnknownRecord { name: string; value?: string; required?: string; desc?: string; example?: string; type?: string }
+interface InterfaceFormValues extends UnknownRecord {
+  title?: string; path?: string; status?: string; method: keyof typeof HTTP_METHOD; catid?: string | number;
+  req_params: InterfaceParam[]; req_query: InterfaceParam[]; req_headers: InterfaceParam[]; req_body_form: InterfaceParam[];
+  req_body_type?: string; req_body_other?: string | false; req_body_is_json_schema?: boolean;
+  res_body_type?: string; res_body?: string | false; res_body_is_json_schema?: boolean;
+  desc?: string; markdown?: string; tag?: string[]; custom_field_value?: string; api_opened?: boolean;
+  hideTabs?: HideTabs;
+}
+interface HideTabs { req: Record<string, string>; res?: Record<string, string> }
+interface InterfaceEditState extends InterfaceFormValues {
+  req_params: InterfaceParam[]; req_query: InterfaceParam[]; req_headers: InterfaceParam[]; req_body_form: InterfaceParam[];
+  submitStatus: boolean; req_body_other: string; res_body: string; desc: string; markdown?: string;
+  jsonType: string; mockUrl?: string; req_radio_type: string; custom_field_value: string; api_opened: boolean;
+  visible: boolean; hideTabs: HideTabs; bulkName: ParamListName | null; bulkValue: string | null;
+}
+interface CategoryItem extends UnknownRecord { _id: string | number; name: string }
+interface ProjectTagOption { _id: string | number; name: string }
+interface InterfaceEditProps {
+  custom_field: { enable?: boolean; name?: string }; groupList?: UnknownRecord[]; form: FormInstance<InterfaceFormValues>;
+  curdata: Partial<InterfaceFormValues> & UnknownRecord; mockUrl?: string; onSubmit: (values: InterfaceFormValues) => void;
+  basepath: string; noticed?: boolean; cat: CategoryItem[]; changeEditStatus: (status: boolean) => unknown;
+  projectMsg: UnknownRecord & { tag?: ProjectTagOption[] }; onTagClick?: () => void;
+}
+const connectInterfaceEditForm = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       custom_field: state.group.field,
       projectMsg: state.project.currProject
@@ -125,8 +159,14 @@ const HTTP_REQUEST_HEADER = constants.HTTP_REQUEST_HEADER;
   {
     changeEditStatus
   }
-)
-class InterfaceEditForm extends Component {
+));
+@connectInterfaceEditForm
+class InterfaceEditForm extends Component<InterfaceEditProps, InterfaceEditState> {
+  startTime = 0;
+  _isMounted = false;
+  editor: InstanceType<typeof Editor> | null = null;
+  mockPreview: MockEditorInstance | null = null;
+  resBodyEditor: AceEditor | null = null;
   static propTypes = {
     custom_field: PropTypes.object,
     groupList: PropTypes.array,
@@ -142,35 +182,37 @@ class InterfaceEditForm extends Component {
     onTagClick: PropTypes.func
   };
 
-  initState(curdata) {
+  initState(curdata: Partial<InterfaceFormValues> & UnknownRecord): InterfaceEditState {
     this.startTime = new Date().getTime();
     if (curdata.req_query && curdata.req_query.length === 0) {
-      delete curdata.req_query;
+      delete (curdata as { req_query?: InterfaceParam[] }).req_query;
     }
     if (curdata.req_headers && curdata.req_headers.length === 0) {
-      delete curdata.req_headers;
+      delete (curdata as { req_headers?: InterfaceParam[] }).req_headers;
     }
     if (curdata.req_body_form && curdata.req_body_form.length === 0) {
-      delete curdata.req_body_form;
+      delete (curdata as { req_body_form?: InterfaceParam[] }).req_body_form;
     }
     if (curdata.req_params && curdata.req_params.length === 0) {
-      delete curdata.req_params;
+      delete (curdata as { req_params?: InterfaceParam[] }).req_params;
     }
     if (curdata.req_body_form) {
-      curdata.req_body_form = curdata.req_body_form.map(item => {
+      curdata.req_body_form = curdata.req_body_form.map((item: InterfaceParam) => {
         item.type = item.type === 'text' ? 'text' : 'file';
         return item;
       });
     }
     // 设置标签的展开与折叠
-    curdata['hideTabs'] = {
+    const hideTabs: HideTabs = {
       req: {
         body: 'hide',
         query: 'hide',
         headers: 'hide'
       }
     };
-    curdata['hideTabs']['req'][HTTP_METHOD[curdata.method].default_tab] = '';
+    const initialMethod = (curdata.method || 'GET') as keyof typeof HTTP_METHOD;
+    hideTabs.req[HTTP_METHOD[initialMethod].default_tab] = '';
+    curdata.hideTabs = hideTabs;
     return Object.assign(
       {
         submitStatus: false,
@@ -219,17 +261,17 @@ class InterfaceEditForm extends Component {
         visible: false
       },
       curdata
-    );
+    ) as unknown as InterfaceEditState;
   }
 
-  constructor(props) {
+  constructor(props: InterfaceEditProps) {
     super(props);
     const { curdata } = this.props;
     // console.log('custom_field1', this.props.custom_field);
     this.state = this.initState(curdata);
   }
 
-  handleSubmit = e => {
+  handleSubmit = (e?: SyntheticEvent) => {
     if (e && e.preventDefault) {
       e.preventDefault();
     }
@@ -239,7 +281,7 @@ class InterfaceEditForm extends Component {
     try {
       this.props.form
         .validateFields()
-        .then(values => {
+        .then((values: InterfaceFormValues) => {
         setTimeout(() => {
           if (this._isMounted) {
             this.setState({
@@ -247,8 +289,8 @@ class InterfaceEditForm extends Component {
             });
           }
         }, 3000);
-          values.desc = this.editor.getHTML();
-          values.markdown = this.editor.getMarkdown();
+          values.desc = this.editor?.getHTML() || '';
+          values.markdown = this.editor?.getMarkdown() || '';
           if (values.res_body_type === 'json') {
             if (this.state.res_body && validJson(this.state.res_body) === false) {
               return message.error('返回body json格式有问题，请检查！');
@@ -281,13 +323,13 @@ class InterfaceEditForm extends Component {
           let isfile = false,
             isHaveContentType = false;
           if (values.req_body_type === 'form') {
-            values.req_body_form.forEach(item => {
+            values.req_body_form.forEach((item: InterfaceParam) => {
               if (item.type === 'file') {
                 isfile = true;
               }
             });
 
-            values.req_headers.map(item => {
+            values.req_headers.map((item: InterfaceParam) => {
               if (item.name === 'Content-Type') {
                 item.value = isfile ? 'multipart/form-data' : 'application/x-www-form-urlencoded';
                 isHaveContentType = true;
@@ -301,7 +343,7 @@ class InterfaceEditForm extends Component {
             }
           } else if (values.req_body_type === 'json') {
             values.req_headers
-              ? values.req_headers.map(item => {
+              ? values.req_headers.map((item: InterfaceParam) => {
                   if (item.name === 'Content-Type') {
                     item.value = 'application/json';
                     isHaveContentType = true;
@@ -317,17 +359,17 @@ class InterfaceEditForm extends Component {
             }
           }
           values.req_headers = values.req_headers
-            ? values.req_headers.filter(item => item.name !== '')
+            ? values.req_headers.filter((item: InterfaceParam) => item.name !== '')
             : [];
 
           values.req_body_form = values.req_body_form
-            ? values.req_body_form.filter(item => item.name !== '')
+            ? values.req_body_form.filter((item: InterfaceParam) => item.name !== '')
             : [];
           values.req_params = values.req_params
-            ? values.req_params.filter(item => item.name !== '')
+            ? values.req_params.filter((item: InterfaceParam) => item.name !== '')
             : [];
           values.req_query = values.req_query
-            ? values.req_query.filter(item => item.name !== '')
+            ? values.req_query.filter((item: InterfaceParam) => item.name !== '')
             : [];
 
           if (HTTP_METHOD[values.method].request_body !== true) {
@@ -356,23 +398,23 @@ class InterfaceEditForm extends Component {
           }
 
           this.props.onSubmit(values);
-          EditFormContext.props.changeEditStatus(false);
+          EditFormContext?.props.changeEditStatus(false);
         })
         .catch(() => {
           this.setState({
             submitStatus: false
           });
         });
-    } catch (e) {
-      console.error(e.message);
+    } catch (e: unknown) {
+      console.error(e instanceof Error ? e.message : String(e));
       this.setState({
         submitStatus: false
       });
     }
   };
 
-  onChangeMethod = val => {
-    let radio = [];
+  onChangeMethod = (val: keyof typeof HTTP_METHOD) => {
+    let radio: string[] = [];
     if (HTTP_METHOD[val].request_body) {
       radio = ['req', 'body'];
     } else {
@@ -383,7 +425,7 @@ class InterfaceEditForm extends Component {
     });
 
     this.setState({ method: val }, () => {
-      this._changeRadioGroup(radio[0], radio[1]);
+      this._changeRadioGroup('req', radio[1] || 'query');
     });
   };
 
@@ -401,7 +443,7 @@ class InterfaceEditForm extends Component {
     });
 
     this.editor = new Editor({
-      el: document.querySelector('#desc'),
+      el: document.querySelector('#desc') as HTMLElement,
       initialEditType: 'wysiwyg',
       height: '500px',
       initialValue: this.state.markdown || this.state.desc
@@ -409,22 +451,22 @@ class InterfaceEditForm extends Component {
   }
 
   componentWillUnmount() {
-    EditFormContext.props.changeEditStatus(false);
+    EditFormContext?.props.changeEditStatus(false);
     EditFormContext = null;
     this._isMounted = false;
   }
 
-  addParams = (name, data) => {
-    let newValue = {};
+  addParams = (name: ParamListName, data?: InterfaceParam) => {
+    let newValue = {} as Pick<InterfaceEditState, ParamListName>;
     data = data || dataTpl[name];
-    newValue[name] = [].concat(this.state[name], data);
+    newValue[name] = this.state[name].concat(data);
     this.setState(newValue);
   };
 
-  delParams = (key, name) => {
-    let curValue = this.props.form.getFieldValue(name);
-    let newValue = {};
-    newValue[name] = curValue.filter((val, index) => {
+  delParams = (key: number, name: ParamListName) => {
+    let curValue = (this.props.form.getFieldValue(name) || []) as InterfaceParam[];
+    let newValue = {} as Pick<InterfaceEditState, ParamListName>;
+    newValue[name] = curValue.filter((_val: InterfaceParam, index: number) => {
       return index !== key;
     });
     this.props.form.setFieldsValue(newValue);
@@ -437,23 +479,22 @@ class InterfaceEditForm extends Component {
     try {
       if (this.props.form.getFieldValue('res_body_is_json_schema')) {
         let schema = json5.parse(this.props.form.getFieldValue('res_body'));
-        let result = await axios.post('/api/interface/schema2json', {
-          schema: schema
-        });
-        return this.mockPreview.setValue(JSON.stringify(result.data));
+        const request = createSchemaPreviewRequest(schema);
+        let result = await axios.post(request.url, request.body);
+        return this.mockPreview?.setValue(JSON.stringify(result.data));
       }
-      if (this.resBodyEditor.editor.curData.format === true) {
-        str = JSON.stringify(this.resBodyEditor.editor.curData.mockData(), null, '  ');
+      if (this.resBodyEditor?.editor?.curData.format === true) {
+        str = JSON.stringify(this.resBodyEditor.editor.curData.mockData?.(), null, '  ');
       } else {
-        str = '解析出错: ' + this.resBodyEditor.editor.curData.format;
+        str = '解析出错: ' + this.resBodyEditor?.editor?.curData.format;
       }
-    } catch (err) {
-      str = '解析出错: ' + err.message;
+    } catch (err: unknown) {
+      str = '解析出错: ' + (err instanceof Error ? err.message : String(err));
     }
-    this.mockPreview.setValue(str);
+    this.mockPreview?.setValue(str);
   };
 
-  handleJsonType = key => {
+  handleJsonType = (key?: string) => {
     key = key || 'tpl';
     if (key === 'preview') {
       this.handleMockPreview();
@@ -463,11 +504,11 @@ class InterfaceEditForm extends Component {
     });
   };
 
-  handlePath = e => {
+  handlePath = (e: ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value,
-      queue = [];
+      queue: InterfaceParam[] = [];
 
-    let insertParams = name => {
+    let insertParams = (name: string) => {
       let findExist = _.find(this.state.req_params, { name: name });
       if (findExist) {
         queue.push(findExist);
@@ -475,7 +516,7 @@ class InterfaceEditForm extends Component {
         queue.push({ name: name, desc: '' });
       }
     };
-    val = handlePath(val);
+    val = handlePath(val) || '';
     this.props.form.setFieldsValue({
       path: val
     });
@@ -492,8 +533,9 @@ class InterfaceEditForm extends Component {
     }
 
     if (val && val.length > 3) {
-      val.replace(/\{(.+?)\}/g, function(str, match) {
+      val.replace(/\{(.+?)\}/g, function(_str: string, match: string) {
         insertParams(match);
+        return _str;
       });
     }
 
@@ -503,7 +545,7 @@ class InterfaceEditForm extends Component {
   };
 
   // 点击切换radio
-  changeRadioGroup = e => {
+  changeRadioGroup = (e: RadioChangeEvent) => {
     const res = e.target.value.split('-');
     if (res[0] === 'req') {
       this.setState({
@@ -513,8 +555,8 @@ class InterfaceEditForm extends Component {
     this._changeRadioGroup(res[0], res[1]);
   };
 
-  _changeRadioGroup = (group, item) => {
-    const obj = {};
+  _changeRadioGroup = (group: keyof HideTabs, item: string) => {
+    const obj: Record<string, string> = {};
     // 先全部隐藏
     for (let key in this.state.hideTabs[group]) {
       obj[key] = 'hide';
@@ -529,10 +571,11 @@ class InterfaceEditForm extends Component {
     });
   };
 
-  handleDragMove = name => {
-    return data => {
+  handleDragMove = (name: ParamListName) => {
+    return (data: unknown[]) => {
+      const params = data as InterfaceParam[];
       let newValue = {
-        [name]: data
+        [name]: params
       };
       this.props.form.setFieldsValue(newValue);
       this.setState(newValue);
@@ -540,31 +583,33 @@ class InterfaceEditForm extends Component {
   };
 
   // 处理res_body Editor
-  handleResBody = d => {
+  handleResBody = (d: MockEditorData) => {
     const initResBody = this.state.res_body;
     this.setState({
       res_body: d.text
     });
-    EditFormContext.props.changeEditStatus(initResBody !== d.text);
+    EditFormContext?.props.changeEditStatus(initResBody !== d.text);
   };
 
   // 处理 req_body_other Editor
-  handleReqBody = d => {
+  handleReqBody = (d: MockEditorData) => {
     const initReqBody = this.state.req_body_other;
     this.setState({
       req_body_other: d.text
     });
-    EditFormContext.props.changeEditStatus(initReqBody !== d.text);
+    EditFormContext?.props.changeEditStatus(initReqBody !== d.text);
   };
 
   // 处理批量导入参数
   handleBulkOk = () => {
-    let curValue = this.props.form.getFieldValue(this.state.bulkName)||[];
+    if (!this.state.bulkName || this.state.bulkValue === null) return;
+    const bulkName = this.state.bulkName;
+    let curValue = (this.props.form.getFieldValue(bulkName) || []) as InterfaceParam[];
     // { name: '', required: '1', desc: '', example: '' }
-    let newValue = [];
+    let newValue: InterfaceParam[] = [];
 
-    this.state.bulkValue.split('\n').forEach((item, index) => {
-      let valueItem = Object.assign({}, curValue[index] || dataTpl[this.state.bulkName]);
+    this.state.bulkValue.split('\n').forEach((item: string, index: number) => {
+      let valueItem = Object.assign({}, curValue[index] || dataTpl[bulkName]);
       let indexOfColon = item.indexOf(':');
       if (indexOfColon!==-1) {
         valueItem.name = item.substring(0, indexOfColon);
@@ -573,13 +618,13 @@ class InterfaceEditForm extends Component {
       }
     });
 
-    this.props.form.setFieldsValue({[this.state.bulkName]: newValue});
+    this.props.form.setFieldsValue({[bulkName]: newValue});
     this.setState({
       visible: false,
       bulkValue: null,
       bulkName: null,
-      [this.state.bulkName]: newValue
-    });
+      [bulkName]: newValue
+    } as Pick<InterfaceEditState, 'visible' | 'bulkValue' | 'bulkName' | ParamListName>);
   };
 
   // 取消批量导入参数
@@ -591,12 +636,12 @@ class InterfaceEditForm extends Component {
     });
   };
 
-  showBulk = name => {
+  showBulk = (name: ParamListName) => {
     let value = this.props.form.getFieldValue(name);
 
     let bulkValue = ``;
     if(value) {
-      value.forEach(item => {
+      (value as InterfaceParam[]).forEach((item: InterfaceParam) => {
         return (bulkValue += item.name ? `${item.name}:${item.example || ''}\n` : '');
       });
     }
@@ -608,7 +653,7 @@ class InterfaceEditForm extends Component {
     });
   };
 
-  handleBulkValueInput = e => {
+  handleBulkValueInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
     this.setState({
       bulkValue: e.target.value
     });
@@ -626,17 +671,17 @@ class InterfaceEditForm extends Component {
 
     const req_body_other_use_schema_editor = checkIsJsonSchema(this.state.req_body_other) || '';
 
-    const queryTpl = (data, index) => {
+    const queryTpl = (data: InterfaceParam, index: number) => {
       return (
         <Row key={index} className="interface-edit-item-content">
           <Col
-            span="1"
-            easy_drag_sort_child="true"
+            span={1}
+            {...({ easy_drag_sort_child: 'true' } as { easy_drag_sort_child: string })}
             className="interface-edit-item-content-col interface-edit-item-content-col-drag"
           >
             <Icon type="bars" />
           </Col>
-          <Col span="4" draggable="false" className="interface-edit-item-content-col">
+          <Col span={4} draggable="false" className="interface-edit-item-content-col">
             <Field name={['req_query', index, 'name']} initialValue={data.name}>
               <Input placeholder="参数名称" />
             </Field>
@@ -670,12 +715,12 @@ class InterfaceEditForm extends Component {
       );
     };
 
-    const headerTpl = (data, index) => {
+    const headerTpl = (data: InterfaceParam, index: number) => {
       return (
         <Row key={index} className="interface-edit-item-content">
           <Col
-            span="1"
-            easy_drag_sort_child="true"
+            span={1}
+            {...({ easy_drag_sort_child: 'true' } as { easy_drag_sort_child: string })}
             className="interface-edit-item-content-col interface-edit-item-content-col-drag"
           >
             <Icon type="bars" />
@@ -685,7 +730,7 @@ class InterfaceEditForm extends Component {
               <AutoComplete
                 options={HTTP_REQUEST_HEADER.map(value => ({ value }))}
                 filterOption={(inputValue, option) =>
-                  option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                  String(option?.value || '').toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
                 }
                 placeholder="参数名称"
               />
@@ -717,12 +762,12 @@ class InterfaceEditForm extends Component {
       );
     };
 
-    const requestBodyTpl = (data, index) => {
+    const requestBodyTpl = (data: InterfaceParam, index: number) => {
       return (
         <Row key={index} className="interface-edit-item-content">
           <Col
-            span="1"
-            easy_drag_sort_child="true"
+            span={1}
+            {...({ easy_drag_sort_child: 'true' } as { easy_drag_sort_child: string })}
             className="interface-edit-item-content-col interface-edit-item-content-col-drag"
           >
             <Icon type="bars" />
@@ -769,7 +814,7 @@ class InterfaceEditForm extends Component {
       );
     };
 
-    const paramsTpl = (data, index) => {
+    const paramsTpl = (data: InterfaceParam, index: number) => {
       return (
         <Row key={index} className="interface-edit-item-content">
           <Col span="6" className="interface-edit-item-content-col">
@@ -791,21 +836,21 @@ class InterfaceEditForm extends Component {
       );
     };
 
-    const paramsList = this.state.req_params.map((item, index) => {
+    const paramsList = this.state.req_params.map((item: InterfaceParam, index: number) => {
       return paramsTpl(item, index);
     });
 
-    const QueryList = this.state.req_query.map((item, index) => {
+    const QueryList = this.state.req_query.map((item: InterfaceParam, index: number) => {
       return queryTpl(item, index);
     });
 
     const headerList = this.state.req_headers
-      ? this.state.req_headers.map((item, index) => {
+      ? this.state.req_headers.map((item: InterfaceParam, index: number) => {
           return headerTpl(item, index);
         })
       : [];
 
-    const requestBodyList = this.state.req_body_form.map((item, index) => {
+    const requestBodyList = this.state.req_body_form.map((item: InterfaceParam, index: number) => {
       return requestBodyTpl(item, index);
     });
 
@@ -825,12 +870,12 @@ class InterfaceEditForm extends Component {
             <TextArea
               placeholder="每行一个name:examples"
               autoSize={{ minRows: 6, maxRows: 10 }}
-              value={this.state.bulkValue}
+              value={this.state.bulkValue || ''}
               onChange={this.handleBulkValueInput}
             />
           </div>
         </Modal>
-        <Form form={this.props.form} onFinish={this.handleSubmit} onValuesChange={() => this.props.changeEditStatus(true)}>
+        <Form form={this.props.form} onFinish={() => this.handleSubmit()} onValuesChange={() => this.props.changeEditStatus(true)}>
           <h2 className="interface-title" style={{ marginTop: 0 }}>
             基本设置
           </h2>
@@ -848,7 +893,7 @@ class InterfaceEditForm extends Component {
                 rules={[{ required: true, message: '请选择一个分类' }]}
               >
                 <Select placeholder="请选择一个分类">
-                  {this.props.cat.map(item => {
+                  {this.props.cat.map((item: CategoryItem) => {
                     return (
                       <Option key={item._id} value={item._id + ''}>
                         {item.name}
@@ -890,7 +935,7 @@ class InterfaceEditForm extends Component {
                   onChange={this.onChangeMethod}
                   style={{ width: '15%' }}
                 >
-                  {HTTP_METHOD_KEYS.map(item => {
+                  {HTTP_METHOD_KEYS.map((item: string) => {
                     return (
                       <Option key={item} value={item}>
                         {item}
@@ -935,7 +980,7 @@ class InterfaceEditForm extends Component {
             <FormItem className="interface-edit-item" {...formItemLayout} label="Tag">
               <Field name="tag" initialValue={this.state.tag}>
                 <Select placeholder="请选择 tag " mode="multiple">
-                  {projectMsg.tag.map(item => {
+                  {(projectMsg.tag || []).map((item: ProjectTagOption) => {
                     return (
                       <Option value={item.name} key={item._id}>
                         {item.name}
@@ -1128,7 +1173,7 @@ class InterfaceEditForm extends Component {
                       });
 
                       if (new Date().getTime() - this.startTime > 1000) {
-                        EditFormContext.props.changeEditStatus(true);
+                        EditFormContext?.props.changeEditStatus(true);
                       }
                     }}
                     isMock={true}
@@ -1240,7 +1285,7 @@ class InterfaceEditForm extends Component {
                             res_body: text
                           });
                           if (new Date().getTime() - this.startTime > 1000) {
-                            EditFormContext.props.changeEditStatus(true);
+                            EditFormContext?.props.changeEditStatus(true);
                           }
                         }}
                         isMock={true}
@@ -1363,9 +1408,11 @@ class InterfaceEditForm extends Component {
   }
 }
 
-function InterfaceEditFormWrapper(props) {
-  const [form] = Form.useForm();
-  return <InterfaceEditForm {...props} form={form} />;
+type InterfaceEditOwnProps = Omit<InterfaceEditProps, 'form' | 'custom_field' | 'projectMsg' | 'changeEditStatus'>;
+const ConnectedInterfaceEditForm = InterfaceEditForm as unknown as ComponentType<InterfaceEditOwnProps & { form: FormInstance<InterfaceFormValues> }>;
+function InterfaceEditFormWrapper(props: InterfaceEditOwnProps) {
+  const [form] = Form.useForm<InterfaceFormValues>();
+  return <ConnectedInterfaceEditForm {...props} form={form} />;
 }
 
 export default InterfaceEditFormWrapper;

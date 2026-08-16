@@ -1,23 +1,29 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { Tabs } from 'antd';
 import PropTypes from 'prop-types';
-import ProjectMessage from './ProjectMessage/ProjectMessage.js';
+import ProjectMessage from './ProjectMessage/ProjectMessage';
 import ProjectEnv from './ProjectEnv';
 import ProjectRequest from './ProjectRequest/ProjectRequest';
 import ProjectToken from './ProjectToken/ProjectToken';
-import ProjectMock from './ProjectMock/index.js';
+import ProjectMock from './ProjectMock';
 import { builtinSettingTabs } from './settingTabs';
 import { connect } from 'react-redux';
+import type { RouteComponentProps } from 'react-router';
+import type { RootState } from '../../../reducer/modules/reducer';
+import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
 const TabPane = Tabs.TabPane;
 
 import './Setting.scss';
 
-@connect(state => {
+interface SettingProps extends RouteComponentProps<{ id: string }> { curProjectRole?: string }
+const connectSetting = asLegacyClassDecorator(connect((state: RootState) => {
   return {
     curProjectRole: state.project.currProject.role
   };
-})
-class Setting extends Component {
+}));
+@connectSetting
+class Setting extends Component<SettingProps> {
   static propTypes = {
     match: PropTypes.object,
     curProjectRole: PropTypes.string
@@ -59,4 +65,4 @@ class Setting extends Component {
   }
 }
 
-export default Setting;
+export default Setting as unknown as ComponentType<RouteComponentProps<{ id: string }>>;

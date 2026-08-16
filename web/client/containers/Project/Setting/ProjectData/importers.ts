@@ -1,13 +1,11 @@
 import swaggerRun from '../../../../../exts/yapi-plugin-import-swagger/run.js';
 import * as postmanPlugin from '../../../../../exts/yapi-plugin-import-postman/client.js';
 import * as harPlugin from '../../../../../exts/yapi-plugin-import-har/client.js';
+import type { ImportApi, ImportCategory, ImportPayload } from '../../../../../common/types/import-export';
 
 type UnknownRecord = Record<string, unknown>;
 
-export interface ImportResult extends UnknownRecord {
-  apis: UnknownRecord[];
-  cats: UnknownRecord[];
-}
+export interface ImportResult extends ImportPayload, UnknownRecord { apis: ImportApi[]; cats: ImportCategory[] }
 
 export interface ImportModule extends UnknownRecord {
   name: string;
@@ -47,8 +45,8 @@ function normalizeImportResult(result: unknown): ImportResult {
   const data =
     result && typeof result === 'object' ? (result as UnknownRecord) : {};
   return Object.assign({}, data, {
-    apis: Array.isArray(data.apis) ? data.apis : [],
-    cats: Array.isArray(data.cats) ? data.cats : []
+    apis: (Array.isArray(data.apis) ? data.apis : []) as ImportApi[],
+    cats: (Array.isArray(data.cats) ? data.cats : []) as ImportCategory[]
   }) as ImportResult;
 }
 
@@ -71,9 +69,9 @@ function createYapiJsonImporter(): ImportModule {
     async run(raw: string): Promise<ImportResult> {
       const interfaceData: ImportResult = { apis: [], cats: [] };
       const groups = JSON.parse(raw) as Array<{
-        name: unknown;
-        desc: unknown;
-        list: Array<UnknownRecord & { catname?: unknown }>;
+        name: string;
+        desc: string;
+        list: ImportApi[];
       }>;
 
       groups.forEach(item => {

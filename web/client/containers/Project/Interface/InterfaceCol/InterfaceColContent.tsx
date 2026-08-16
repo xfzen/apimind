@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, ChangeEvent, Key } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router';
@@ -15,15 +16,23 @@ import {
 import { getToken, getEnv } from '../../../../reducer/modules/project';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import axios from 'axios';
-import CaseReport from './CaseReport.js';
+import CaseReport from './CaseReport';
 import _ from 'underscore';
 import produce from 'immer';
-import {InsertCodeMap} from 'client/components/Postman/Postman.js'
+import {InsertCodeMap} from 'client/components/Postman/Postman'
 
 import { handleCurrDomain, checkNameIsExistInArray } from 'common/postmanLib.js';
 import { getBackendOrigin } from '../../../../utils/backend';
 import CaseEnv from 'client/components/CaseEnv';
 import Label from '../../../../components/Label/Label';
+import type { ColumnsType } from 'antd/es/table/interface';
+import type { RouteComponentProps } from 'react-router';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import type { InterfaceCollection } from '../../../../reducer/modules/interfaceCol';
+import type { MockEditorData } from '../../../../components/AceEditor/mockEditor';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const Option = Select.Option;
 
@@ -33,22 +42,53 @@ const defaultModalStyle = {
   top: 10
 }
 
-function handleReport(json) {
+function handleReport(json: string): Record<string | number, CaseReportData> {
   try {
-    return JSON.parse(json);
+    return JSON.parse(json) as Record<string | number, CaseReportData>;
   } catch (e) {
     return {};
   }
 }
 
-@connect(
-  state => {
+interface HeaderItem extends UnknownRecord { name: string; abled?: boolean }
+interface DomainItem extends UnknownRecord { _id: string | number; name: string; domain: string; header: HeaderItem[] }
+interface EnvItem extends UnknownRecord { _id: string | number; name: string; env: DomainItem[] }
+interface CaseRow extends UnknownRecord {
+  _id: number; id: number; project_id: string | number; interface_id?: string | number; col_id?: number;
+  casename: string; path: string; test_status?: string; _test_status?: string;
+  req_headers: HeaderItem[]; case_env: string; enable_script?: boolean; test_script?: string;
+}
+interface CaseReportData extends UnknownRecord { code?: number }
+interface CommonSetting {
+  checkHttpCodeIs200: boolean; checkResponseField: { name: string; value: string; enable: boolean };
+  checkResponseSchema: boolean; checkScript: { enable: boolean; content?: string };
+}
+interface CaseListResult { errcode: number; colData: Partial<CommonSetting> & { test_report?: string } }
+interface ProjectInfo extends UnknownRecord { _id: string | number }
+interface ColRouteParams { id: string; actionId: string }
+interface InterfaceColContentProps extends RouteComponentProps<ColRouteParams> {
+  interfaceColList: InterfaceCollection[]; currColId: number; currCaseId: number; isShowCol: boolean; isRander: boolean;
+  currCaseList: CaseRow[]; currProject: ProjectInfo; token: string; envList: EnvItem[]; curProjectRole?: string;
+  projectEnv: UnknownRecord; setColData: (data: UnknownRecord) => unknown;
+  fetchInterfaceColList: (id: string | number) => Promise<{ payload: { data: ApiResponse<InterfaceCollection[]> } }>;
+  fetchCaseList: (id: string | number) => Promise<{ payload: { data: CaseListResult } }>;
+  getToken: (...args: unknown[]) => Promise<unknown>; getEnv: (...args: unknown[]) => Promise<unknown>;
+  fetchCaseEnvList: (...args: unknown[]) => Promise<unknown>;
+}
+interface InterfaceColContentState {
+  rows: CaseRow[]; reports: Record<string | number, CaseReportData>; visible: boolean; curCaseid: number | null;
+  advVisible: boolean; curScript: string; enableScript: boolean; autoVisible: boolean; mode: string;
+  email: boolean; download: boolean; currColEnvObj: Record<string | number, string>; collapseKey: string;
+  commonSettingModalVisible: boolean; commonSetting: CommonSetting; checkScript?: CommonSetting['checkScript'];
+}
+const connectInterfaceColContent = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       interfaceColList: state.interfaceCol.interfaceColList,
       currColId: state.interfaceCol.currColId,
       currCaseId: state.interfaceCol.currCaseId,
       isShowCol: state.interfaceCol.isShowCol,
-      isRander: state.interfaceCol.isRander,
+      isRander: state.interfaceCol.isRender,
       currCaseList: state.interfaceCol.currCaseList,
       currProject: state.project.currProject,
       token: state.project.token,
@@ -65,9 +105,14 @@ function handleReport(json) {
     getEnv,
     fetchCaseEnvList
   }
-)
-@withRouter
-class InterfaceColContent extends Component {
+));
+const routeInterfaceColContent = asLegacyClassDecorator(withRouter);
+@connectInterfaceColContent
+@routeInterfaceColContent
+class InterfaceColContent extends Component<InterfaceColContentProps, InterfaceColContentState> {
+  reports: Record<string | number, CaseReportData> = {};
+  currColId = 0;
+  aceEditor: AceEditor | null = null;
   static propTypes = {
     match: PropTypes.object,
     interfaceColList: PropTypes.array,
@@ -90,7 +135,7 @@ class InterfaceColContent extends Component {
     envList: PropTypes.array
   };
 
-  constructor(props) {
+  constructor(props: InterfaceColContentProps) {
     super(props);
     this.reports = {};
     this.state = {
@@ -124,7 +169,7 @@ class InterfaceColContent extends Component {
     };
   }
 
-  async handleColIdChange(newColId){
+  async handleColIdChange(newColId: string | number){
     this.props.setColData({
       currColId: +newColId,
       isShowCol: true,
@@ -133,7 +178,7 @@ class InterfaceColContent extends Component {
 
     let result = await this.props.fetchCaseList(newColId);
     if (result.payload.data.errcode === 0) {
-      this.reports = handleReport(result.payload.data.colData.test_report);
+      this.reports = handleReport(result.payload.data.colData.test_report || '');
       this.setState({
         commonSetting:{
           ...this.state.commonSetting,
@@ -154,7 +199,7 @@ class InterfaceColContent extends Component {
     let { currColId } = this.props;
     const params = this.props.match.params;
     const { actionId } = params;
-    this.currColId = currColId = +actionId || result.payload.data.data[0]._id;
+    this.currColId = currColId = +actionId || result.payload.data.data?.[0]._id || 0;
     // this.props.history.push('/project/' + params.id + '/interface/col/' + currColId);
     if (currColId && currColId != 0) {
       await this.handleColIdChange(currColId)
@@ -163,7 +208,7 @@ class InterfaceColContent extends Component {
   }
 
   // 更新分类简介
-  handleChangeInterfaceCol = (desc, name) => {
+  handleChangeInterfaceCol = (desc: string, name: string) => {
     let params = {
       col_id: this.props.currColId,
       name: name,
@@ -181,14 +226,14 @@ class InterfaceColContent extends Component {
   };
 
   // 整合header信息
-  handleReqHeader = (project_id, req_header, case_env) => {
-    let envItem = _.find(this.props.envList, item => {
+  handleReqHeader = (project_id: string | number, req_header: HeaderItem[], case_env: string) => {
+    let envItem = _.find(this.props.envList, (item: EnvItem) => {
       return item._id === project_id;
     });
 
-    let currDomain = handleCurrDomain(envItem && envItem.env, case_env);
-    let header = currDomain.header;
-    header.forEach(item => {
+    let currDomain = handleCurrDomain(envItem ? envItem.env : [], case_env);
+    let header = currDomain?.header || [];
+    header.forEach((item: HeaderItem) => {
       if (!checkNameIsExistInArray(item.name, req_header)) {
         // item.abled = true;
         item = {
@@ -201,10 +246,10 @@ class InterfaceColContent extends Component {
     return req_header;
   };
 
-  handleColdata = (rows, currColEnvObj = {}) => {
+  handleColdata = (rows: CaseRow[], currColEnvObj: Record<string | number, string> = {}) => {
     let that = this;
     let newRows = produce(rows, draftRows => {
-      draftRows.map(item => {
+      draftRows.map((item: CaseRow) => {
         item.id = item._id;
         item._test_status = item.test_status;
         if(currColEnvObj[item.project_id]){
@@ -217,9 +262,9 @@ class InterfaceColContent extends Component {
     this.setState({ rows: newRows });
   };
 
-  persistCaseOrder = rows => {
-    let changes = [];
-    rows.forEach((item, index) => {
+  persistCaseOrder = (rows: CaseRow[]) => {
+    let changes: Array<{ id: number; index: number }> = [];
+    rows.forEach((item: CaseRow, index: number) => {
       changes.push({ id: item._id, index: index });
     });
     axios.post('/api/col/up_case_index', changes).then(() => {
@@ -227,7 +272,7 @@ class InterfaceColContent extends Component {
     });
   };
 
-  moveCaseRow = (index, direction) => {
+  moveCaseRow = (index: number, direction: number) => {
     const rows = this.state.rows.slice();
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= rows.length) {
@@ -238,7 +283,7 @@ class InterfaceColContent extends Component {
     this.setState({ rows }, () => this.persistCaseOrder(rows));
   };
 
-  onChangeTest = d => {
+  onChangeTest = (d: MockEditorData) => {
     
     this.setState({
       commonSetting: {
@@ -251,12 +296,12 @@ class InterfaceColContent extends Component {
     });
   };
 
-  handleInsertCode = code => {
-    this.aceEditor.editor.insertCode(code);
+  handleInsertCode = (code: string) => {
+    this.aceEditor?.editor?.insertCode(code);
   };
 
-  async componentWillReceiveProps(nextProps) {
-    let newColId = !isNaN(nextProps.match.params.actionId) ? +nextProps.match.params.actionId : 0;
+  async componentWillReceiveProps(nextProps: InterfaceColContentProps) {
+    let newColId = !isNaN(Number(nextProps.match.params.actionId)) ? +nextProps.match.params.actionId : 0;
 
     if (newColId && ((this.currColId && newColId !== this.currColId) || nextProps.isRander)) {
       this.currColId = newColId;
@@ -265,10 +310,10 @@ class InterfaceColContent extends Component {
   }
 
   // 测试用例环境面板折叠
-  changeCollapseClose = key => {
+  changeCollapseClose = (key?: string | Key[]) => {
     if (key) {
       this.setState({
-        collapseKey: key
+        collapseKey: String(key)
       });
     } else {
       this.setState({
@@ -278,25 +323,26 @@ class InterfaceColContent extends Component {
     }
   };
 
-  openReport = id => {
+  openReport = (id: number) => {
     if (!this.reports[id]) {
-      return message.warn('还没有生成报告');
+      return (message as unknown as { warn: (text: string) => unknown }).warn('还没有生成报告');
     }
     this.setState({ visible: true, curCaseid: id });
   };
 
-  openAdv = id => {
-    let findCase = _.find(this.props.currCaseList, item => item.id === id);
+  openAdv = (id: number) => {
+    let findCase = _.find(this.props.currCaseList, (item: CaseRow) => item.id === id);
+    if (!findCase) return;
 
     this.setState({
-      enableScript: findCase.enable_script,
-      curScript: findCase.test_script,
+      enableScript: findCase.enable_script ?? false,
+      curScript: findCase.test_script ?? '',
       advVisible: true,
       curCaseid: id
     });
   };
 
-  handleScriptChange = d => {
+  handleScriptChange = (d: MockEditorData) => {
     this.setState({ curScript: d.text });
   };
 
@@ -330,7 +376,7 @@ class InterfaceColContent extends Component {
     this.setState({ visible: false });
   };
 
-  currProjectEnvChange = (envName, project_id) => {
+  currProjectEnvChange = (envName: string, project_id: string | number) => {
     let currColEnvObj = {
       ...this.state.currColEnvObj,
       [project_id]: envName
@@ -355,24 +401,24 @@ class InterfaceColContent extends Component {
     });
   };
 
-  copyUrl = url => {
+  copyUrl = (url: string) => {
     copy(url);
     message.success('已经成功复制到剪切板');
   };
 
-  modeChange = mode => {
+  modeChange = (mode: string) => {
     this.setState({ mode });
   };
 
-  emailChange = email => {
+  emailChange = (email: boolean) => {
     this.setState({ email });
   };
 
-  downloadChange = download => {
+  downloadChange = (download: boolean) => {
     this.setState({ download });
   };
 
-  handleColEnvObj = envObj => {
+  handleColEnvObj = (envObj: Record<string | number, string>) => {
     let str = '';
     for (let key in envObj) {
       str += envObj[key] ? `&env_${key}=${envObj[key]}` : '';
@@ -414,9 +460,9 @@ class InterfaceColContent extends Component {
     })
   }
 
-  changeCommonFieldSetting = (key)=>{
-    return (e)=>{
-      let value = e;
+  changeCommonFieldSetting = (key: keyof CommonSetting['checkResponseField'])=>{
+    return (e: string | boolean | ChangeEvent<HTMLInputElement>)=>{
+      let value: string | boolean = e as string | boolean;
       if(typeof e === 'object' && e){
         value = e.target.value;
       }
@@ -435,12 +481,13 @@ class InterfaceColContent extends Component {
   
   render() {
     const currProjectId = this.props.currProject._id;
-    const columns = [
+    const { rows } = this.state;
+    const columns: ColumnsType<CaseRow> = [
       {
         title: '用例名称',
         dataIndex: 'casename',
         width: 250,
-        render: (text, record) => (
+        render: (_text: unknown, record: CaseRow) => (
           <Link to={'/project/' + currProjectId + '/interface/case/' + record._id}>
             {record.casename.length > 23
               ? record.casename.substr(0, 20) + '...'
@@ -477,7 +524,7 @@ class InterfaceColContent extends Component {
         title: '状态',
         dataIndex: 'test_status',
         width: 100,
-        render: (value, record) => {
+        render: (_value: unknown, record: CaseRow) => {
               let id = record._id;
               let code = this.reports[id] ? this.reports[id].code : 0;
               if (record.test_status === 'loading') {
@@ -545,7 +592,7 @@ class InterfaceColContent extends Component {
       {
         title: '接口路径',
         dataIndex: 'path',
-        render: (text, record) => (
+        render: (_text: unknown, record: CaseRow) => (
           <Tooltip title="跳转到对应接口">
             <Link to={`/project/${record.project_id}/interface/api/${record.interface_id}`}>
               {record.path.length > 23 ? record.path + '...' : record.path}
@@ -556,7 +603,7 @@ class InterfaceColContent extends Component {
       {
         title: '排序',
         width: 100,
-        render: (text, record, index) => (
+        render: (_text: unknown, _record: CaseRow, index: number) => (
           <div className="interface-col-table-action">
             <Button
               size="small"
@@ -576,7 +623,7 @@ class InterfaceColContent extends Component {
       {
         title: '测试报告',
         width: 200,
-        render: (text, rowData) => {
+        render: (_text: unknown, rowData: CaseRow) => {
               let reportFun = () => {
                 if (!this.reports[rowData.id]) {
                   return null;
@@ -587,8 +634,6 @@ class InterfaceColContent extends Component {
         }
       }
     ];
-    const { rows } = this.state;
-
     const localUrl = getBackendOrigin();
     let currColEnvObj = this.handleColEnvObj(this.state.currColEnvObj);
     const autoTestsUrl = `/api/open/run_auto_test?id=${this.props.currColId}&token=${
@@ -801,7 +846,7 @@ class InterfaceColContent extends Component {
           onCancel={this.handleCancel}
           footer={null}
         >
-          <CaseReport {...this.reports[this.state.curCaseid]} />
+          <CaseReport {...(this.state.curCaseid === null ? {} : this.reports[this.state.curCaseid])} />
         </Modal>
 
         <Modal
@@ -942,4 +987,4 @@ class InterfaceColContent extends Component {
   }
 }
 
-export default InterfaceColContent;
+export default InterfaceColContent as unknown as ComponentType<RouteComponentProps<ColRouteParams>>;

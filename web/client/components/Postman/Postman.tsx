@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ChangeEventHandler, MouseEventHandler } from 'react';
 import PropTypes from 'prop-types';
 import { Button, Input, Checkbox, Modal, Select, Spin, Tooltip, Tabs, Switch, Row, Col, Alert } from 'antd';
 import Icon from 'client/shims/antdIcon';
@@ -6,7 +7,7 @@ import Collapse from 'client/shims/Collapse';
 import constants from '../../constants/variable.js';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import _ from 'underscore';
-import { deepCopyJson } from '../../common.ts';
+import { deepCopyJson } from '../../common';
 import axios from 'axios';
 import ModalPostman from '../ModalPostman';
 import './Postman.scss';
@@ -18,6 +19,11 @@ import {
   checkNameIsExistInArray,
   handleContentType
 } from 'common/postmanLib.js';
+import type { HttpMethod } from '../../types/runtime';
+import type { UnknownRecord } from '../../reducer/types/runtime';
+import type { MockEditorData } from '../AceEditor/mockEditor';
+import { createSchemaPreviewRequest } from '../../containers/Project/Interface/InterfaceList/requestContracts';
+import type { ProjectEnvironment } from '../../containers/Project/Setting/ProjectEnv/ProjectEnvContent';
 
 const HTTP_METHOD = constants.HTTP_METHOD;
 const InputGroup = Input.Group;
@@ -51,7 +57,8 @@ export const InsertCodeMap = [
   }
 ];
 
-const ParamsNameComponent = props => {
+interface ParamsNameProps { example?: string; desc?: string; name?: string }
+const ParamsNameComponent = (props: ParamsNameProps) => {
   const { example, desc, name } = props;
   const isNull = !example && !desc;
   const TooltipTitle = () => {
@@ -88,7 +95,34 @@ ParamsNameComponent.propTypes = {
   desc: PropTypes.string,
   name: PropTypes.string
 };
-export default class Run extends Component {
+interface RequestParam extends UnknownRecord {
+  name: string; value?: string | boolean; example?: string; desc?: string; type?: string;
+  required?: number; enable?: boolean; abled?: boolean;
+}
+type Environment = ProjectEnvironment & UnknownRecord;
+interface RunData extends UnknownRecord {
+  _id: string | number; project_id: number; interface_up_time?: number; method: HttpMethod; path?: string;
+  req_params: RequestParam[]; req_headers: RequestParam[]; req_query: RequestParam[]; req_body_form: RequestParam[];
+  req_body_type?: string; req_body_other?: string; req_body_is_json_schema?: boolean;
+  case_env?: string; env: Environment[]; enable_script?: boolean; test_script?: string;
+}
+interface RunProps { data: RunData; save?: MouseEventHandler<HTMLElement>; type: 'case' | 'inter'; curUid: number; interfaceId: number; projectId: number }
+type ParamArrayKey = 'req_params' | 'req_headers' | 'req_query' | 'req_body_form';
+interface RunState extends RunData {
+  loading: boolean; resStatusCode: number | null; test_valid_msg: string | null; resStatusText: string | null;
+  mock_verify: boolean; inputValue: string; cursurPosition: number | { row: number; column: number };
+  envModalVisible: boolean; modalVisible?: boolean; modalType?: ParamArrayKey | 'req_body_other'; inputIndex?: number;
+  test_res_header: Record<string, string> | null; test_res_body: unknown; autoPreviewHTML: boolean;
+}
+interface Run {
+  changePath?: ChangeEventHandler<HTMLInputElement>;
+  addPathParam?: MouseEventHandler<HTMLElement>;
+  addQuery?: MouseEventHandler<HTMLElement>;
+  addHeader?: MouseEventHandler<HTMLElement>;
+  addBody?: MouseEventHandler<HTMLElement>;
+}
+class Run extends Component<RunProps, RunState> {
+  aceEditor: AceEditor | null = null;
   static propTypes = {
     data: PropTypes.object, //接口原有数据
     save: PropTypes.func, //保存回调方法
@@ -98,7 +132,7 @@ export default class Run extends Component {
     projectId: PropTypes.number.isRequired
   };
 
-  constructor(props) {
+  constructor(props: RunProps) {
     super(props);
     this.state = {
       loading: false,
@@ -128,25 +162,25 @@ export default class Run extends Component {
     );
   }
 
-  checkInterfaceData(data) {
-    if (!data || typeof data !== 'object' || !data._id) {
+  checkInterfaceData(data: unknown): data is RunData {
+    if (!data || typeof data !== 'object' || !('_id' in data) || !data._id) {
       return false;
     }
     return true;
   }
 
   // 整合header信息
-  handleReqHeader = (value, env) => {
+  handleReqHeader = (value: string, env: Environment[]) => {
     let index = value
-      ? env.findIndex(item => {
+        ? env.findIndex((item: Environment) => {
           return item.name === value;
         })
       : 0;
     index = index === -1 ? 0 : index;
 
-    let req_header = [].concat(this.props.data.req_headers || []);
-    let header = [].concat(env[index].header || []);
-    header.forEach(item => {
+    let req_header: RequestParam[] = (this.props.data.req_headers || []).slice();
+    let header = (env[index]?.header || []).slice() as unknown as RequestParam[];
+    header.forEach((item: RequestParam) => {
       if (!checkNameIsExistInArray(item.name, req_header)) {
         item = {
           ...item,
@@ -155,13 +189,13 @@ export default class Run extends Component {
         req_header.push(item);
       }
     });
-    req_header = req_header.filter(item => {
+    req_header = req_header.filter((item: RequestParam) => {
       return item && typeof item === 'object';
     });
     return req_header;
   };
 
-  selectDomain = value => {
+  selectDomain = (value: string) => {
     let headers = this.handleReqHeader(value, this.state.env);
     this.setState({
       case_env: value,
@@ -169,7 +203,7 @@ export default class Run extends Component {
     });
   };
 
-  async initState(data) {
+  async initState(data: RunData) {
     if (!this.checkInterfaceData(data)) {
       return null;
     }
@@ -190,8 +224,9 @@ export default class Run extends Component {
         console.log('e', e);
         return;
       }
-      let result = await axios.post('/api/interface/schema2json', {
-        schema: schema,
+      const request = createSchemaPreviewRequest(schema);
+      let result = await axios.post(request.url, {
+        ...request.body,
         required: true
       });
       body = JSON.stringify(result.data);
@@ -199,9 +234,9 @@ export default class Run extends Component {
 
     let example = {}
     if(this.props.type === 'inter'){
-      example = ['req_headers', 'req_query', 'req_body_form'].reduce(
-        (res, key) => {
-          res[key] = (data[key] || []).map(item => {
+      example = (['req_headers', 'req_query', 'req_body_form'] as ParamArrayKey[]).reduce(
+        (res: Partial<Pick<RunData, ParamArrayKey>>, key: ParamArrayKey) => {
+          res[key] = (data[key] || []).map((item: RequestParam) => {
             if (
               item.type !== 'file' // 不是文件类型
                 && (item.value == null || item.value === '') // 初始值为空
@@ -213,7 +248,7 @@ export default class Run extends Component {
           })
           return res;
         },
-        {}
+        {} as Partial<Pick<RunData, ParamArrayKey>>
       )
     }
 
@@ -229,11 +264,11 @@ export default class Run extends Component {
         test_valid_msg: null,
         resStatusText: null
       },
-      () => this.props.type === 'inter' && this.initEnvState(data.case_env, data.env)
+      () => this.props.type === 'inter' && this.initEnvState(data.case_env || '', data.env)
     );
   }
 
-  initEnvState(case_env, env) {
+  initEnvState(case_env: string, env: Environment[]) {
     let headers = this.handleReqHeader(case_env, env);
 
     this.setState(
@@ -242,7 +277,7 @@ export default class Run extends Component {
         env: env
       },
       () => {
-        let s = !_.find(env, item => item.name === this.state.case_env);
+        let s = !_.find(env, (item: Environment) => item.name === this.state.case_env);
         if (!this.state.case_env || s) {
           this.setState({
             case_env: this.state.env[0].name
@@ -256,7 +291,7 @@ export default class Run extends Component {
     this.initState(this.props.data);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: RunProps) {
     if (this.checkInterfaceData(nextProps.data) && this.checkInterfaceData(this.props.data)) {
       if (nextProps.data._id !== this.props.data._id) {
         this.initState(nextProps.data);
@@ -264,49 +299,49 @@ export default class Run extends Component {
         this.initState(nextProps.data);
       }
       if (nextProps.data.env !== this.props.data.env) {
-        this.initEnvState(this.state.case_env, nextProps.data.env);
+        this.initEnvState(this.state.case_env || '', nextProps.data.env);
       }
     }
   }
 
-  handleValue(val, global) {
+  handleValue(val: unknown, global: Array<{ name: string; value: unknown }>) {
     let globalValue = ArrayToObject(global);
     return handleParamsValue(val, {
       global: globalValue
     });
   }
 
-  onOpenTest = d => {
+  onOpenTest = (d: MockEditorData) => {
     this.setState({
       test_script: d.text
     });
   };
 
-  handleInsertCode = code => {
-    this.aceEditor.editor.insertCode(code);
+  handleInsertCode = (code: string) => {
+    this.aceEditor?.editor?.insertCode(code);
   };
 
-  handleRequestBody = d => {
+  handleRequestBody = (d: MockEditorData) => {
     this.setState({
       req_body_other: d.text
     });
   };
 
-  changeParam = (name, v, index, key) => {
+  changeParam = (name: ParamArrayKey, v: string | boolean, index: number, key: 'value' | 'enable' = 'value') => {
     
     key = key || 'value';
     const pathParam = deepCopyJson(this.state[name]);
 
-    pathParam[index][key] = v;
-    if (key === 'value') {
+    if (key === 'enable') {
+      pathParam[index].enable = Boolean(v);
+    } else {
+      pathParam[index].value = v;
       pathParam[index].enable = !!v;
     }
-    this.setState({
-      [name]: pathParam
-    });
+    this.setState({ [name]: pathParam } as Pick<RunState, ParamArrayKey>);
   };
 
-  changeBody = (v, index, key) => {
+  changeBody = (v: string | boolean, index: number, key: 'value' | 'enable' = 'value') => {
     const bodyForm = deepCopyJson(this.state.req_body_form);
     key = key || 'value';
     if (key === 'value') {
@@ -317,26 +352,27 @@ export default class Run extends Component {
         bodyForm[index].value = v;
       }
     } else if (key === 'enable') {
-      bodyForm[index].enable = v;
+      bodyForm[index].enable = Boolean(v);
     }
     this.setState({ req_body_form: bodyForm });
   };
 
   // 模态框的相关操作
-  showModal = (val, index, type) => {
+  showModal = (val: string | boolean | undefined, index: number, type: ParamArrayKey | 'req_body_other') => {
     let inputValue = '';
     let cursurPosition;
     if (type === 'req_body_other') {
       // req_body
-      let editor = this.aceEditor.editor.editor;
-      cursurPosition = editor.session.doc.positionToIndex(editor.selection.getCursor());
+      let editor = this.aceEditor?.editor?.editor;
+      if (!editor) return;
+      cursurPosition = editor.session.doc.positionToIndex(editor.selection.getCursor(), 0);
       // 获取选中的数据
-      inputValue = this.getInstallValue(val || '', cursurPosition).val;
+      inputValue = this.getInstallValue(String(val || ''), cursurPosition).val;
     } else {
       // 其他input 输入
-      let oTxt1 = document.getElementById(`${type}_${index}`);
-      cursurPosition = oTxt1.selectionStart;
-      inputValue = this.getInstallValue(val || '', cursurPosition).val;
+      let oTxt1 = document.getElementById(`${type}_${index}`) as HTMLInputElement | null;
+      cursurPosition = oTxt1?.selectionStart || 0;
+      inputValue = this.getInstallValue(String(val || ''), cursurPosition).val;
       // cursurPosition = {row: 1, column: position}
     }
 
@@ -350,23 +386,23 @@ export default class Run extends Component {
   };
 
   // 点击插入
-  handleModalOk = val => {
+  handleModalOk = (val: string) => {
     const { inputIndex, modalType } = this.state;
     if (modalType === 'req_body_other') {
       this.changeInstallBody(modalType, val);
     } else {
-      this.changeInstallParam(modalType, val, inputIndex);
+      if (modalType) this.changeInstallParam(modalType, val, inputIndex || 0);
     }
 
     this.setState({ modalVisible: false });
   };
 
   // 根据鼠标位置往req_body中动态插入数据
-  changeInstallBody = (type, value) => {
+  changeInstallBody = (type: 'req_body_other', value: string) => {
     const pathParam = deepCopyJson(this.state[type]);
     // console.log(pathParam)
     let oldValue = pathParam || '';
-    let newValue = this.getInstallValue(oldValue, this.state.cursurPosition);
+    let newValue = this.getInstallValue(oldValue, typeof this.state.cursurPosition === 'number' ? this.state.cursurPosition : -1);
     let left = newValue.left;
     let right = newValue.right;
     this.setState({
@@ -375,7 +411,7 @@ export default class Run extends Component {
   };
 
   // 获取截取的字符串
-  getInstallValue = (oldValue, cursurPosition) => {
+  getInstallValue = (oldValue: string, cursurPosition: number) => {
     let left = oldValue.substr(0, cursurPosition);
     let right = oldValue.substr(cursurPosition);
 
@@ -398,17 +434,15 @@ export default class Run extends Component {
   };
 
   // 根据鼠标位置动态插入数据
-  changeInstallParam = (name, v, index, key) => {
+  changeInstallParam = (name: ParamArrayKey, v: string, index: number, key: 'value' = 'value') => {
     key = key || 'value';
     const pathParam = deepCopyJson(this.state[name]);
     let oldValue = pathParam[index][key] || '';
-    let newValue = this.getInstallValue(oldValue, this.state.cursurPosition);
+    let newValue = this.getInstallValue(String(oldValue), typeof this.state.cursurPosition === 'number' ? this.state.cursurPosition : -1);
     let left = newValue.left;
     let right = newValue.right;
-    pathParam[index][key] = `${left}${v}${right}`;
-    this.setState({
-      [name]: pathParam
-    });
+    pathParam[index].value = `${left}${v}${right}`;
+    this.setState({ [name]: pathParam } as Pick<RunState, ParamArrayKey>);
   };
 
   // 取消参数插入
@@ -423,7 +457,7 @@ export default class Run extends Component {
     });
   };
 
-  handleEnvOk = (newEnv, index) => {
+  handleEnvOk = (newEnv: ProjectEnvironment[], index: number) => {
     this.setState({
       envModalVisible: false,
       case_env: newEnv[index].name
@@ -467,7 +501,7 @@ export default class Run extends Component {
           <Modal
             title="环境设置"
             open={this.state.envModalVisible}
-            onOk={this.handleEnvOk}
+            onOk={this.handleEnvOk as unknown as MouseEventHandler<HTMLButtonElement>}
             onCancel={this.handleEnvCancel}
             footer={null}
             width={800}
@@ -479,9 +513,7 @@ export default class Run extends Component {
         <div className="url">
           <InputGroup compact style={{ display: 'flex' }}>
             <Select disabled value={method} style={{ flexBasis: 60 }}>
-              {Object.keys(HTTP_METHOD).map(name => {
-                <Option value={name.toUpperCase()}>{name.toUpperCase()}</Option>;
-              })}
+              {Object.keys(HTTP_METHOD).map(() => null)}
             </Select>
             <Select
               value={case_env}
@@ -539,7 +571,7 @@ export default class Run extends Component {
                   <ParamsNameComponent example={item.example} desc={item.desc} name={item.name} />
                   <span className="eq-symbol">=</span>
                   <Input
-                    value={item.value}
+                    value={typeof item.value === 'boolean' ? String(item.value) : item.value}
                     className="value"
                     onChange={e => this.changeParam('req_params', e.target.value, index)}
                     placeholder="参数值"
@@ -592,7 +624,7 @@ export default class Run extends Component {
                   )}
                   <span className="eq-symbol">=</span>
                   <Input
-                    value={item.value}
+                    value={typeof item.value === 'boolean' ? String(item.value) : item.value}
                     className="value"
                     onChange={e => this.changeParam('req_query', e.target.value, index)}
                     placeholder="参数值"
@@ -624,7 +656,7 @@ export default class Run extends Component {
                   <ParamsNameComponent example={item.example} desc={item.desc} name={item.name} />
                   <span className="eq-symbol">=</span>
                   <Input
-                    value={item.value}
+                    value={typeof item.value === 'boolean' ? String(item.value) : item.value}
                     disabled={!!item.abled}
                     className="value"
                     onChange={e => this.changeParam('req_headers', e.target.value, index)}
@@ -681,7 +713,7 @@ export default class Run extends Component {
                 className="pretty-editor"
                 ref={editor => (this.aceEditor = editor)}
                 data={this.state.req_body_other}
-                mode={req_body_type === 'json' ? null : 'text'}
+                mode={req_body_type === 'json' ? undefined : 'text'}
                 onChange={this.handleRequestBody}
                 fullScreen={true}
               />
@@ -726,7 +758,7 @@ export default class Run extends Component {
                           // />
                         ) : (
                           <Input
-                            value={item.value}
+                            value={typeof item.value === 'boolean' ? String(item.value) : item.value}
                             className="value"
                             onChange={e => this.changeBody(e.target.value, index)}
                             placeholder="参数值"
@@ -768,7 +800,7 @@ export default class Run extends Component {
                 style={{ display: this.state.resStatusCode ? '' : 'none' }}
                 className={
                   'res-code ' +
-                  (this.state.resStatusCode >= 200 &&
+                  (this.state.resStatusCode !== null && this.state.resStatusCode >= 200 &&
                   this.state.resStatusCode < 400 &&
                   !this.state.loading
                     ? 'success'
@@ -829,7 +861,7 @@ export default class Run extends Component {
                     this.state.autoPreviewHTML && this.testResponseBodyIsHTML
                       ? <iframe
                           className="pretty-editor-body"
-                          srcDoc={this.state.test_res_body}
+                          srcDoc={typeof this.state.test_res_body === 'string' ? this.state.test_res_body : undefined}
                         />
                       : <AceEditor
                           readOnly={true}
@@ -893,3 +925,5 @@ export default class Run extends Component {
     );
   }
 }
+
+export default Run;

@@ -1,4 +1,5 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, Key, ChangeEvent } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import {
@@ -12,15 +13,68 @@ import AddInterfaceCatForm from './AddInterfaceCatForm';
 import axios from 'axios';
 import { Link, withRouter } from 'react-router-dom';
 import produce from 'immer';
-import { arrayChangeIndex } from '../../../../common.ts';
+import { arrayChangeIndex } from '../../../../common';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { ApiResponse } from '../../../../types/api';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
+import type { AddInterfaceValues } from './AddInterfaceForm';
 
 import './interfaceMenu.scss';
 
 const confirm = Modal.confirm;
 const headHeight = 240; // menu顶部到网页顶部部分的高度
 
-@connect(
-  state => {
+interface MenuRouteParams { id: string; actionId: string }
+interface MenuInterface extends UnknownRecord {
+  _id: string | number;
+  catid: string | number;
+  title: string;
+  path: string;
+  method?: string;
+}
+interface MenuCategory extends UnknownRecord {
+  _id: string | number;
+  name: string;
+  desc?: string;
+  list: MenuInterface[];
+}
+interface MenuProject extends UnknownRecord { cat: MenuCategory[] }
+interface ActionResult<T> { payload: { data: ApiResponse<T> } }
+interface InterfaceMenuProps extends RouteComponentProps<MenuRouteParams> {
+  inter: Partial<MenuInterface>;
+  projectId: string;
+  list: MenuCategory[];
+  curProject: MenuProject;
+  expands: string[];
+  router?: { params: MenuRouteParams };
+  fetchInterfaceListMenu: (id: string | number) => Promise<ActionResult<MenuCategory[]>>;
+  fetchInterfaceData: (id: string | number) => Promise<ActionResult<MenuInterface>>;
+  deleteInterfaceCatData: (catid: string | number, projectId: string | number) => Promise<unknown>;
+  deleteInterfaceData: (id: string | number, projectId: string | number) => Promise<unknown>;
+  initInterface: () => unknown;
+  getProject: (id: string | number) => Promise<unknown>;
+  fetchInterfaceCatList: (params: UnknownRecord) => Promise<unknown>;
+  fetchInterfaceList: (params: UnknownRecord) => Promise<unknown>;
+}
+interface InterfaceMenuState {
+  curKey: Key | null;
+  visible: boolean;
+  delIcon: Key | null;
+  curCatid: number | null;
+  add_cat_modal_visible: boolean;
+  change_cat_modal_visible: boolean;
+  del_cat_modal_visible: boolean;
+  curCatdata: Partial<MenuCategory>;
+  expands: string[] | null;
+  list: MenuCategory[];
+  filter: string;
+}
+interface LegacyTreeNode { props: { pos: string; eventKey: string } }
+interface LegacyDropEvent { node: LegacyTreeNode; dragNode: LegacyTreeNode }
+const connectInterfaceMenu = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       list: state.inter.list,
       inter: state.inter.curdata,
@@ -38,8 +92,9 @@ const headHeight = 240; // menu顶部到网页顶部部分的高度
     fetchInterfaceCatList,
     fetchInterfaceList
   }
-)
-class InterfaceMenu extends Component {
+));
+@connectInterfaceMenu
+class InterfaceMenu extends Component<InterfaceMenuProps, InterfaceMenuState> {
   static propTypes = {
     match: PropTypes.object,
     inter: PropTypes.object,
@@ -61,9 +116,9 @@ class InterfaceMenu extends Component {
   /**
    * @param {String} key
    */
-  changeModal = (key, status) => {
+  changeModal = <K extends keyof InterfaceMenuState>(key: K, status: InterfaceMenuState[K]) => {
     //visible add_cat_modal_visible change_cat_modal_visible del_cat_modal_visible
-    let newState = {};
+    let newState = {} as Pick<InterfaceMenuState, K>;
     newState[key] = status;
     this.setState(newState);
   };
@@ -74,7 +129,7 @@ class InterfaceMenu extends Component {
     });
   };
 
-  constructor(props) {
+  constructor(props: InterfaceMenuProps) {
     super(props);
     this.state = {
       curKey: null,
@@ -86,7 +141,8 @@ class InterfaceMenu extends Component {
       del_cat_modal_visible: false,
       curCatdata: {},
       expands: null,
-      list: []
+      list: [],
+      filter: ''
     };
   }
 
@@ -98,7 +154,7 @@ class InterfaceMenu extends Component {
   async getList() {
     let r = await this.props.fetchInterfaceListMenu(this.props.projectId);
     this.setState({
-      list: r.payload.data.data
+      list: r.payload.data.data || []
     });
   }
 
@@ -106,7 +162,7 @@ class InterfaceMenu extends Component {
     this.handleRequest();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: InterfaceMenuProps) {
     if (this.props.list !== nextProps.list) {
       // console.log('next', nextProps.list)
       this.setState({
@@ -115,7 +171,7 @@ class InterfaceMenu extends Component {
     }
   }
 
-  onSelect = selectedKeys => {
+  onSelect = (selectedKeys: Key[]) => {
     const { history, match } = this.props;
     let curkey = selectedKeys[0];
 
@@ -128,8 +184,8 @@ class InterfaceMenu extends Component {
       this.setState({
         expands: null
       });
-    } else if (curkey.indexOf('cat_') === 0) {
-      this.toggleCatExpanded(curkey);
+    } else if (String(curkey).indexOf('cat_') === 0) {
+      this.toggleCatExpanded(String(curkey));
       history.push(basepath + '/' + curkey);
     } else {
       history.push(basepath + '/' + curkey);
@@ -145,7 +201,7 @@ class InterfaceMenu extends Component {
     });
   };
 
-  handleAddInterface = (data, cb) => {
+  handleAddInterface = (data: AddInterfaceValues, cb: () => void) => {
     data.project_id = this.props.projectId;
     axios.post('/api/interface/add', data).then(res => {
       if (res.data.errcode !== 0) {
@@ -164,7 +220,7 @@ class InterfaceMenu extends Component {
     });
   };
 
-  handleAddInterfaceCat = data => {
+  handleAddInterfaceCat = (data: { name: string; desc?: string; project_id?: string }) => {
     data.project_id = this.props.projectId;
     axios.post('/api/interface/add_cat', data).then(res => {
       if (res.data.errcode !== 0) {
@@ -172,14 +228,14 @@ class InterfaceMenu extends Component {
       }
       message.success('接口分类添加成功');
       this.getList();
-      this.props.getProject(data.project_id);
+      this.props.getProject(this.props.projectId);
       this.setState({
         add_cat_modal_visible: false
       });
     });
   };
 
-  handleChangeInterfaceCat = data => {
+  handleChangeInterfaceCat = (data: { name: string; desc?: string; project_id?: string }) => {
     data.project_id = this.props.projectId;
 
     let params = {
@@ -194,14 +250,14 @@ class InterfaceMenu extends Component {
       }
       message.success('接口分类更新成功');
       this.getList();
-      this.props.getProject(data.project_id);
+      this.props.getProject(this.props.projectId);
       this.setState({
         change_cat_modal_visible: false
       });
     });
   };
 
-  showConfirm = data => {
+  showConfirm = (data: MenuInterface) => {
     let that = this;
     let id = data._id;
     let catid = data.catid;
@@ -225,7 +281,7 @@ class InterfaceMenu extends Component {
     });
   };
 
-  showDelCatConfirm = catid => {
+  showDelCatConfirm = (catid: string | number) => {
     let that = this;
     const ref = confirm({
       title: '确定删除此接口分类吗？',
@@ -244,12 +300,13 @@ class InterfaceMenu extends Component {
     });
   };
 
-  copyInterface = async id => {
+  copyInterface = async (id: string | number) => {
     let interfaceData = await this.props.fetchInterfaceData(id);
     // let data = JSON.parse(JSON.stringify(interfaceData.payload.data.data));
     // data.title = data.title + '_copy';
     // data.path = data.path + '_' + Date.now();
     let data = interfaceData.payload.data.data;
+    if (!data) return;
     let newData = produce(data, draftData => {
       draftData.title = draftData.title + '_copy';
       draftData.path = draftData.path + '_' + Date.now();
@@ -269,7 +326,7 @@ class InterfaceMenu extends Component {
     });
   };
 
-  enterItem = id => {
+  enterItem = (id: Key) => {
     this.setState({ delIcon: id });
   };
 
@@ -277,16 +334,16 @@ class InterfaceMenu extends Component {
     this.setState({ delIcon: null });
   };
 
-  onFilter = e => {
+  onFilter = (e: ChangeEvent<HTMLInputElement>) => {
     this.setState({
       filter: e.target.value,
       list: JSON.parse(JSON.stringify(this.props.list))
     });
   };
 
-  onExpand = e => {
+  onExpand = (e: Key[]) => {
     this.setState({
-      expands: e
+      expands: e.map(String)
     });
   };
 
@@ -299,7 +356,7 @@ class InterfaceMenu extends Component {
       return [];
     }
     if (router) {
-      if (!isNaN(router.params.actionId)) {
+      if (!isNaN(Number(router.params.actionId))) {
         if (!inter || !inter._id) {
           return [];
         }
@@ -310,18 +367,18 @@ class InterfaceMenu extends Component {
     return ['cat_' + list[0]._id];
   };
 
-  toggleCatExpanded = key => {
+  toggleCatExpanded = (key: string) => {
     const currentKeys = this.currentCatExpandedKeys();
     this.setState({
       expands: currentKeys.indexOf(key) > -1
-        ? currentKeys.filter(item => item !== key)
+        ? currentKeys.filter((item: string) => item !== key)
         : currentKeys.concat(key)
     });
   };
 
-  onDrop = async e => {
-    const dropCatIndex = e.node.props.pos.split('-')[1] - 1;
-    const dragCatIndex = e.dragNode.props.pos.split('-')[1] - 1;
+  onDrop = async (e: LegacyDropEvent) => {
+    const dropCatIndex = Number(e.node.props.pos.split('-')[1]) - 1;
+    const dragCatIndex = Number(e.dragNode.props.pos.split('-')[1]) - 1;
     if (dropCatIndex < 0 || dragCatIndex < 0) {
       return;
     }
@@ -347,7 +404,7 @@ class InterfaceMenu extends Component {
       const { projectId, router } = this.props;
       this.props.fetchInterfaceListMenu(projectId);
       this.props.fetchInterfaceList({ project_id: projectId });
-      if (router && isNaN(router.params.actionId)) {
+      if (router && isNaN(Number(router.params.actionId))) {
         // 更新分类list下的数据
         let catid = router.params.actionId.substr(4);
         this.props.fetchInterfaceCatList({ catid });
@@ -360,15 +417,15 @@ class InterfaceMenu extends Component {
     }
   };
   // 数据过滤
-  filterList = list => {
+  filterList = (list: MenuCategory[]) => {
     let that = this;
-    let arr = [];
+    let arr: string[] = [];
     let menuList = produce(list, draftList => {
-      draftList.filter(item => {
+      draftList.filter((item: MenuCategory) => {
         let interfaceFilter = false;
         // arr = [];
         if (item.name.indexOf(that.state.filter) === -1) {
-          item.list = item.list.filter(inter => {
+          item.list = item.list.filter((inter: MenuInterface) => {
             if (
               inter.title.indexOf(that.state.filter) === -1 &&
               inter.path.indexOf(that.state.filter) === -1
@@ -380,7 +437,7 @@ class InterfaceMenu extends Component {
             return true;
           });
           arr.push('cat_' + item._id);
-          return interfaceFilter === true;
+          return interfaceFilter as boolean;
         }
         arr.push('cat_' + item._id);
         return true;
@@ -413,7 +470,7 @@ class InterfaceMenu extends Component {
           >
             <AddInterfaceForm
               catdata={this.props.curProject.cat}
-              catid={this.state.curCatid}
+              catid={this.state.curCatid ?? undefined}
               onCancel={() => this.changeModal('visible', false)}
               onSubmit={this.handleAddInterface}
             />
@@ -465,7 +522,7 @@ class InterfaceMenu extends Component {
         return rNull;
       }
       if (router) {
-        if (!isNaN(router.params.actionId)) {
+        if (!isNaN(Number(router.params.actionId))) {
           if (!inter || !inter._id) {
             return rNull;
           }
@@ -488,7 +545,7 @@ class InterfaceMenu extends Component {
       }
     };
 
-    const itemInterfaceCreate = item => {
+    const itemInterfaceCreate = (item: MenuInterface) => {
       return {
         title:
             <div
@@ -615,7 +672,7 @@ class InterfaceMenu extends Component {
                     e.stopPropagation();
                     this.changeModal('visible', true);
                     this.setState({
-                      curCatid: item._id
+                      curCatid: Number(item._id)
                     });
                   }}
                 />
@@ -635,7 +692,7 @@ class InterfaceMenu extends Component {
         {menuList.length > 0 ? (
           <div
             className="tree-wrappper"
-            style={{ maxHeight: parseInt(document.body.clientHeight) - headHeight + 'px' }}
+            style={{ maxHeight: document.body.clientHeight - headHeight + 'px' }}
           >
             <Tree
               className="interface-list"
@@ -646,7 +703,7 @@ class InterfaceMenu extends Component {
               onSelect={this.onSelect}
               onExpand={this.onExpand}
               draggable
-              onDrop={this.onDrop}
+              onDrop={this.onDrop as unknown as NonNullable<React.ComponentProps<typeof Tree>['onDrop']>}
               treeData={treeData}
             />
           </div>
@@ -656,4 +713,4 @@ class InterfaceMenu extends Component {
   }
 }
 
-export default withRouter(InterfaceMenu);
+export default withRouter(InterfaceMenu as unknown as ComponentType<InterfaceMenuProps>);

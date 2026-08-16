@@ -1,19 +1,30 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, Tabs } from 'antd';
 const TabPane = Tabs.TabPane;
-function jsonFormat(json) {
+function jsonFormat(json: unknown): ReactNode {
   // console.log('json',json)
   if (json && typeof json === 'object') {
     return JSON.stringify(json, null, '   ');
   }
-  return json;
+  return json as ReactNode;
 }
 
-const CaseReport = function(props) {
+interface CaseReportProps {
+  url?: string;
+  data?: unknown;
+  headers?: unknown;
+  res_header?: unknown;
+  res_body?: unknown;
+  query?: string;
+  validRes?: Array<{ message: string }>;
+  status?: number;
+}
+const CaseReport = function(props: CaseReportProps) {
   let params = jsonFormat(props.data);
-  let headers = jsonFormat(props.headers, null, '   ');
-  let res_header = jsonFormat(props.res_header, null, '   ');
+  let headers = jsonFormat(props.headers);
+  let res_header = jsonFormat(props.res_header);
   let res_body = jsonFormat(props.res_body);
   let httpCode = props.status;
   let validRes;
@@ -113,10 +124,10 @@ const CaseReport = function(props) {
 
 CaseReport.propTypes = {
   url: PropTypes.string,
-  data: PropTypes.any,
+  data: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.number]),
   headers: PropTypes.object,
   res_header: PropTypes.object,
-  res_body: PropTypes.any,
+  res_body: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.number]),
   query: PropTypes.string,
   validRes: PropTypes.array,
   status: PropTypes.number

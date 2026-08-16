@@ -1,15 +1,18 @@
 import React, { PureComponent as Component } from 'react'
+import type { ComponentType, FocusEvent } from 'react';
 import PropTypes from 'prop-types'
 import { Form, Input, Select, Button } from 'antd';
+import type { FormInstance } from 'antd';
 
 import constants from '../../../../constants/variable.js'
-import { handleApiPath, nameLengthLimit } from '../../../../common.ts'
+import { handleApiPath, nameLengthLimit } from '../../../../common'
 const HTTP_METHOD = constants.HTTP_METHOD;
 const HTTP_METHOD_KEYS = Object.keys(HTTP_METHOD);
 
 const FormItem = Form.Item;
 const Option = Select.Option;
-function hasErrors(fieldsError) {
+type FormErrors = Array<{ errors: string[] }> | Record<string, unknown>;
+function hasErrors(fieldsError: FormErrors): boolean {
   if (Array.isArray(fieldsError)) {
     return fieldsError.some(field => field.errors.length);
   }
@@ -17,7 +20,16 @@ function hasErrors(fieldsError) {
 }
 
 
-class AddInterfaceForm extends Component {
+interface InterfaceCategory { _id: string | number; name: string }
+export interface AddInterfaceValues { method: string; catid: string; title: string; path: string; project_id?: string | number }
+interface AddInterfaceProps {
+  form: FormInstance<AddInterfaceValues>;
+  onSubmit: (values: AddInterfaceValues, reset: () => void) => void;
+  onCancel: () => void;
+  catid?: number;
+  catdata: InterfaceCategory[];
+}
+class AddInterfaceForm extends Component<AddInterfaceProps> {
   static propTypes = {
     form: PropTypes.object,
     onSubmit: PropTypes.func,
@@ -25,10 +37,7 @@ class AddInterfaceForm extends Component {
     catid: PropTypes.number,
     catdata: PropTypes.array
   }
-  handleSubmit = e => {
-    if (e && e.preventDefault) {
-      e.preventDefault();
-    }
+  handleSubmit = () => {
     this.props.form
       .validateFields()
       .then(values => {
@@ -39,7 +48,7 @@ class AddInterfaceForm extends Component {
       .catch(() => {});
   };
 
-  handlePath = (e) => {
+  handlePath = (e: FocusEvent<HTMLInputElement>) => {
     let val = e.target.value
     this.props.form.setFieldsValue({
       path: handleApiPath(val)
@@ -70,7 +79,7 @@ class AddInterfaceForm extends Component {
 
     return (
 
-      <Form form={this.props.form} onFinish={this.handleSubmit}>
+      <Form form={this.props.form} onFinish={() => this.handleSubmit()}>
         <FormItem
           {...formItemLayout}
           label="接口分类"
@@ -133,9 +142,11 @@ class AddInterfaceForm extends Component {
   }
 }
 
-function AddInterfaceFormWrapper(props) {
+type AddInterfaceOwnProps = Omit<AddInterfaceProps, 'form'>;
+const ConnectedAddInterfaceForm = AddInterfaceForm as unknown as ComponentType<AddInterfaceProps>;
+function AddInterfaceFormWrapper(props: AddInterfaceOwnProps) {
   const [form] = Form.useForm();
-  return <AddInterfaceForm {...props} form={form} />;
+  return <ConnectedAddInterfaceForm {...props} form={form} />;
 }
 
 export default AddInterfaceFormWrapper;

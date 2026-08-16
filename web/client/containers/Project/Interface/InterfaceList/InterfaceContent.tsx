@@ -1,17 +1,31 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tabs, Modal, Button } from 'antd';
-import Edit from './Edit.js';
-import View from './View.js';
+import Edit from './Edit';
+import View from './View';
 import { Prompt } from 'react-router';
 import { fetchInterfaceData } from '../../../../reducer/modules/interface';
 import { withRouter } from 'react-router-dom';
 import plugin from 'client/plugin';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const TabPane = Tabs.TabPane;
-@connect(
-  state => {
+interface InterfaceRouteParams { actionId: string }
+interface ContentProps extends RouteComponentProps<InterfaceRouteParams> {
+  list: UnknownRecord[];
+  curdata: UnknownRecord & { title?: string };
+  fetchInterfaceData: (interfaceId: string | number) => Promise<unknown>;
+  editStatus: boolean;
+}
+interface ContentState { curtab: string; visible: boolean; nextTab: string }
+interface InterfaceTab { component: ComponentType<{ switchToView: () => void }>; name: string }
+const connectContent = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       curdata: state.inter.curdata,
       list: state.inter.list,
@@ -21,8 +35,11 @@ const TabPane = Tabs.TabPane;
   {
     fetchInterfaceData
   }
-)
-class Content extends Component {
+));
+@connectContent
+class Content extends Component<ContentProps, ContentState> {
+  title: string;
+  actionId = '';
   static propTypes = {
     match: PropTypes.object,
     list: PropTypes.array,
@@ -31,7 +48,7 @@ class Content extends Component {
     history: PropTypes.object,
     editStatus: PropTypes.bool
   };
-  constructor(props) {
+  constructor(props: ContentProps) {
     super(props);
     this.title = 'YApi-高效、易用、功能强大的可视化接口管理平台';
     this.state = {
@@ -51,7 +68,7 @@ class Content extends Component {
     document.getElementsByTagName('title')[0].innerText = this.title;
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: ContentProps) {
     const params = nextProps.match.params;
     if (params.actionId !== this.actionId) {
       this.actionId = params.actionId;
@@ -59,7 +76,7 @@ class Content extends Component {
     }
   }
 
-  handleRequest(nextProps) {
+  handleRequest(nextProps: ContentProps) {
     const params = nextProps.match.params;
     this.props.fetchInterfaceData(params.actionId);
     this.setState({
@@ -73,7 +90,7 @@ class Content extends Component {
     });
   };
 
-  onChange = key => {
+  onChange = (key: string) => {
     if (this.state.curtab === 'edit' && this.props.editStatus) {
       this.showModal();
     } else {
@@ -110,13 +127,13 @@ class Content extends Component {
         this.props.curdata.title + '-' + this.title;
     }
 
-    let InterfaceTabs = {
+    let InterfaceTabs: Record<string, InterfaceTab> = {
       view: {
-        component: View,
+        component: View as unknown as InterfaceTab['component'],
         name: '预览'
       },
       edit: {
-        component: Edit,
+        component: Edit as unknown as InterfaceTab['component'],
         name: '编辑'
       }
     };
@@ -175,4 +192,4 @@ class Content extends Component {
   }
 }
 
-export default withRouter(Content);
+export default withRouter(Content as unknown as ComponentType<ContentProps>);

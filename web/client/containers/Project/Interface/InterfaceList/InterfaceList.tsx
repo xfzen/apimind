@@ -1,10 +1,11 @@
 import React, { PureComponent as Component } from 'react';
+import type { ComponentType, Key } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { Table, Button, Modal, message, Tooltip, Select } from 'antd';
 import Icon from 'client/shims/antdIcon';
-import AddInterfaceForm from './AddInterfaceForm';
+import AddInterfaceForm, { type AddInterfaceValues } from './AddInterfaceForm';
 import {
   fetchInterfaceListMenu,
   fetchInterfaceList,
@@ -15,12 +16,61 @@ import { Link } from 'react-router-dom';
 import variable from '../../../../constants/variable';
 import './Edit.scss';
 import Label from '../../../../components/Label/Label';
+import type { ColumnsType, FilterValue, SorterResult } from 'antd/es/table/interface';
+import type { TablePaginationConfig } from 'antd/es/table';
+import type { RouteComponentProps } from 'react-router-dom';
+import type { RootState } from '../../../../reducer/modules/reducer';
+import type { UnknownRecord } from '../../../../reducer/types/runtime';
+import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
 
 const Option = Select.Option;
 const limit = 20;
 
-@connect(
-  state => {
+interface InterfaceListRoute { id: string; actionId?: string }
+interface InterfaceCategory extends UnknownRecord { _id: string | number; id?: string | number; name: string; desc?: string }
+interface InterfaceTag { name: string }
+interface InterfaceRow extends UnknownRecord {
+  _id: string | number;
+  key: Key;
+  project_id: string | number;
+  title?: string;
+  path?: string;
+  method?: string;
+  api_opened?: boolean;
+  catid?: string | number;
+  status: string;
+  tag: string[];
+}
+interface InterfaceProject extends UnknownRecord {
+  _id: string | number;
+  basepath?: string;
+  cat?: InterfaceCategory[];
+  tag: InterfaceTag[];
+}
+interface InterfaceListProps extends RouteComponentProps<InterfaceListRoute> {
+  curData: UnknownRecord;
+  curProject: InterfaceProject;
+  catList: InterfaceCategory[];
+  totalTableList: InterfaceRow[];
+  catTableList: InterfaceRow[];
+  totalCount: number;
+  count: number;
+  fetchInterfaceListMenu: (id: string | number) => Promise<unknown>;
+  fetchInterfaceList: (params: UnknownRecord) => Promise<unknown>;
+  fetchInterfaceCatList: (params: UnknownRecord) => Promise<unknown>;
+  getProject: (id: string | number) => Promise<unknown>;
+}
+interface InterfaceListState {
+  visible: boolean;
+  data: InterfaceRow[];
+  filteredInfo: Record<string, FilterValue | null>;
+  sortedInfo?: SorterResult<InterfaceRow> | SorterResult<InterfaceRow>[];
+  catid: number | null;
+  total: number | null;
+  current: number;
+}
+const connectInterfaceList = asLegacyClassDecorator(connect(
+  (state: RootState) => {
     return {
       curData: state.inter.curdata,
       curProject: state.project.currProject,
@@ -37,9 +87,11 @@ const limit = 20;
     fetchInterfaceCatList,
     getProject
   }
-)
-class InterfaceList extends Component {
-  constructor(props) {
+));
+@connectInterfaceList
+class InterfaceList extends Component<InterfaceListProps, InterfaceListState> {
+  actionId?: string;
+  constructor(props: InterfaceListProps) {
     super(props);
     this.state = {
       visible: false,
@@ -67,7 +119,7 @@ class InterfaceList extends Component {
     getProject: PropTypes.func
   };
 
-  handleRequest = async props => {
+  handleRequest = async (props: InterfaceListProps) => {
     const { params } = props.match;
     if (!params.actionId) {
       let projectId = params.id;
@@ -82,7 +134,7 @@ class InterfaceList extends Component {
         tag: this.state.filteredInfo.tag
       };
       await this.props.fetchInterfaceList(option);
-    } else if (isNaN(params.actionId)) {
+    } else if (isNaN(Number(params.actionId))) {
       let catid = params.actionId.substr(4);
       this.setState({catid: +catid});
       let option = {
@@ -97,7 +149,7 @@ class InterfaceList extends Component {
   };
 
   // 更新分类简介
-  handleChangeInterfaceCat = (desc, name) => {
+  handleChangeInterfaceCat = (desc: string, name: string) => {
     let params = {
       catid: this.state.catid,
       name: name,
@@ -115,7 +167,11 @@ class InterfaceList extends Component {
     });
   };
 
-  handleChange = (pagination, filters, sorter) => {
+  handleChange = (
+    pagination: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<InterfaceRow> | SorterResult<InterfaceRow>[]
+  ) => {
     this.setState({
       current: pagination.current || 1,
       sortedInfo: sorter,
@@ -128,7 +184,7 @@ class InterfaceList extends Component {
     this.handleRequest(this.props);
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: InterfaceListProps) {
     let _actionId = nextProps.match.params.actionId;
 
     if (this.actionId !== _actionId) {
@@ -142,7 +198,7 @@ class InterfaceList extends Component {
     }
   }
 
-  handleAddInterface = data => {
+  handleAddInterface = (data: AddInterfaceValues) => {
     data.project_id = this.props.curProject._id;
     axios.post('/api/interface/add', data).then(res => {
       if (res.data.errcode !== 0) {
@@ -151,11 +207,11 @@ class InterfaceList extends Component {
       message.success('接口添加成功');
       let interfaceId = res.data.data._id;
       this.props.history.push('/project/' + data.project_id + '/interface/api/' + interfaceId);
-      this.props.fetchInterfaceListMenu(data.project_id);
+      this.props.fetchInterfaceListMenu(data.project_id as string | number);
     });
   };
 
-  changeInterfaceCat = async (id, catid) => {
+  changeInterfaceCat = async (id: string | number, catid: string | number) => {
     const params = {
       id: id,
       catid
@@ -170,7 +226,7 @@ class InterfaceList extends Component {
     }
   };
 
-  changeInterfaceStatus = async value => {
+  changeInterfaceStatus = async (value: string) => {
     const params = {
       id: value.split('-')[0],
       status: value.split('-')[1]
@@ -198,17 +254,17 @@ class InterfaceList extends Component {
 
   render() {
     let tag = this.props.curProject.tag;
-    let tagFilter = tag.map(item => {
+    let tagFilter = tag.map((item: InterfaceTag) => {
       return {text: item.name, value: item.name};
     });
 
-    const columns = [
+    const columns: ColumnsType<InterfaceRow> = [
       {
         title: '接口名称',
         dataIndex: 'title',
         key: 'title',
         width: '20%',
-        render: (text, item) => {
+        render: (text: string, item: InterfaceRow) => {
           return (
             <Link to={'/project/' + item.project_id + '/interface/api/' + item._id}>
               <span className="path">{text}</span>
@@ -221,10 +277,11 @@ class InterfaceList extends Component {
         dataIndex: 'path',
         key: 'path',
         width: '34%',
-        render: (item, record) => {
-          const path = this.props.curProject.basepath + item;
+        render: (item: string, record: InterfaceRow) => {
+          const path = (this.props.curProject.basepath || '') + item;
+          const methodKey = (record.method ? record.method.toLowerCase() : 'get') as keyof typeof variable.METHOD_COLOR;
           let methodColor =
-            variable.METHOD_COLOR[record.method ? record.method.toLowerCase() : 'get'] ||
+            variable.METHOD_COLOR[methodKey] ||
             variable.METHOD_COLOR['get'];
           return (
             <div>
@@ -250,14 +307,14 @@ class InterfaceList extends Component {
         key: 'catid',
         width: '20%',
         className: 'interface-cat-column',
-        render: (item, record) => {
+        render: (item: string | number, record: InterfaceRow) => {
           return (
             <Select
               value={item + ''}
               className="select interface-cat-select"
               onChange={catid => this.changeInterfaceCat(record._id, catid)}
             >
-              {this.props.catList.map(cat => {
+              {this.props.catList.map((cat: InterfaceCategory) => {
                 return (
                   <Option key={cat.id + ''} value={cat._id + ''}>
                     <span>{cat.name}</span>
@@ -274,7 +331,7 @@ class InterfaceList extends Component {
         key: 'status',
         width: '14%',
         className: 'interface-status-column',
-        render: (text, record) => {
+        render: (text: string, record: InterfaceRow) => {
           const key = record.key;
           return (
             <Select
@@ -301,7 +358,7 @@ class InterfaceList extends Component {
             value: 'undone'
           }
         ],
-        onFilter: (value, record) => record.status.indexOf(value) === 0
+        onFilter: (value: boolean | Key, record: InterfaceRow) => record.status.indexOf(String(value)) === 0
       },
       {
         title: 'tag',
@@ -309,7 +366,7 @@ class InterfaceList extends Component {
         key: 'tag',
         width: '12%',
         className: 'interface-tags-column',
-        render: text => {
+        render: (text: string[]) => {
           let textMsg = text.length > 0 ? text.join('，') : '未设置';
           return (
             <Tooltip title={textMsg} placement="topLeft" overlayClassName="toolTip">
@@ -318,8 +375,8 @@ class InterfaceList extends Component {
           );
         },
         filters: tagFilter,
-        onFilter: (value, record) => {
-          return record.tag.indexOf(value) >= 0;
+        onFilter: (value: boolean | Key, record: InterfaceRow) => {
+          return record.tag.indexOf(String(value)) >= 0;
         }
       }
     ];
@@ -331,7 +388,7 @@ class InterfaceList extends Component {
       for (let i = 0; i < cat.length; i++) {
         if (cat[i]._id === this.state.catid) {
           intername = cat[i].name;
-          desc = cat[i].desc;
+          desc = cat[i].desc || '';
           break;
         }
       }
@@ -340,18 +397,18 @@ class InterfaceList extends Component {
     //   item.key = item._id;
     //   return item;
     // }) : [];
-    let data = [];
+    let data: InterfaceRow[] = [];
     let total = 0;
     const { params } = this.props.match;
     if (!params.actionId) {
       data = this.props.totalTableList;
       total = this.props.totalCount;
-    } else if (isNaN(params.actionId)) {
+    } else if (isNaN(Number(params.actionId))) {
       data = this.props.catTableList;
       total = this.props.count;
     }
 
-    data = data.map(item => {
+    data = data.map((item: InterfaceRow) => {
       item.key = item._id;
       return item;
     });
@@ -400,8 +457,8 @@ class InterfaceList extends Component {
             className="addcatmodal"
           >
             <AddInterfaceForm
-              catid={this.state.catid}
-              catdata={cat}
+              catid={this.state.catid ?? undefined}
+              catdata={cat || []}
               onCancel={() => this.setState({ visible: false })}
               onSubmit={this.handleAddInterface}
             />
@@ -412,4 +469,4 @@ class InterfaceList extends Component {
   }
 }
 
-export default InterfaceList;
+export default InterfaceList as unknown as ComponentType<RouteComponentProps<InterfaceListRoute>>;
