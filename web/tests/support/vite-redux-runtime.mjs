@@ -46,7 +46,9 @@ function reduxRuntimeStub() {
     ['redux-test-plugin', ['\0apimind-redux-test-plugin', pluginModule]],
     ['redux-test-antd', ['\0apimind-redux-test-antd', antdModule]],
     ['antd', ['\0apimind-redux-test-antd', antdModule]],
-    ['client/plugin.js', ['\0apimind-redux-test-plugin', pluginModule]]
+    ['client/plugin', ['\0apimind-redux-test-plugin', pluginModule]],
+    ['client/plugin.js', ['\0apimind-redux-test-plugin', pluginModule]],
+    ['client/plugin.ts', ['\0apimind-redux-test-plugin', pluginModule]]
   ]);
 
   return {
@@ -66,7 +68,7 @@ function reduxRuntimeStub() {
       return code
         .replace(/from ['"]axios['"]/g, "from 'redux-test-axios'")
         .replace(/from ['"]antd['"]/g, "from 'redux-test-antd'")
-        .replace(/from ['"]client\/plugin\.js['"]/g, "from 'redux-test-plugin'");
+        .replace(/from ['"]client\/plugin(?:\.[jt]s)?['"]/g, "from 'redux-test-plugin'");
     }
   };
 }
@@ -99,7 +101,7 @@ export async function createReduxRuntimeServer(options = {}) {
     resolve: {
       alias: [
         { find: /^antd$/, replacement: '\0apimind-redux-test-antd' },
-        { find: /^client\/plugin\.js$/, replacement: '\0apimind-redux-test-plugin' }
+        { find: /^client\/plugin(?:\.[jt]s)?$/, replacement: '\0apimind-redux-test-plugin' }
       ]
     },
     server: { middlewareMode: true }

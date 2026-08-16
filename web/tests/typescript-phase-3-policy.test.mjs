@@ -46,7 +46,7 @@ test('Phase 3 map defines a dependency-closed 88-module migration', async () => 
 });
 
 test('Phase 3 completed waves contain only typed targets and safe consumers', async () => {
-  const completedWave = Number(process.env.PHASE3_COMPLETED_WAVE || 0);
+  const completedWave = Number(process.env.PHASE3_COMPLETED_WAVE || 5);
   assert.ok(
     Number.isInteger(completedWave) && completedWave >= 0 && completedWave <= 5,
     'PHASE3_COMPLETED_WAVE must be an integer from 0 through 5'

@@ -36,7 +36,7 @@ test("an existing production output contains a deployable HTML entry", () => {
 });
 
 test("the react-is CommonJS shim uses the explicitly converted default export", () => {
-  const shim = readFileSync(resolve(root, "client/shims/react-is.js"), "utf8");
+  const shim = readFileSync(resolve(root, "client/shims/react-is.ts"), "utf8");
   assert.match(shim, /^import ReactIs from /m);
   assert.match(shim, /react-is\.production\.min\.js/);
   assert.doesNotMatch(shim, /react-is\.development\.js/);

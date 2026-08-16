@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -9,6 +9,13 @@ import {
   prepareRuntimeBuildInputs,
   validateRuntimeJavaScript
 } from '../scripts/typescript/runtime-inventory.mjs';
+import {
+  loadPhaseThreeModuleMap,
+  scanCompletedTargets,
+  validatePhaseThreeModuleMap
+} from '../scripts/typescript/phase3-module-policy.mjs';
+
+const repositoryWebRoot = resolve(new URL('../', import.meta.url).pathname);
 
 const sampleSources = [
   '../client/Application.js',
@@ -133,4 +140,30 @@ test('prepareRuntimeBuildInputs creates the generated plugin module on a clean c
   } finally {
     await rm(webRoot, { recursive: true, force: true });
   }
+});
+
+test('final runtime policy accepts only generated and extension JavaScript', async () => {
+  const allowlist = JSON.parse(await readFile(
+    join(repositoryWebRoot, 'scripts/typescript/runtime-js-allowlist.json'),
+    'utf8'
+  ));
+  const count = classification => allowlist.entries.filter(
+    entry => entry.classification === classification
+  ).length;
+  const phaseThreeMap = await loadPhaseThreeModuleMap(repositoryWebRoot);
+  const phaseThreeValidation = {
+    ...await validatePhaseThreeModuleMap(repositoryWebRoot, phaseThreeMap),
+    ...await scanCompletedTargets(repositoryWebRoot, phaseThreeMap, 5)
+  };
+
+  assert.equal(count('migration-target'), 0);
+  assert.equal(count('generated'), 1);
+  assert.equal(count('extension-compat'), 14);
+  assert.equal(phaseThreeMap.entries.length, 88);
+  assert.deepEqual(phaseThreeValidation.forwardWaveEdges, []);
+  assert.deepEqual(phaseThreeValidation.unmappedReachableJavaScript, []);
+  assert.deepEqual(phaseThreeValidation.unexpectedExcludedReachability, []);
+  assert.deepEqual(phaseThreeValidation.unsafeEscapeMatches, []);
+  assert.deepEqual(phaseThreeValidation.legacyCompletedSourceSpecifiers, []);
+  assert.deepEqual(phaseThreeValidation.excludedSourceChanges, []);
 });
