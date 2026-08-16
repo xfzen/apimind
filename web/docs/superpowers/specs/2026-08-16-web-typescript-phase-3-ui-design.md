@@ -135,9 +135,11 @@ plugin route injection, and breadcrumb behavior remain unchanged.
 
 Migrate Postman and all remaining Project descendants: activity, templates,
 tokens, request settings, mock settings, member settings, message settings,
-project data import/export, Interface, InterfaceCol, Docs, schema, mock, and
-large editing modules. Project prerequisites imported by Postman are already
-typed in Wave 3.
+project data import/export, InterfaceList, InterfaceCol implementation modules,
+Docs, schema, mock, and large editing modules. Project prerequisites imported
+by Postman are already typed in Wave 3. `InterfaceCaseContent` and the
+`Interface` route selector remain in Wave 5 because the former intentionally
+loads Postman through the shared component barrel.
 
 Domain types include only fields observed by the reducer contract, component,
 request body, renderer, or test fixture. Cross-domain values remain separate
@@ -146,10 +148,11 @@ unless the same contract is demonstrably shared.
 ### 4.5 Wave 5: barrels, routing, and application integration
 
 Migrate `client/components/index.js`, `client/containers/index.js`, the Project
-route shell, `Application`, and any remaining shell integration modules. The
-barrels are migrated only after all exports they expose are typed. This wave
-reuses the transport, Redux, routing, shared UI, and domain contracts
-established earlier instead of introducing broad local escape types.
+route shell, `InterfaceCaseContent`, the `Interface` route selector,
+`Application`, and any remaining shell integration modules. The barrels are
+migrated only after all exports they expose are typed. This wave reuses the
+transport, Redux, routing, shared UI, and domain contracts established earlier
+instead of introducing broad local escape types.
 
 Large components remain structurally intact unless a tiny extracted type guard
 or pure helper is required to express an existing runtime boundary. Extraction
