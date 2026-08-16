@@ -19,7 +19,21 @@ const migratedModulePaths = new Set(
     'common/sanitize.js',
     'common/schema-transformTo-table.js',
     'common/utils.js',
-    'common/validators.js'
+    'common/validators.js',
+    'client/reducer/create.js',
+    'client/reducer/middleware/messageMiddleware.js',
+    'client/reducer/modules/addInterface.js',
+    'client/reducer/modules/docs.js',
+    'client/reducer/modules/follow.js',
+    'client/reducer/modules/group.js',
+    'client/reducer/modules/interface.js',
+    'client/reducer/modules/interfaceCol.js',
+    'client/reducer/modules/menu.js',
+    'client/reducer/modules/mockCol.js',
+    'client/reducer/modules/news.js',
+    'client/reducer/modules/project.js',
+    'client/reducer/modules/reducer.js',
+    'client/reducer/modules/template.js'
   ].map(relativePath => path.resolve(webRoot, relativePath))
 );
 
