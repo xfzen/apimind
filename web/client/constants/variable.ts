@@ -1,5 +1,7 @@
 export const PAGE_LIMIT = 10; // 默认每页展示10条数据
 export const NAME_LIMIT = 100; // 限制名称的字符长度(中文算两个长度)
+import type { HttpMethod, HttpMethodConfig } from '../types/runtime';
+
 export const HTTP_METHOD = {
     'GET': {
       request_body: false,
@@ -29,7 +31,7 @@ export const HTTP_METHOD = {
       request_body: true,
       default_tab: 'body'
     }
-  };
+  } satisfies Record<HttpMethod, HttpMethodConfig>;
 export const PROJECT_COLOR = {
     blue: '#2395f1',
     green: '#00a854',

@@ -116,13 +116,17 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
+      {
+        find: /^(?:.*\/)?constants\/variable\.js$/,
+        replacement: path.resolve(__dirname, 'client/constants/variable.ts')
+      },
       { find: 'client', replacement: path.resolve(__dirname, 'client') },
       { find: 'common', replacement: path.resolve(__dirname, 'common') },
       { find: 'exts', replacement: path.resolve(__dirname, 'exts') },
       // Use Sass Embedded implementation for better performance and to avoid legacy-JS-API warnings
       { find: 'sass', replacement: 'sass-embedded' },
       { find: /^axios-runtime$/, replacement: path.resolve(__dirname, 'node_modules/axios/index.js') },
-      { find: /^axios$/, replacement: path.resolve(__dirname, 'client/utils/request.js') },
+      { find: /^axios$/, replacement: path.resolve(__dirname, 'client/utils/request.ts') },
       { find: /^moment$/, replacement: path.resolve(__dirname, 'client/shims/moment.js') },
       { find: 'react-is', replacement: path.resolve(__dirname, 'client/shims/react-is.js') }
     ]

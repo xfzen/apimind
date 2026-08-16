@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url)));
-const requestSource = readFileSync(new URL('../client/utils/request.js', import.meta.url), 'utf8');
+const requestSource = readFileSync(new URL('../client/utils/request.ts', import.meta.url), 'utf8');
 const timelineSource = readFileSync(
   new URL('../client/components/TimeLine/TimeLine.js', import.meta.url),
   'utf8'

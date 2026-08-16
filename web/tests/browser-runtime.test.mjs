@@ -12,7 +12,7 @@ import {
 } from '../scripts/typescript/runtime-inventory.mjs';
 
 const root = resolve(new URL('../', import.meta.url).pathname);
-const requestModule = resolve(root, 'client/utils/request.js');
+const requestModule = resolve(root, 'client/utils/request.ts');
 const allowlistPath = resolve(root, 'scripts/typescript/runtime-js-allowlist.json');
 const outDir = join(tmpdir(), `apimind-web-runtime-${process.pid}`);
 

@@ -3,8 +3,12 @@
 // - withCredentials enabled so cross-site cookies are sent when CORS allows it
 
 import realAxios from 'axios-runtime';
+import type { AxiosInstance, AxiosStatic } from 'axios';
 
-function getApiBase() {
+type LegacyAxiosInstance = AxiosInstance &
+  Pick<AxiosStatic, 'CancelToken' | 'isCancel' | 'all' | 'spread'>;
+
+export function getApiBase(): string {
   // Prefer build-time injection. Avoid browser `process.env`, which can be
   // polluted by polyfills and bypass the dev proxy.
   const envBase = typeof __YAPI_API_BASE__ !== 'undefined' ? __YAPI_API_BASE__ : '';
@@ -21,7 +25,7 @@ const baseURL = getApiBase();
 const instance = realAxios.create({
   baseURL, // keeps relative '/api/*' paths working against another origin
   withCredentials: true
-});
+}) as LegacyAxiosInstance;
 
 // Preserve axios helpers when needed
 instance.CancelToken = realAxios.CancelToken;
