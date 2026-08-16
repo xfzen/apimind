@@ -3,25 +3,36 @@
 ## 1. Objective
 
 Migrate all 85 remaining first-party runtime modules classified as
-`migration-target` from JavaScript to strict TypeScript in one Phase 3
-delivery. Preserve current runtime behavior while making the complete
-first-party Web application statically checkable from the typed Redux and API
-boundaries established in Phases 0-2.
+`migration-target`, plus the three first-party JavaScript modules in their
+production import closure, to strict TypeScript in one Phase 3 delivery. The
+three closure modules are `client/components/index.js`,
+`client/containers/index.js`, and `client/shims/tui-editor.js`. Preserve current
+runtime behavior while making the complete production-entrypoint closure of
+the first-party Web application statically checkable from the typed Redux and
+API boundaries established in Phases 0-2.
 
 The accepted baseline is commit `fd06247`. At that baseline the production
 runtime inventory contains 100 JavaScript modules: 85 `migration-target`, one
-`generated`, and 14 `extension-compat`. Phase 3 succeeds when
-`migration-target` reaches zero without changing the other two
-classifications.
+`generated`, and 14 `extension-compat`. A repository import-graph review also
+finds the three closure modules above, which the sourcemap-derived inventory
+does not report. Phase 3 therefore migrates 88 modules. It succeeds when
+`migration-target` reaches zero, no unapproved first-party JavaScript remains
+reachable from a production entrypoint, and the generated and extension
+classifications remain unchanged.
 
 ## 2. Scope
 
 Phase 3 includes every entry classified as `migration-target` in
-`web/scripts/typescript/runtime-js-allowlist.json` at commit `fd06247`.
-This includes:
+`web/scripts/typescript/runtime-js-allowlist.json` at commit `fd06247`, plus the
+three closure modules named in the objective. A canonical
+`scripts/typescript/phase3-module-map.json` records all 88 legacy `.js` paths,
+their `.ts` or `.tsx` targets, and their implementation wave. The AVA loader,
+wave-boundary policy test, and final acceptance checks consume that map instead
+of maintaining independent path lists. This includes:
 
 - application shell and routing;
-- six client compatibility shims;
+- seven client compatibility shims, including the production-reachable
+  `tui-editor` adapter;
 - `client/plugin.js`;
 - shared presentational and form components;
 - User, Follows, Templates, Home, and AddProject containers;
@@ -35,9 +46,22 @@ Files containing JSX migrate to `.tsx`. Runtime modules without JSX migrate to
 are changed only where an exact import or assertion must follow a renamed
 module.
 
+The sourcemap runtime inventory is not the sole scope authority because it can
+omit tree-shaken barrels and conditionally unreachable modules. A first-party
+import-graph check starts from the production entry `client/index.jsx`, follows
+static imports, re-exports, `require` calls, and literal dynamic imports, and
+verifies the canonical map's dependency closure. Strongly connected modules
+form an atomic migration unit and must be assigned to the same wave.
+
 ## 3. Non-goals
 
 - Do not modify or migrate source under `web/exts/`.
+- Do not migrate the 18 first-party JavaScript modules that are outside the
+  accepted production-entrypoint closure at the baseline. They are listed in
+  Appendix A and retained as an explicit Phase 4 inventory. If the import-graph
+  check proves that a migrated production module depends on one, implementation
+  stops and this design's scope and expected counts must be revised before the
+  affected wave begins.
 - Do not replace class components with functions or hooks.
 - Do not remove or reorder decorators, lifecycle methods, or higher-order
   components.
@@ -56,13 +80,18 @@ module.
 ## 4. Delivery architecture
 
 Phase 3 is one feature branch and one final integration decision, implemented
-as five dependency-ordered waves. Each wave receives focused tests, strict
-type checking, a production build, review, and an isolated commit. The runtime
-allowlist is accepted only after all five waves are complete.
+as five dependency-closed waves. The canonical module map is topologically
+validated: a migrated module may depend only on an earlier wave, its own wave,
+the typed generated-module declaration, a third-party package, or an approved
+extension boundary. If an edge points to a later wave, the provider moves
+earlier or the consumer moves later before migration begins. Each wave receives
+focused tests, strict type checking, a production build, review, and an isolated
+commit. The runtime allowlist is accepted only after all five waves are
+complete.
 
 ### 4.1 Wave 1: foundation and adapters
 
-Migrate the six client shims, `client/plugin.js`, pure data/configuration
+Migrate the seven client shims, `client/plugin.js`, pure data/configuration
 modules, and low-coupling non-visual helpers. This wave establishes typed
 contracts for:
 
@@ -73,46 +102,54 @@ contracts for:
   adjacent pure values.
 
 The generated `client/plugin-module.js` remains JavaScript and retains the
-`generated` classification.
+`generated` classification. A narrow `client/plugin-module.d.ts` declaration
+describes its promise and registry shape so generated JavaScript does not leak
+`any` into `client/plugin.ts`.
 
 ### 4.2 Wave 2: shared UI components
 
-Migrate reusable components used across multiple domains, including loading,
-labels, navigation, breadcrumbs, footer, error/empty states, confirmation,
-editor, schema, modal Postman, project cards, timeline, docs helpers, and other
-shared controls.
+Migrate leaf reusable components used across multiple domains, including
+loading, labels, navigation, breadcrumbs, footer, error/empty states,
+confirmation, editor, schema, project cards, timeline, docs helpers, and other
+shared controls that do not depend on a later container. Project-dependent
+Postman controls and the `client/components/index.js` barrel remain in later
+waves.
 
 Shared prop or callback types move to `client/types/` only when at least three
 runtime modules consume the same stable structure. Single-component types stay
 beside the component.
 
-### 4.3 Wave 3: shell and light domains
+### 4.3 Wave 3: light domains and Project prerequisites
 
-Migrate `Application`, authentication wrapping, Header/Search, User routing,
-Follows, Templates, GroupLog, Home, and AddProject. These modules consume the
-typed `RootState`, user selectors, Redux action contracts, and typed shared UI
-from earlier waves.
+Migrate authentication wrapping, Header/Search, User routing, Follows,
+Templates, GroupLog, Home, AddProject, Group pages, and the Project environment
+and modal prerequisites required by Postman. These modules consume the typed
+`RootState`, user selectors, Redux action contracts, and typed shared UI from
+earlier waves. `Application`, `Project`, and the two index barrels remain in the
+final integration wave.
 
 Routing, login-state loading, authentication redirects, confirmation dialogs,
 plugin route injection, and breadcrumb behavior remain unchanged.
 
-### 4.4 Wave 4: Group and Project perimeter
+### 4.4 Wave 4: Project features
 
-Migrate Group pages and Project perimeter domains: group list, settings,
-members, project list, Project route shell, activity, templates, tokens,
-request settings, mock settings, member settings, message settings, project
-data import/export, and environment routing.
+Migrate Postman and all remaining Project descendants: activity, templates,
+tokens, request settings, mock settings, member settings, message settings,
+project data import/export, Interface, InterfaceCol, Docs, schema, mock, and
+large editing modules. Project prerequisites imported by Postman are already
+typed in Wave 3.
 
 Domain types include only fields observed by the reducer contract, component,
 request body, renderer, or test fixture. Cross-domain values remain separate
 unless the same contract is demonstrably shared.
 
-### 4.5 Wave 5: Project core
+### 4.5 Wave 5: barrels, routing, and application integration
 
-Migrate the remaining Interface, InterfaceCol, Docs, Postman, environment,
-schema, mock, and large editing modules. This wave reuses the transport,
-Redux, routing, shared UI, and domain contracts established earlier instead of
-introducing broad local escape types.
+Migrate `client/components/index.js`, `client/containers/index.js`, the Project
+route shell, `Application`, and any remaining shell integration modules. The
+barrels are migrated only after all exports they expose are typed. This wave
+reuses the transport, Redux, routing, shared UI, and domain contracts
+established earlier instead of introducing broad local escape types.
 
 Large components remain structurally intact unless a tiny extracted type guard
 or pure helper is required to express an existing runtime boundary. Extraction
@@ -187,10 +224,18 @@ recovery unless the current module already performs that behavior.
 First-party runtime imports move to extensionless specifiers. There is no
 generic missing-JavaScript-to-TypeScript resolver.
 
-The AVA TypeScript registration hook uses an exact list of the 85 Phase 3
-paths. Vite aliases are added only for explicit legacy `.js` imports that
-remain in deferred extension code. Existing Phase 1 and Phase 2 aliases remain
-narrow and ordered before broad `client` and `common` aliases.
+The AVA TypeScript registration hook consumes the canonical 88-entry module
+map. Each legacy `.js` path maps explicitly to its `.ts` or `.tsx` target; the
+hook registers compilers for both extensions and transpiles TSX with the
+classic React JSX runtime, legacy decorators enabled, and
+`useDefineForClassFields: false`. A loader regression test covers `.ts`, `.tsx`,
+decorators, and rejection of paths absent from the map. There is no implicit
+`.js` to `.ts` fallback.
+
+Vite aliases are added only for explicit legacy `.js` imports that remain in
+deferred extension code, including any extension import of the migrated
+`tui-editor` shim. Existing Phase 1 and Phase 2 aliases remain narrow and
+ordered before broad `client` and `common` aliases.
 
 The 14 `extension-compat` files remain JavaScript, source-identical, and outside
 strict TypeScript checking. CSS/SCSS, images, fonts, dynamic imports, and public
@@ -212,8 +257,11 @@ No broad dependency refresh is part of Phase 3.
 ### 9.1 Test-first wave contracts
 
 Each wave starts with a failing policy or behavioral test proving that the
-target TypeScript modules or named contracts do not yet exist. Tests then lock
-the current behavior appropriate to the wave:
+target TypeScript modules or named contracts do not yet exist. A module-map
+policy test also fails when a wave imports a first-party JavaScript module from
+a later wave or when the production-entrypoint closure contains an unmapped
+first-party JavaScript module. Tests then lock the current behavior appropriate
+to the wave:
 
 - pure modules: inputs, outputs, mutation, defaults, and exceptions;
 - shared UI: conditional rendering, displayed state, event callbacks, and
@@ -225,14 +273,20 @@ the current behavior appropriate to the wave:
 - Project core: request construction, form serialization, editor/schema/mock
   integration, and current imperative DOM behavior.
 
-Vite SSR tests use exact virtual boundaries for browser-only dependencies.
-Production Vite and browser tests continue to exercise real resolution.
+Node/AVA covers pure modules, Redux mapping, request construction, and other
+behavior that does not require a browser DOM. UI rendering, events, lifecycle
+timing, imperative editor mounting, and form interaction use the existing Vite
+fixture plus Playwright/Chrome-CDP harness; Phase 3 does not add a second DOM or
+React renderer. Vite SSR tests use exact virtual boundaries only for
+browser-only dependencies. Production Vite and browser tests continue to
+exercise real resolution.
 
 ### 9.2 Per-wave verification
 
 Before each wave commit:
 
 - focused Node and/or AVA tests pass;
+- the canonical module map and wave dependency-closure policy pass;
 - strict TypeScript reports zero diagnostics;
 - the production Vite build passes;
 - explicit first-party `.js` imports for migrated modules are absent;
@@ -255,11 +309,18 @@ process, and ports.
 
 Phase 3 is complete only when all of the following are true:
 
-- all 85 baseline `migration-target` `.js` files are removed;
+- all 85 baseline `migration-target` `.js` files and the three additional
+  first-party closure `.js` files are removed;
 - matching `.ts` or `.tsx` runtime modules exist;
+- the canonical module map contains exactly 88 unique source/target mappings,
+  and every wave is dependency-closed;
 - the runtime inventory contains zero `migration-target`, one `generated`, and
   14 `extension-compat` JavaScript modules;
 - inventory `violations` and `staleEntries` are empty;
+- the production-entrypoint import graph contains no reachable first-party
+  JavaScript except `client/plugin-module.js` and approved `exts/` boundaries;
+- the 18 baseline non-runtime first-party JavaScript modules in Appendix A are
+  source-identical and remain outside the production-entrypoint closure;
 - all migrated production modules contain zero `any`, zero `@ts-ignore`, and
   zero `@ts-nocheck` matches;
 - public documentation, full Node, full AVA, lint, strict typecheck, production
@@ -283,3 +344,33 @@ Unrelated product and architecture changes remain outside this phase.
 
 Repository instructions prohibit subagents, so design, implementation, review,
 and verification remain in the primary session.
+
+## Appendix A: Explicit non-runtime JavaScript inventory
+
+The following baseline first-party JavaScript modules are outside the accepted
+production-entrypoint closure and are not Phase 3 migration targets:
+
+- `client/builtins/pluginRegistry.js`;
+- `client/components/Docs/DocToc.js`;
+- `client/components/Docs/DocTree.js`;
+- `client/components/Docs/MarkdownOutline.js`;
+- `client/components/Docs/MilkdownEditor.js`;
+- `client/components/MockDoc/MockDoc.js`;
+- `client/containers/DevTools/DevTools.js`;
+- `client/containers/Group/ProjectList/UpDateModal.js`;
+- `client/containers/News/News.js`;
+- `client/containers/News/NewsList/NewsList.js`;
+- `client/containers/News/NewsTimeline/NewsTimeline.js`;
+- `common/config.js`;
+- `common/createContext.js`;
+- `common/formats.js`;
+- `common/lib.js`;
+- `common/markdown.js`;
+- `common/mergeJsonSchema.js`;
+- `common/plugin.js`.
+
+This list is an explicit exclusion, not evidence that the files are safe to
+delete. If the defined production import-graph check reaches one,
+implementation stops and the Phase 3 design and module-map count must be
+re-reviewed before work continues. Deletion or product re-enablement requires a
+separate review.
