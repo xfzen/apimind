@@ -20,10 +20,13 @@ test('TypeScript compiler and direct declaration dependencies are pinned', async
   assert.equal(pkg.devDependencies['@types/react-router-dom'], '5.3.3');
   assert.equal(pkg.devDependencies['@types/redux-promise'], '0.5.32');
   assert.equal(pkg.devDependencies['@types/core-decorators'], '0.20.0');
+  assert.equal(pkg.devDependencies['@types/crypto-js'], '4.2.2');
+  assert.equal(pkg.devDependencies['@types/md5'], '2.3.6');
   assert.equal(pkg.devDependencies['@types/prop-types'], '15.7.15');
   assert.equal(pkg.devDependencies['@types/underscore'], '1.13.0');
   assert.equal(pkg.devDependencies['@types/node'], '22.20.0');
   assert.equal(pkg.devDependencies['@playwright/test'], '1.62.1');
+  assert.equal(pkg.dependencies.dompurify, '3.4.13');
   assert.equal(pkg.scripts.typecheck, 'tsc --project tsconfig.json --pretty false');
 });
 

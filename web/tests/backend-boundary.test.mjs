@@ -4,6 +4,8 @@ import test, { after, before } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
+import { mockRuntimeStub } from './support/vite-runtime.mjs';
+
 const webRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const originalApiBase = process.env.YAPI_API_BASE;
 
@@ -17,6 +19,7 @@ before(async () => {
     root: webRoot,
     configFile: resolve(webRoot, 'vite.config.mjs'),
     logLevel: 'silent',
+    plugins: [mockRuntimeStub()],
     server: { middlewareMode: true }
   });
   backend = await server.ssrLoadModule('/client/utils/backend.ts');

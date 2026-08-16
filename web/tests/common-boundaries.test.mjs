@@ -4,6 +4,8 @@ import test, { after, before } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
+import { mockRuntimeStub } from './support/vite-runtime.mjs';
+
 const webRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
 
 let server;
@@ -18,20 +20,7 @@ before(async () => {
     root: webRoot,
     configFile: resolve(webRoot, 'vite.config.mjs'),
     logLevel: 'silent',
-    plugins: [
-      {
-        name: 'phase-one-mock-runtime-stub',
-        enforce: 'pre',
-        resolveId(id) {
-          return id === '@apimind/mockjs-safe' ? '\0phase-one-mock-runtime' : null;
-        },
-        load(id) {
-          return id === '\0phase-one-mock-runtime'
-            ? 'export default { mock: value => value };'
-            : null;
-        }
-      }
-    ],
+    plugins: [mockRuntimeStub()],
     server: { middlewareMode: true }
   });
   [postman, sanitizer, schemaTable, utils, validators] = await Promise.all([

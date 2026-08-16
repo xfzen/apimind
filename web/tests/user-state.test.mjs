@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import test, { after, before } from 'node:test';
 import { createServer } from 'vite';
 
+import { mockRuntimeStub } from './support/vite-runtime.mjs';
+
 const root = resolve(new URL('../', import.meta.url).pathname);
 
 let server;
@@ -34,6 +36,7 @@ before(async () => {
     root,
     configFile: resolve(root, 'vite.config.mjs'),
     logLevel: 'silent',
+    plugins: [mockRuntimeStub()],
     server: { middlewareMode: true }
   });
   userModule = await server.ssrLoadModule('/client/reducer/modules/user.ts');
