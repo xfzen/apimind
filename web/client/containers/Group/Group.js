@@ -9,7 +9,7 @@ import { connect } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router-dom';
 import { Tabs, Layout, Spin } from 'antd';
 const { Content, Sider } = Layout;
-import { fetchNewsData } from '../../reducer/modules/news.js';
+import { fetchNewsData } from '../../reducer/modules/news';
 import {
   setCurrGroup
 } from '../../reducer/modules/group';

@@ -10,7 +10,7 @@ import URL from 'url';
 
 const Dragger = Upload.Dragger;
 import { saveImportData } from '../../../../reducer/modules/interface';
-import { fetchUpdateLogData } from '../../../../reducer/modules/news.js';
+import { fetchUpdateLogData } from '../../../../reducer/modules/news';
 import { handleSwaggerUrlData } from '../../../../reducer/modules/project';
 import { createExportModules } from './exporters.js';
 import { createImportModules } from './importers.js';

@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Input, Button, message, Card, Alert, Modal, Switch, Row, Col, Tooltip } from 'antd';
 import Icon from 'client/shims/antdIcon';
-import { fetchNewsData } from '../../../reducer/modules/news.js';
+import { fetchNewsData } from '../../../reducer/modules/news';
 import {
   changeGroupMsg,
   fetchGroupList,

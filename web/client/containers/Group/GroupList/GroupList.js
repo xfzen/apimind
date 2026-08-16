@@ -10,7 +10,7 @@ const { TextArea } = Input;
 const Search = Input.Search;
 import UsernameAutoComplete from '../../../components/UsernameAutoComplete/UsernameAutoComplete.js';
 import GuideBtns from '../../../components/GuideBtns/GuideBtns.js';
-import { fetchNewsData } from '../../../reducer/modules/news.js';
+import { fetchNewsData } from '../../../reducer/modules/news';
 import { fetchGroupList, setCurrGroup, fetchGroupMsg } from '../../../reducer/modules/group.js';
 import _ from 'underscore';
 

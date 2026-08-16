@@ -4,12 +4,12 @@ import group from './group.js';
 import project from './project.js';
 import inter from './interface.js';
 import interfaceCol from './interfaceCol.js';
-import news from './news.js';
+import news from './news';
 import addInterface from './addInterface';
 import menu from './menu';
 import follow from './follow';
-import mockCol from './mockCol.js';
-import template from './template.js';
+import mockCol from './mockCol';
+import template from './template';
 import docs from './docs';
 
 import { emitHook } from 'client/plugin.js';
