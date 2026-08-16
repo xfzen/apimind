@@ -121,6 +121,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, 'client/constants/variable.ts')
       },
       {
+        find: /^client\/common\.js$/,
+        replacement: path.resolve(__dirname, 'client/common.ts')
+      },
+      {
+        find: /^(?:.*\/)?common\/mock-extra\.js$/,
+        replacement: path.resolve(__dirname, 'common/mock-extra.ts')
+      },
+      {
         find: /^(?:.*\/)?common\/postmanLib\.js$/,
         replacement: path.resolve(__dirname, 'common/postmanLib.ts')
       },

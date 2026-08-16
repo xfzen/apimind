@@ -6,7 +6,7 @@ import { Table, Row, Col, Tooltip, message } from 'antd';
 import Icon from 'client/shims/antdIcon';
 import { Link } from 'react-router-dom';
 import AceEditor from 'client/components/AceEditor/AceEditor';
-import { formatTime, safeArray } from '../../../../common.js';
+import { formatTime, safeArray } from '../../../../common.ts';
 import ErrMsg from '../../../../components/ErrMsg/ErrMsg.js';
 import variable from '../../../../constants/variable';
 import constants from '../../../../constants/variable.js';

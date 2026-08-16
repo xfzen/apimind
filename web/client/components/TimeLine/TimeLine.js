@@ -3,8 +3,8 @@ import { Timeline, Spin, Row, Col, Tag, Avatar, Button, Modal, AutoComplete } fr
 import Icon from 'client/shims/antdIcon';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { formatTime } from '../../common.js';
-import showDiffMsg from '../../../common/diff-view.js';
+import { formatTime } from '../../common.ts';
+import showDiffMsg from '../../../common/diff-view.ts';
 import variable from '../../constants/variable';
 import { Link } from 'react-router-dom';
 import { fetchNewsData, fetchMoreNews } from '../../reducer/modules/news.js';

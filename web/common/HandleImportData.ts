@@ -1,29 +1,41 @@
 import _ from 'underscore';
 import axios from 'axios';
+import type { ApiResponse } from '../client/types/api';
+import type {
+  ExistingCategory,
+  Identifier,
+  ImportApi,
+  ImportCategory,
+  ImportPayload,
+  ImportStateCallback,
+  MessageCallback
+} from './types/import-export';
 
 
 const isNode = typeof global == 'object' && global.global === global;
 
 export default async function handle(
-  res,
-  projectId,
-  selectCatid,
-  menuList,
-  basePath,
-  dataSync,
-  messageError,
-  messageSuccess,
-  callback,
-  token,
-  port
-) {
+  res: ImportPayload,
+  projectId: Identifier,
+  selectCatid: Identifier,
+  menuList: readonly ExistingCategory[],
+  basePath: string,
+  dataSync: string,
+  messageError: MessageCallback,
+  messageSuccess: MessageCallback,
+  callback: ImportStateCallback,
+  token: string,
+  port: number
+): Promise<void> {
 
-  const taskNotice = _.throttle((index, len)=>{
+  const taskNotice = _.throttle((index: number, len: number) => {
     messageSuccess(`正在导入，已执行任务 ${index+1} 个，共 ${len} 个`)
   }, 3000)
 
-  const handleAddCat = async cats => {
-    let catsObj = {};
+  const handleAddCat = async (
+    cats: ImportCategory[] | undefined
+  ): Promise<Record<string, ImportCategory> | false> => {
+    let catsObj: Record<string, ImportCategory> = {};
     if (cats && Array.isArray(cats)) {
       for (let i = 0; i < cats.length; i++) {
         let cat = cats[i];
@@ -43,9 +55,14 @@ export default async function handle(
             desc: cat.desc,
             token
           };
-          let result = await axios.post(apipath, data);
+          let result = await axios.post<ApiResponse<{ _id: Identifier }>>(apipath, data);
 
           if (result.data.errcode) {
+            messageError(result.data.errmsg);
+            callback({ showLoading: false });
+            return false;
+          }
+          if (!result.data.data) {
             messageError(result.data.errmsg);
             callback({ showLoading: false });
             return false;
@@ -57,7 +74,7 @@ export default async function handle(
     return catsObj;
   };
 
-  const handleAddInterface = async info => {
+  const handleAddInterface = async (info: ImportPayload): Promise<void> => {
     const cats = await handleAddCat(info.cats);
     if (cats === false) {
       return;
@@ -80,7 +97,7 @@ export default async function handle(
         projectApiPath = 'http://127.0.0.1:' + port + projectApiPath;
       }
 
-      await axios.post(projectApiPath, {
+      await axios.post<ApiResponse<unknown>>(projectApiPath, {
         id: projectId,
         basepath: info.basePath,
         token
@@ -89,7 +106,7 @@ export default async function handle(
 
     for (let index = 0; index < res.length; index++) {
       let item = res[index];
-      let data = Object.assign(item, {
+      let data: ImportApi = Object.assign(item, {
         project_id: projectId,
         catid: selectCatid
       });
@@ -115,13 +132,13 @@ export default async function handle(
           apipath = 'http://127.0.0.1:' + port + apipath;
         }
         data.dataSync = dataSync;
-        let result = await axios.post(apipath, data);
+        let result = await axios.post<ApiResponse<unknown[]>>(apipath, data);
         if (result.data.errcode) {
           successNum--;
           callback({ showLoading: false });
           messageError(result.data.errmsg);
         } else {
-          existNum = existNum + result.data.data.length;
+          existNum = existNum + (result.data.data ? result.data.data.length : 0);
         }
       } else {
         // 未开启同步功能
@@ -130,7 +147,7 @@ export default async function handle(
         if (isNode) {
           apipath = 'http://127.0.0.1:' + port + apipath;
         }
-        let result = await axios.post(apipath, data);
+        let result = await axios.post<ApiResponse<unknown>>(apipath, data);
         if (result.data.errcode) {
           successNum--;
           if (result.data.errcode == 40022) {
@@ -153,5 +170,5 @@ export default async function handle(
     }
   };
 
-  return await handleAddInterface(res);
+  await handleAddInterface(res);
 }

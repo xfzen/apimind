@@ -1,6 +1,6 @@
 import json5 from 'json5';
 import Mock from '@apimind/mockjs-safe';
-import { filter, utils as stringUtils } from './power-string.js';
+import { filter, PowerString, utils as stringUtils } from './power-string';
 import AjvDraft04 from 'ajv-draft-04';
 import * as ajvI18n from 'ajv-i18n';
 import type { ErrorObject } from 'ajv';
@@ -139,7 +139,9 @@ export function isJson(json: unknown): unknown | false {
 
 export function unbase64(base64Str: string): string {
   try {
-    return stringUtils.unbase64(base64Str);
+    return String(
+      stringUtils.unbase64.call(new PowerString(base64Str), base64Str)
+    );
   } catch (err) {
     return base64Str;
   }

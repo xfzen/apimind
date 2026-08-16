@@ -10,7 +10,7 @@ import { debounce } from '../../common';
 import constants from '../../constants/variable.js';
 import produce from 'immer';
 import { getProject, checkProjectName, copyProjectMsg } from '../../reducer/modules/project';
-import { trim } from '../../common.js';
+import { trim } from '../../common.ts';
 const confirm = Modal.confirm;
 
 @connect(

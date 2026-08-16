@@ -1,5 +1,5 @@
 import test from 'ava';
-import mockExtra from '../common/mock-extra.js';
+import mockExtra from '../common/mock-extra.ts';
 
 
 test('mock-extra', t=>{

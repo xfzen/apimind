@@ -8,7 +8,7 @@ import axios from 'axios';
 import ImportInterface from './ImportInterface';
 import { Input, Button, Modal, message, Tooltip, Tree, Form } from 'antd';
 import Icon from 'client/shims/antdIcon';
-import { arrayChangeIndex } from '../../../../common.js';
+import { arrayChangeIndex } from '../../../../common.ts';
 import _ from 'underscore'
 
 const FormItem = Form.Item;

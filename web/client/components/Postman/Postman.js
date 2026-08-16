@@ -6,7 +6,7 @@ import Collapse from 'client/shims/Collapse';
 import constants from '../../constants/variable.js';
 import AceEditor from 'client/components/AceEditor/AceEditor';
 import _ from 'underscore';
-import { deepCopyJson } from '../../common.js';
+import { deepCopyJson } from '../../common.ts';
 import axios from 'axios';
 import ModalPostman from '../ModalPostman/index.js';
 import './Postman.scss';

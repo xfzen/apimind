@@ -13,7 +13,7 @@ import {
   deleteGroup
 } from '../../../reducer/modules/group.js';
 const { TextArea } = Input;
-import { trim } from '../../../common.js';
+import { trim } from '../../../common.ts';
 import _ from 'underscore';
 import './GroupSetting.scss';
 const confirm = Modal.confirm;

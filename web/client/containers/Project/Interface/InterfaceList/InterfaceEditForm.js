@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import _ from 'underscore';
 import constants from '../../../../constants/variable.js';
-import { handlePath, nameLengthLimit } from '../../../../common.js';
+import { handlePath, nameLengthLimit } from '../../../../common.ts';
 import { changeEditStatus } from '../../../../reducer/modules/interface.js';
 import json5 from 'json5';
 import { message, Affix, Tabs, Modal } from 'antd';
