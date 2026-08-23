@@ -243,8 +243,8 @@ ecp/
 
 - `ecp/server` 与 `ecp/sdk/go` 是两个独立 Go module；服务端只能依赖公开 SDK，SDK 不得导入服务端 `internal`、配置、持久化或业务实现；
 - Connector 的版本化 wire types、错误码、签名/验签和 typed client 位于 `github.com/xfzen/ecp/sdk/go/connector/v1`。产品只能依赖该 SDK module 和 ECP HTTP API，不能通过相对路径或父仓库私有包集成；
-- 当前 ApiMind 根 `go.work` 固定 `use ./ecp/server`、`./ecp/sdk/go` 和 `./server` 完成单仓构建与联调；ApiMind `go.mod` 使用 `github.com/xfzen/ecp/sdk/go v0.0.0` 作为未发布工作区依赖标记，禁止提交本地 `replace`，生产构建和测试必须从仓库根工作区执行；
-- SDK 的稳定 module/import path 从本阶段开始生效，但本阶段不要求创建规范远程仓库、tag 或 module checksum。未来决定拆仓时，必须先发布 `sdk/go/v0.1.0`（或当时确认的首个正式版本），在 `GOWORK=off` 的干净临时 module 中通过官方 Go Proxy 的下载、checksum、编译和测试，再把 ApiMind 的 `v0.0.0` 升级为已发布版本并移除根工作区 ECP `use` 项；
+- 当前 ApiMind 根 `go.work` 固定 `use ./ecp/server`、`./ecp/sdk/go` 和 `./server` 完成单仓构建与联调；未发布 SDK 只由 workspace 解析，ApiMind `go.mod` 不伪造远程版本且禁止提交本地 `replace`，生产构建和测试必须从仓库根工作区执行；
+- SDK 的稳定 module/import path 从本阶段开始生效，但本阶段不要求创建规范远程仓库、tag 或 module checksum。未来决定拆仓时，必须先发布 `sdk/go/v0.1.0`（或当时确认的首个正式版本），在 `GOWORK=off` 的干净临时 module 中通过官方 Go Proxy 的下载、checksum、编译和测试，再向 ApiMind `go.mod` 加入已发布版本并移除根工作区 ECP `use` 项；
 - ECP 拆仓验收必须在只复制 `ecp/` 的干净目录中完成服务、SDK、UI、Compose、生成和测试，任何对父仓库 `server/`、`web/`、`deploy/` 或脚本的依赖都视为失败；
 - `ecp/server/docs/ecp.api` 是唯一 goctl HTTP 契约入口，导入 `docs/apis/*.api` 的分域类型；
 - `scripts/genapi.sh` 使用 `goctl api go -api docs/ecp.api -dir api`，并像 ApiMind 一样规范化契约文件尾部、删除不归生成器所有的 `api/etc` 与 `api/internal/config`；
