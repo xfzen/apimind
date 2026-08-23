@@ -41,6 +41,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: adminRead.ListDirectGroupMembersHandler(serverCtx),
 				},
 				{
+					// List service credential usage without secret material
+					Method:  http.MethodGet,
+					Path:    "/instances/:id/credentials",
+					Handler: adminRead.ListCredentialUsageHandler(serverCtx),
+				},
+				{
 					// Get instance security controls
 					Method:  http.MethodGet,
 					Path:    "/instances/:id/security",
@@ -84,6 +90,24 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/auth/sessions/:id/revoke",
 					Handler: adminWrite.RevokeSessionHandler(serverCtx),
+				},
+				{
+					// Create a scoped service credential
+					Method:  http.MethodPost,
+					Path:    "/credentials",
+					Handler: adminWrite.CreateCredentialHandler(serverCtx),
+				},
+				{
+					// Revoke a service credential
+					Method:  http.MethodPost,
+					Path:    "/credentials/:id/revoke",
+					Handler: adminWrite.RevokeCredentialHandler(serverCtx),
+				},
+				{
+					// Rotate a service credential
+					Method:  http.MethodPost,
+					Path:    "/credentials/:id/rotate",
+					Handler: adminWrite.RotateCredentialHandler(serverCtx),
 				},
 				{
 					// Create an ECP-managed direct group

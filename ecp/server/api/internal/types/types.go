@@ -124,9 +124,53 @@ type ConnectorResp struct {
 	DelegationKeySet DelegationKeySetResp `json:"delegation_key_set"`
 }
 
+type CreateCredentialReq struct {
+	EnterpriseID          string                `json:"enterprise_id"`
+	ApplicationID         string                `json:"application_id"`
+	ApplicationInstanceID string                `json:"application_instance_id"`
+	Name                  string                `json:"name"`
+	Scopes                []CredentialScopeItem `json:"scopes"`
+	LifetimeSeconds       int64                 `json:"lifetime_seconds"`
+}
+
 type CreateGroupReq struct {
 	EnterpriseID string `json:"enterprise_id"`
 	Name         string `json:"name"`
+}
+
+type CredentialIDReq struct {
+	ID string `path:"id"`
+}
+
+type CredentialResp struct {
+	ID                    string                `json:"id"`
+	EnterpriseID          string                `json:"enterprise_id"`
+	ApplicationID         string                `json:"application_id"`
+	ApplicationInstanceID string                `json:"application_instance_id"`
+	Name                  string                `json:"name"`
+	Secret                string                `json:"secret,optional"`
+	Scopes                []CredentialScopeItem `json:"scopes"`
+	Status                string                `json:"status"`
+	RotationLineage       string                `json:"rotation_lineage"`
+	ExpiresAt             int64                 `json:"expires_at"`
+	OverlapUntil          int64                 `json:"overlap_until,optional"`
+	LastUsedAt            int64                 `json:"last_used_at,optional"`
+	Version               uint64                `json:"version"`
+}
+
+type CredentialScopeItem struct {
+	ResourceType string   `json:"resource_type"`
+	ResourceID   string   `json:"resource_id"`
+	Actions      []string `json:"actions"`
+}
+
+type CredentialUsageReq struct {
+	EnterpriseID          string `form:"enterprise_id"`
+	ApplicationInstanceID string `path:"id"`
+}
+
+type CredentialUsageResp struct {
+	Credentials []CredentialResp `json:"credentials"`
 }
 
 type DelegationKeyItem struct {
@@ -351,6 +395,11 @@ type ResolveProductSessionResp struct {
 type RevokeSessionReq struct {
 	SessionID    string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
+}
+
+type RotateCredentialReq struct {
+	ID              string `path:"id"`
+	LifetimeSeconds int64  `json:"lifetime_seconds"`
 }
 
 type SecurityConfigReq struct {

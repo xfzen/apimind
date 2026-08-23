@@ -14,6 +14,7 @@ import "apis/connector.api"
 import "apis/identity.api"
 import "apis/auth.api"
 import "apis/access.api"
+import "apis/credential.api"
 
 @server (
 	group:  metaPublic
@@ -65,6 +66,10 @@ service ecp {
 	@doc "Get instance security controls"
 	@handler GetSecurityConfig
 	get /instances/:id/security (SecurityConfigReq) returns (SecurityConfigResp)
+
+	@doc "List service credential usage without secret material"
+	@handler ListCredentialUsage
+	get /instances/:id/credentials (CredentialUsageReq) returns (CredentialUsageResp)
 }
 
 @server (
@@ -120,6 +125,18 @@ service ecp {
 	@doc "Reconcile projected Casdoor policies"
 	@handler ReconcilePolicies
 	post /instances/:id/policies/reconcile (ReconcilePoliciesReq) returns (PolicyProjectionResp)
+
+	@doc "Create a scoped service credential"
+	@handler CreateCredential
+	post /credentials (CreateCredentialReq) returns (CredentialResp)
+
+	@doc "Rotate a service credential"
+	@handler RotateCredential
+	post /credentials/:id/rotate (RotateCredentialReq) returns (CredentialResp)
+
+	@doc "Revoke a service credential"
+	@handler RevokeCredential
+	post /credentials/:id/revoke (CredentialIDReq) returns (Empty)
 }
 
 @server (

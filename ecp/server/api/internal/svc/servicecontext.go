@@ -14,6 +14,7 @@ import (
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
 	connectorservice "github.com/xfzen/ecp/server/internal/service/connector"
+	credentialservice "github.com/xfzen/ecp/server/internal/service/credential"
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
 	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
@@ -41,6 +42,7 @@ type ServiceContext struct {
 	Policy         *policyservice.Service
 	SecurityConfig *securityconfigservice.Service
 	Connector      *connectorservice.Service
+	Credential     *credentialservice.Service
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
@@ -77,6 +79,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.Idempotency = idempotencyservice.New(persistence.NewIdempotencyStore(db))
 		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
 		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
+		ctx.Credential = credentialservice.New(persistence.NewCredentialStore(db), credentialservice.Config{})
 	}
 	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
 	ctx.CSRF = asRestMiddleware(apiMiddleware.NewCSRF().Handle)

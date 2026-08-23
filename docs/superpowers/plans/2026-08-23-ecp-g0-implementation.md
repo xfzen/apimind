@@ -995,7 +995,7 @@ Task 13 is blocked until the canonical `github.com/xfzen/ecp` repository exists 
 - Produces: `CredentialService.Create`, `Rotate`, `Revoke`, `Authenticate`, and `ListUsage`.
 - Raw credential material is returned once; persistence contains identifier, digest, scope, expiry, status, rotation lineage, and last use only.
 
-- [ ] **Step 1: Write one-time display and revocation tests**
+- [x] **Step 1: Write one-time display and revocation tests**
 
 ```go
 func TestCreateReturnsSecretOnceAndStoresDigest(t *testing.T) {
@@ -1011,23 +1011,23 @@ func TestCreateReturnsSecretOnceAndStoresDigest(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/credential -count=1`
 
 Expected: FAIL because CredentialService does not exist.
 
-- [ ] **Step 3: Implement explicit application/instance/resource/action scopes**
+- [x] **Step 3: Implement explicit application/instance/resource/action scopes**
 
 Reject cross-product credentials and delegated user operations. Rotation allows a short configured overlap and then irrevocably disables the prior credential.
 
-- [ ] **Step 4: Regenerate and run credential tests**
+- [x] **Step 4: Regenerate and run credential tests**
 
 Run: `cd ecp/server && ./scripts/gencontracts.sh && go test ./internal/service/credential ./tests/contracts -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit service credentials**
+- [x] **Step 5: Commit service credentials**
 
 ```bash
 git add ecp/server
