@@ -1,10 +1,12 @@
 # ApiMind 企业产品 Roadmap Spec
 
-**状态：** 待评审
+**状态：** 已确认
 
 **日期：** 2026-08-23
 
 **范围：** 产品方向、阶段优先级与产品门槛；不包含实施排期和任务拆分
+
+**G0 架构依据：** [Enterprise Control Plane Requirements & Technical Design](2026-08-23-enterprise-control-plane-spec.md)；[ApiMind Enterprise Connector Profile](2026-08-23-apimind-enterprise-connector-profile-spec.md)
 
 ## 1. 决策摘要
 
@@ -135,10 +137,10 @@ ApiMind 不以短期覆盖 Apifox、Postman 或 SwaggerHub 的全部能力为目
 
 ### 4.1 内置能力与扩展边界
 
-高频、标准、跨企业重复出现的能力由 ApiMind 官方内置：
+高频、标准、跨企业重复出现的能力由官方产品体系提供。其中身份、会话、企业授权、服务身份和统一审计由共享 Enterprise Control Plane 提供，ApiMind 只实现产品 Connector；Casdoor 直接承担 IAM 和优先采用的 Casbin 授权引擎：
 
-- Auth Provider：LDAP、OIDC 及后续标准身份协议；
-- User Administration：用户创建、禁用、会话和角色管理；
+- Enterprise Identity：通过 Casdoor 提供本地账号、LDAP、OIDC、SAML 及 MFA；
+- User Administration：通过共享 Admin UI 提供用户、禁用、产品会话和角色管理；
 - Contract Source & Sync：来源绑定、比较、合并、报告和定时同步；
 - Auth Profile 与 Secret Reference：标准鉴权和凭据安全；
 - Notification Channel：Webhook 与常用企业消息渠道；
@@ -242,11 +244,13 @@ Roadmap 不承诺日期。每一门槛和阶段以前一项的产品验收结果
 
 #### G0.2 企业身份与用户生命周期
 
-- 保留本地账号，并支持管理员创建、禁用、重置用户和关闭开放注册；
-- 基础企业配置提供 LDAP/LDAPS 与通用 OIDC；
-- 外部身份以稳定的 `provider + external_subject` 映射到本地用户，避免邮箱或用户名变化产生重复身份；
-- 管理员可以查看和撤销活跃会话，身份停用后新的会话和长期凭据立即失效或进入可控撤销流程；
-- Auth Provider 采用可扩展边界，允许按目标企业要求接入 SAML、SCIM、CAS、Trusted Header/Auth Proxy 或 Group Sync。
+- G0 参考部署直接使用 Casdoor 管理 Organization、User、本地账号、MFA、上游 IdP 和 SSO，不在 ApiMind 内重复实现认证系统；
+- 企业 LDAP/LDAPS、OIDC、SAML 等身份源统一接入 Casdoor，ApiMind 和后续产品通过标准 OIDC/OAuth 与受控 Casdoor Adapter 使用；
+- 外部身份以 Casdoor稳定用户标识映射到 Enterprise Control Plane 的内部 Principal，再显式映射旧 YApi 用户；邮箱、用户名和 DN 不作为授权主键；
+- 共享控制面建立可列出、可撤销的产品会话；身份停用后产品会话和个人长期凭据进入立即撤销流程；
+- 默认采用预创建或邀请模式，未知身份拒绝；JIT 必须显式启用且不能自动授予业务资源权限；
+- 企业身份、Admin UI 和控制服务由多个产品共享，ApiMind 不单独开发一套企业后台；
+- SCIM、Trusted Header/Auth Proxy、复杂 Group Sync 等按目标企业要求条件性进入 G0。
 
 #### G0.3 RBAC 与数据暴露控制
 
@@ -273,7 +277,7 @@ G0 不等于为所有企业一次性实现全部高级能力。每个目标企�
 
 | 配置 | 基础企业配置 | 条件性企业配置 |
 | --- | --- | --- |
-| 身份 | 本地账号、OIDC、LDAP/LDAPS | SAML、SCIM、CAS、Trusted Header、Group Sync |
+| 身份 | Casdoor、本地账号、OIDC/LDAP/LDAPS、产品会话 | SCIM、Trusted Header、复杂 Group Sync；目标客户要求时补充其他协议 |
 | 权限 | 固定 workspace/project 角色 | 自定义角色、跨 workspace 组织治理 |
 | 审计 | 本地查询和导出 | SIEM/Audit Sink、定制保留策略 |
 | 凭据 | 产品内 Secret、服务账号和 Project Token | 外部 Vault/KMS、企业 CA 或硬件密钥 |
@@ -287,12 +291,12 @@ G0 不等于为所有企业一次性实现全部高级能力。每个目标企�
 
 1. 实例管理员可以在隔离环境完成安装、配置校验和版本确认，核心功能不依赖外部云；
 2. 运维人员可以完成完整数据导出、备份、恢复、升级失败回滚和恢复后数据校验；
-3. 企业可以接入真实 LDAP/LDAPS 或 OIDC，并验证创建、登录、停用和会话撤销；
+3. 企业可以通过 Casdoor 接入真实 LDAP/LDAPS 或 OIDC，并验证创建、登录、内部 Principal 映射、停用和产品会话撤销；
 4. workspace/project 权限在 Web、HTTP 和 MCP 中一致，公开分享和敏感导出可以被实例策略关闭；
 5. 服务账号可以使用有限 Project Token 执行授权操作，轮换或撤销后旧凭据立即失效；
 6. 身份、权限、凭据和关键数据写入可以查询和导出审计，普通管理员不能篡改记录；
 7. Secret 和原始 Token 不会出现在页面、日志、报告、导出或错误响应中；
-8. 未启用企业身份的中小团队仍可使用本地账号完成现有核心业务流；
+8. 中小团队可以使用 Casdoor 本地账号和最小控制面组合完成现有核心业务流，不要求额外部署企业 IdP；
 9. 已承诺目标企业的条件性配置全部满足其采购、安全和生产清单。
 
 ### G1：企业替换与持续使用门槛
@@ -435,7 +439,7 @@ Network Profile  管 HTTP Proxy、CA、Client Certificate、超时与网络策�
 - WebSocket、gRPC、Dubbo、MQTT、TCP 和 Serial；
 - 通用 Proxy、External Handler 和私有协议 Analyzer；
 - public/internal/admin 路由分层；
-- PostgreSQL 或其他存储演进。
+- YApi 业务数据迁移到 PostgreSQL 或其他存储；即使迁移也必须与 Enterprise Control 和 Casdoor 保持独立 database。
 
 这些方向不自动进入实施。必须由真实企业需求、现有架构瓶颈或明确商业机会触发；一旦进入已承诺目标企业的采购、安全或生产清单，对该客户即重新归类为 G0 条件性门槛。
 
@@ -530,6 +534,9 @@ Network Profile  管 HTTP Proxy、CA、Client Certificate、超时与网络策�
 15. 备份、恢复、升级和回滚属于产品能力，不只作为运维文档存在；
 16. 企业能力默认不增加中小团队的首次使用步骤；
 17. 真实企业试点可以调整条件性配置，但不能跳过 G0 直接扩展 G1 或差异化功能。
+18. 企业身份、授权、服务身份、审计和 Admin UI 由共享 Enterprise Control Plane 提供，ApiMind、GPTS、AG Insight、NexTerm 通过 Product Manifest 与 Connector 接入；
+19. Casdoor直接承担 IAM 和优先采用的 Casbin 授权引擎；控制服务不得重复实现密码、MFA 和通用 IdP，也不得直接访问 Casdoor 数据库；
+20. Casdoor、Enterprise Control 和产品业务数据始终使用独立 database，即使未来采用相同数据库引擎也不合库、不共享表。
 
 ## 12. 风险与验证
 
@@ -547,7 +554,8 @@ Network Profile  管 HTTP Proxy、CA、Client Certificate、超时与网络策�
 | 审计只覆盖新功能 | 企业无法获得完整追溯 | 定义统一事件模型，并逐步收口所有关键写路径 |
 | 备份存在但无法恢复 | 形成错误安全感 | 每个支持版本必须进行恢复演练和结果校验 |
 | 大项目同步和历史导致性能退化 | 产品在真实企业规模下不可用 | 使用代表性企业数据做分页、索引、异步任务和恢复测试 |
-| SSO 协议选择与客户实际不符 | 企业试点仍被阻塞 | 在实施前验证目标客户 IdP 分布，默认保持可插拔身份边界 |
+| Casdoor 与目标客户身份源或生命周期要求不匹配 | 企业试点仍被阻塞 | 在实施前验证目标客户 IdP、SCIM 和 Group Sync 要求；通过标准协议和受控 Adapter 集成，不直接依赖 Casdoor 数据库 |
+| 共享控制面抽象不足或过度通用 | 产品重复建设或 G0 范围失控 | 只统一身份、固定角色、服务身份、审计和运维；产品业务语义通过 Manifest 与 Connector 保留在产品侧 |
 | 企业能力让小团队使用复杂化 | 降低自然采用 | 企业功能按需启用，本地账号和内置角色保持最短路径 |
 | 追逐竞品功能数量 | 稀释资源并延迟准入 | 只实现采购门槛、共同基础和真实客户证据支持的能力 |
 | Agent 绕过人工和权限边界 | 造成高风险自动化写入 | Agent 必须使用服务账号、同一授权、审计和项目审核策略 |

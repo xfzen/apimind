@@ -22,3 +22,9 @@
 - [贡献指南](../CONTRIBUTING.md)；
 - [安全策略](../SECURITY.md)；
 - [Apache-2.0](../LICENSE)。
+
+## 产品与技术设计
+
+- [企业产品 Roadmap](superpowers/specs/2026-08-23-enterprise-product-roadmap-spec.md)：企业准入、替换、持续工程和差异化方向；
+- [共享 Enterprise Control Plane](superpowers/specs/2026-08-23-enterprise-control-plane-spec.md)：Casdoor、共享 Admin UI、控制服务、数据边界和 Connector 契约；
+- [ApiMind Enterprise Connector Profile](superpowers/specs/2026-08-23-apimind-enterprise-connector-profile-spec.md)：ApiMind 资源、角色、兼容和接入要求。

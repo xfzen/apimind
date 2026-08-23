@@ -1,0 +1,494 @@
+# ApiMind Enterprise Connector Profile
+
+**状态：** 已确认
+
+**日期：** 2026-08-23
+
+**范围：** ApiMind 接入共享 Enterprise Control Plane 的产品需求、资源权限模型、兼容边界与技术契约；不包含实施排期和任务拆分
+
+**上位设计：** [Enterprise Control Plane Requirements & Technical Design](2026-08-23-enterprise-control-plane-spec.md)
+
+## 1. 决策摘要
+
+ApiMind 是共享 Enterprise Control Plane 的第一个接入产品，不拥有专属控制服务或专属 Admin UI。
+
+ApiMind 侧只增加一个 Connector 边界：
+
+```text
+Existing ApiMind Web
+       │
+Existing ApiMind Go Service + ApiMind Connector
+       │
+Enterprise Control Plane + shared Admin UI + Casdoor
+```
+
+核心决策：
+
+1. 现有 YApi Web 不做大规模改造；
+2. 现有 Go 服务继续拥有 workspace、project、cat、interface 和文档业务；
+3. ApiMind Connector 作为现有 Go 服务内的适配边界，不另建一套 ApiMind 企业服务；
+4. 企业用户、产品会话、权限决策、服务身份和统一审计接入共享控制面；
+5. 企业身份和 Casbin 策略由 Casdoor 承担；
+6. 现有 YApi MongoDB 与所有新增企业关系数据严格分库；
+7. 旧 YApi 用户、成员角色和 Log 只作为兼容数据，不再作为企业身份、授权和审计事实来源；
+8. Web、HTTP API、MCP 和后续 Runner 必须使用同一授权决策；
+9. 成员和角色管理迁移到共享 Admin UI，旧 Web 仅保留入口和必要展示；
+10. 实例管理员不因管理部署而自动获得全部工作区和项目业务数据。
+
+## 2. 当前基础与风险
+
+当前代码已经具备可接入基础：
+
+- Go Server、Web 和 MongoDB 的自托管运行形态；
+- `workspace / project / cat / interface` 核心业务层级；
+- YApi 兼容用户与 `owner/dev/guest` 成员数据；
+- Web 登录、LDAP 兼容入口和用户列表页面；
+- MCP Contract Token 哈希存储和基础请求上下文；
+- 项目业务 Log 和部分契约写入记录。
+
+当前实现不能被视为企业门槛已经完成：
+
+- 用户身份仍以 YApi 兼容 User 和旧会话为主；
+- LDAP 开关和路由存在不等于真实企业目录生命周期已闭环；
+- 多数业务路径尚未统一到一个产品授权入口；
+- 部分兼容返回值仍使用固定角色，不能作为真实权限证据；
+- `owner/dev/guest` 无法完整表达已确认的 workspace/project 角色；
+- 当前 MCP Scope 主要校验请求中的 project ID，不足以证明调用者已获项目授权；
+- 当前 Log 是可变的项目业务动态，不是企业追加式审计。
+
+以上判断必须在实施 Spec 前再次以当前代码和运行行为核对；无法确认的内容标记为“需要验证”。
+
+## 3. 产品资源模型
+
+### 3.1 业务层级
+
+ApiMind 保持已有层级，不新增组织业务层：
+
+```text
+workspace（兼容 YApi group）
+  └── project
+       ├── cat
+       │    └── interface
+       └── document / workspace documentation
+```
+
+首期 ACL 只落在 workspace 和 project：
+
+- cat、interface 和 Markdown document 继承 project；
+- 不提供接口级、分组级和文档级独立 ACL；
+- 资源可作为审计目标，但不能形成独立授权事实来源；
+- 已有“工作区文档”项目继续是普通 project 的一种产品形态，使用相同项目权限。
+
+### 3.2 项目访问模式
+
+每个项目具有一种访问模式：
+
+- `workspace`：默认值，继承 workspace 角色；
+- `restricted`：普通成员必须获得显式 project 角色。
+
+项目创建默认使用 `workspace`。企业或 workspace 策略可以要求新项目默认 `restricted`。
+
+## 4. 固定角色与继承
+
+### 4.1 实例角色
+
+| 角色 | 能力边界 |
+| --- | --- |
+| `instance_admin` | 部署配置、身份接入、产品注册、安全策略、备份与恢复；不自动读取业务项目 |
+| `security_auditor` | 只读查询和导出授权范围内的企业审计；不能修改业务数据和权限 |
+
+### 4.2 Workspace 角色
+
+| 角色 | 主要能力 |
+| --- | --- |
+| `owner` | workspace 治理、成员、项目恢复和所有权接管 |
+| `admin` | 日常 workspace 管理和成员管理，不可移除最后 owner |
+| `member` | 按项目访问模式获得工作权限 |
+| `guest` | 默认只读访问 workspace 模式项目 |
+
+### 4.3 Project 角色
+
+| 角色 | 主要能力 |
+| --- | --- |
+| `admin` | 项目设置、成员、Token、导入导出和内容管理 |
+| `editor` | 编辑接口、分组和文档；不能管理成员和高风险配置 |
+| `viewer` | 只读查看允许的数据 |
+
+### 4.4 继承规则
+
+`workspace` 模式项目按以下规则继承：
+
+| Workspace 角色 | 默认 Project 角色 |
+| --- | --- |
+| `owner` | `admin` |
+| `admin` | `admin` |
+| `member` | `editor` |
+| `guest` | `viewer` |
+
+规则约束：
+
+- Workspace 和 Project 角色可以绑定内部 Principal 或已映射的企业 Group；
+- Group 成员关系由 Casdoor/共享控制面解析，ApiMind 不复制和维护另一套 Group；
+- 显式 project 角色优先，可提升或降低继承角色；
+- `restricted` 项目中，member/guest 无显式 project 角色时拒绝访问；
+- workspace owner 保留恢复和治理能力，避免孤立项目；
+- workspace admin 不自动绕过 restricted project；
+- 禁止通过 cat、interface、document 或旧 API 绕过 project 决策。
+
+## 5. Product Manifest
+
+ApiMind 首期 Manifest 至少声明：
+
+```yaml
+apiVersion: enterprise.apimind.dev/v1
+product: apimind
+displayName: ApiMind
+
+resourceTypes:
+  - workspace
+  - project
+  - cat
+  - interface
+  - document
+
+accessRoots:
+  - workspace
+  - project
+
+roles:
+  instance: [instance_admin, security_auditor]
+  workspace: [owner, admin, member, guest]
+  project: [admin, editor, viewer]
+
+projectAccessModes: [workspace, restricted]
+
+capabilities:
+  resourceDirectory: true
+  serviceAccounts: true
+  auditIngestion: true
+  publicSharingPolicy: true
+  exportPolicy: true
+```
+
+动作目录至少覆盖：
+
+- 实例与安全：`instance.manage`、`audit.read`、`audit.export`；
+- Workspace：`workspace.read`、`workspace.manage`、`workspace.member.manage`；
+- Project：`project.read`、`project.write`、`project.manage`、`project.member.manage`；
+- 内容：`interface.read/write/delete`、`document.read/write`、`contract.import/export`；
+- 暴露：`share.manage`、`public.read`；
+- 凭据：`service_account.manage`、`token.manage`、`secret.use/manage`。
+
+动作最终清单和现有 API 映射标记为“需要验证”，不能仅按页面菜单推断。
+
+## 6. 身份与用户映射
+
+```text
+Casdoor Organization/User UUID
+            │
+            ▼
+Enterprise Control Principal
+            │
+            ▼
+legacy YApi user_id
+```
+
+约束：
+
+- 内部 Principal 使用稳定 ID；
+- `legacy_yapi_user_id` 是显式映射，不要求与 Principal ID 相同；
+- 邮箱、用户名和 DN 不作为跨系统主键；
+- 旧 User 文档保留用于兼容展示、作者归属和历史数据；
+- 企业模式下 Casdoor 和控制面是账号状态事实来源；
+- 用户禁用后保留旧 YApi 作者记录，但所有新会话和个人 Token 按共享控制面撤销时限失效；
+- 自动邮箱绑定只允许上位Spec定义的受信任Issuer、verified email和一次性邀请首次绑定，不用于普通账号合并或跨Provider合并。
+
+## 7. 登录与会话兼容
+
+### 7.1 正式入口
+
+ApiMind Web 登录页只做最小调整：
+
+- 提供同源 `/api/enterprise/auth/start` 入口并跳转 Casdoor；
+- Casdoor 只回调 ApiMind 同源 `/api/enterprise/auth/callback`；
+- ApiMind产品实例使用独立Casdoor OIDC Client，生产Redirect URI必须精确等于该实例已验证Canonical Base URL下的回调地址，不接受通配符和请求参数覆盖；
+- ApiMind Go 服务通过 Connector 使用短时一次性 `login_transaction` 与 Control Service 交换结果，再由 ApiMind 域名设置 HttpOnly 产品会话 Cookie；
+- Header 中企业管理入口跳转共享 Admin UI；
+- 退出撤销产品会话，并按用户选择决定是否退出企业 SSO。
+
+### 7.2 旧接口
+
+- 旧 `/api/user/login` 和旧 JWT/Cookie 仅作为迁移兼容；
+- 不使用不安全的用户名密码代理调用 Casdoor；
+- 迁移期可同时签发产品会话和兼容 Cookie；
+- 兼容期必须有明确版本边界和移除条件；
+- 新 Admin UI 不使用旧会话；
+- ApiMind产品会话不与共享 Admin UI Cookie 跨域复用；
+- 开放注册在企业模式下默认关闭。
+
+### 7.3 会话验证
+
+现有 Go 服务通过 ApiMind Connector 解析产品会话并获得 Principal。身份解析必须成为统一请求上下文，不能继续只在少数 Handler 中临时调用。
+
+## 8. 最小侵入集成边界
+
+现有 YApi Web 不进行路由、状态管理或业务页面重写。必要变更集中在：
+
+1. 登录和退出入口；
+2. Header 的统一企业控制台入口；
+3. 旧成员管理入口跳转共享 Admin UI；
+4. 对拒绝原因和会话失效的统一提示。
+
+现有 Go 服务增加集中式适配：
+
+- `ControlPlaneClient`：会话、授权、审计和生命周期；
+- `PrincipalResolver`：把产品会话转换为统一 Principal；
+- `Authorizer`：唯一产品授权入口；
+- `AuditEmitter`：标准事件与本地 Outbox；
+- `ResourceProvider`：向控制面返回 workspace/project 摘要和层级；
+- `CompatibilityProjector`：维护旧 YApi 展示数据。
+
+最小改动不等于保留两套授权。所有安全决策必须收口到统一入口，即使这要求调整现有 Handler 或服务边界。
+
+## 9. Connector 资源接口
+
+ApiMind Connector 对控制面提供：
+
+### `SearchResources`
+
+按类型、名称和父级搜索 workspace/project。ApiMind Connector 必须验证 Control Service 机器凭据和短期 Delegation，并使用其中的 Actor Principal 与 Requested Action 调用统一 Authorizer；返回结果只能包含该 Actor 有权管理的资源：
+
+- ID；
+- 名称；
+- 类型；
+- 父资源 ID；
+- 状态；
+- 必要的访问模式；
+- 产品深链接。
+
+`instance_admin` 没有对应 Workspace/Project 业务权限时，不能通过该接口发现项目 ID、名称或存在性。系统健康检查不复用资源搜索权限。
+
+### `ResolveResource`
+
+在验证 Actor 资源权限后确认资源存在性并返回稳定摘要和 `resource_version`，不返回接口内容和文档正文。资源父级、项目访问模式或授权根变化必须改变版本；无权限时不能通过错误差异泄露资源是否存在。
+
+### `GetResourceAncestry`
+
+返回授权所需层级，例如：
+
+```text
+interface:300 → cat:200 → project:100 → workspace:10
+```
+
+同时返回整个授权层级的 `resource_version`。版本可以由持久化版本号或稳定规范化 Hash 产生，但不能只使用客户端提交时间。
+
+### `ApplyCompatibilityProjection`
+
+把控制面成员变化投影为旧 Web 所需的最小 YApi 成员数据。该投影只用于兼容显示，不得参与最终授权。
+
+## 10. 旧成员角色兼容
+
+首次导入使用明确、保守映射：
+
+| 旧作用域 | 旧角色 | 新角色 |
+| --- | --- | --- |
+| workspace/group | `owner` | workspace `owner` |
+| workspace/group | `dev` | workspace `member` |
+| workspace/group | `guest` | workspace `guest` |
+| project | `owner` | project `admin` |
+| project | `dev` | project `editor` |
+| project | `guest` | project `viewer` |
+
+反向投影可能丢失 `workspace admin`、显式覆盖和 restricted 项目等语义，因此：
+
+- 共享 Admin UI 是成员与角色的唯一管理入口；
+- 旧成员页面不得继续写入企业角色；
+- 旧成员列表可以显示兼容摘要和前往企业控制台的链接；
+- 控制面角色不能从旧 MongoDB 成员字段反向覆盖；
+- 反向投影的精确展示策略标记为“需要验证”。
+
+## 11. 授权执行
+
+### 11.1 请求流程
+
+```text
+Authenticate Product Session
+  → Resolve Principal
+  → Check Principal Access State, Lifecycle Version and Identity Freshness
+  → Load Resource Ancestry
+  → Authorize with Resource Version
+  → Audit Intent when required
+  → Recheck Authorized Resource Version
+  → Execute Business Operation
+  → Audit Outcome
+```
+
+只有 active Principal 才能进入 Casbin判断；blocked、pending_external_sync、撤销会话、禁用Credential和 stale Identity Sync 都必须在直接角色或Group继承之前拒绝。对于资源移动、父级变化、project access mode 变化和高风险写入，提交前版本不一致必须终止当前操作并重新加载层级与授权，不能继续使用旧决策。普通只读请求可以接受同时绑定Lifecycle/Identity Sync/Policy/Resource Version且未越过Identity Freshness Deadline的缓存；Control Service或Casdoor不可用时不得在本地续期。
+
+### 11.2 强制入口
+
+以下入口必须使用同一授权语义：
+
+- Web 发起的现有 `/api/*`；
+- 新增或兼容 HTTP API；
+- MCP Contract Tools；
+- 导入、导出和批量写入；
+- Mock、测试和请求执行；
+- 后续 Runner、Worker、定时任务和 Agent。
+
+前端按钮可见性只能改善体验，不能代替后端授权。
+
+### 11.3 MCP 与机器身份
+
+- 现有 Contract Token 迁移为共享控制面管理的 Service Principal；
+- Token 必须绑定 ApplicationInstance、Project 和允许的 Action；
+- 仅验证 project ID 大于零不构成授权；
+- MCP 请求使用与 Web 相同的 Authorizer；
+- Token 轮换或撤销后旧 Token 不能开始新操作；
+- 开发模式绕过不得进入生产配置。
+
+## 12. 数据暴露与Secret
+
+### 12.1 默认策略
+
+- 项目和工作区文档默认私有；
+- 企业可以实例级禁止公开分享；
+- restricted 项目不能通过公开接口、旧接口或导出旁路暴露；
+- 导入、导出、批量下载和分享使用独立 Action；
+- 企业启用前扫描已有公开资源并要求管理员确认处置。
+
+### 12.2 Secret
+
+- Token、密码、Cookie、证书私钥和环境 Secret 不得进入普通项目字段；
+- Web、日志、错误、审计、导出和测试报告统一脱敏；
+- Secret 使用只授予执行权限，不等于允许读取明文；
+- 后续 Environment/Auth/Network 能力必须复用同一 Secret Reference。
+
+## 13. ApiMind 审计 Profile
+
+旧 YApi Log 继续作为业务动态；企业审计写入共享 `audit_event`。
+
+ApiMind 必须上报：
+
+- 登录、失败、退出和会话撤销；
+- Workspace/Project 创建、归档、删除和接管；
+- 成员、角色、访问模式和公开策略变化；
+- Interface、Cat、Document 的关键创建、更新和删除；
+- 导入、导出、批量写入和契约同步；
+- 服务账号、Token 和 Secret 操作；
+- MCP、Runner、CI 和 Agent 写入；
+- 被拒绝的高风险操作；
+- 备份、恢复和升级。
+
+审计差异使用字段允许列表并统一脱敏。接口和文档正文不默认完整复制到审计数据库。
+
+## 14. 数据库与事务边界
+
+```text
+YApi MongoDB
+  workspace/project/cat/interface/document/legacy user/log
+
+Enterprise Control DB（PG/MySQL）
+  mapping/session/manifest/audit/outbox/security config
+
+Casdoor DB（PG/MySQL）
+  organization/user/application/role/permission/session
+```
+
+- 三者独立 database；
+- ApiMind 只通过 Connector API 访问控制面；
+- 不直接访问 Casdoor；
+- 控制面不读取 YApi MongoDB；
+- 即使未来 YApi 迁移到 PostgreSQL/MySQL，仍使用独立 database；
+- 不使用跨库事务。
+
+涉及 YApi 数据的高风险写入：
+
+```text
+写入 Audit Intent
+  → 修改 YApi 数据
+  → 写入 Audit Outcome
+```
+
+成员兼容投影使用 operation ID 和 Outbox 重试，不反向改变授权事实。
+
+## 15. Admin UI 中的 ApiMind 视图
+
+共享 Admin UI 根据 Manifest 为 ApiMind 提供：
+
+- ApiMind产品实例及健康；
+- 用户和用户组的ApiMind成员关系；
+- Workspace/Project资源选择；
+- 固定角色和 restricted 项目管理；
+- 服务账号和 Project Token；
+- 公开分享和导出策略；
+- ApiMind审计筛选；
+- Connector、产品和数据库备份状态。
+
+这些页面属于共享 Admin UI，不在 ApiMind Web 中复制实现。接口编辑、文档编辑、Mock、测试等业务配置继续留在 ApiMind Web。
+
+## 16. 故障行为
+
+| 故障 | ApiMind 行为 |
+| --- | --- |
+| Casdoor 不可用 | 禁止新登录；人类及 Group 相关的已有 Allow 最多使用到既有 Identity Freshness Deadline，进入 stale 后全部拒绝且不得续期 |
+| Control Service 不可用 | 权限管理和高风险写入拒绝；低风险读取只能使用未越过Identity Freshness Deadline且版本仍有效的既有缓存，禁止本地续期 |
+| ApiMind Connector 不可用 | Admin UI 中 ApiMind 页面只读或不可用；其他产品不受影响 |
+| Audit Ingestion 不可用 | 高风险操作拒绝；允许的普通事件进入 ApiMind 本地 Outbox |
+| YApi MongoDB 不可用 | Connector 不推测资源存在性，Admin UI 显示产品故障 |
+
+## 17. 验收场景
+
+ApiMind Connector G0 必须通过：
+
+1. 新企业通过 Casdoor登录，无需使用旧 YApi 密码；
+2. 旧用户可稳定映射到原 YApi作者和成员记录；
+3. shared Admin UI 可以管理 ApiMind Workspace/Project 权限；
+4. 用户组可以绑定 Workspace/Project 角色，目录组变化按控制面规则生效；
+5. workspace继承、restricted项目、显式覆盖和owner recovery符合本Spec，资源在授权后移动时旧Resource Version不能完成高风险写入；
+6. 实例管理员无法因管理部署而直接读取未授权项目；
+7. Web、HTTP、MCP 使用同一授权结果；
+8. 旧接口不能绕过新权限；
+9. 用户禁用后的 Principal Access State、Lifecycle Version、产品会话和个人 Token 在共享控制面承诺时限内生效，历史作者信息保留；Identity Sync 超过 5 分钟后人类及 Group 相关访问拒绝，旧 Allow 不得续期，对账完成前不能恢复；
+10. Project Token 只能访问显式授权项目和动作；
+11. 公开分享、导出和Secret策略可以实例级关闭；
+12. 身份、授权、Token、导入导出和关键写入进入统一审计；
+13. 旧 Web 核心接口与文档业务流继续工作；
+14. 旧成员数据只是兼容投影，不影响最终授权；
+15. YApi、控制面和 Casdoor完成协调备份及空环境恢复；
+16. ApiMind接入没有复制控制服务和Admin UI代码。
+
+## 18. 非目标
+
+- 不重写当前 YApi Web；
+- 不把 shared Admin UI 嵌入为微前端；
+- 不增加 cat/interface/document 独立 ACL；
+- 不建设自定义角色编辑器；
+- 不用邮箱替换内部稳定用户映射；
+- 不把 Casdoor管理员等同为ApiMind数据管理员；
+- 不直接修改 YApi、Casdoor或控制面数据库完成迁移和运维；
+- 不在本 Spec 中建设 Contract Sync、复杂审批、SIEM、HA 或 SaaS 多租户；
+- 不在本 Spec 中编写实施阶段、排期和任务拆分。
+
+## 19. 需要验证
+
+- 当前所有写接口、导入导出、Mock、测试和 MCP 的完整授权入口清单；
+- 旧 Web 登录页切换 OIDC 的最小兼容改动；
+- 旧 YApi 密码哈希能否通过 Casdoor官方方式安全迁移；
+- 旧成员页面改为只读摘要后对核心使用流的影响；
+- 现有 public/private 项目和公开文档的迁移策略；
+- 目标企业规模下 Workspace/Project 资源目录和 Casbin 策略性能；
+- 当前 Contract Token 到 Service Principal 的迁移和撤销边界；
+- ApiMind 本地 Outbox 的持久化位置和故障恢复；
+- 旧 Log、企业 Audit 和资源历史之间的产品展示边界；
+- YApi未来迁移到 PostgreSQL/MySQL 时保持独立 database 的成本与必要条件。
+
+## 20. 成功定义
+
+ApiMind Enterprise Connector 成功意味着：
+
+- ApiMind无需拥有自己的企业控制服务和Admin UI；
+- 旧 Web 保持核心业务稳定，同时所有安全入口被统一治理；
+- 企业可以用共享身份、统一后台和统一审计管理ApiMind；
+- ApiMind业务数据继续独立，控制面无法越界读取；
+- 后续产品可以复用同一平台，而不是重复一次ApiMind的企业化工程。
