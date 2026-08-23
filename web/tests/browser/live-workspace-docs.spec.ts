@@ -44,59 +44,45 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/group(?:\/\d+)?$/);
 }
 
-test('workspace docs entry provisions once and preserves Markdown outline navigation', async ({ page }) => {
+test('new workspace includes one docs project and preserves Markdown outline navigation', async ({ page }) => {
   const guard = installConsoleGuard(page);
   await login(page);
 
-  const groupResponse = await page.request.get('/api/group/get_mygroup');
+  const groupResponse = await page.request.post('/api/group/add', {
+    data: {
+      group_name: `Docs smoke ${Date.now()}`,
+      group_desc: 'isolated workspace docs smoke'
+    }
+  });
   const group = await groupResponse.json() as LiveApiResponse<LiveGroup>;
+  expect(group.errcode).toBe(0);
   const workspaceId = group.data._id;
   await page.goto(`/group/${workspaceId}`);
 
-  const beforeResponse = await page.request.get('/api/project/list', {
+  const projectsResponse = await page.request.get('/api/project/list', {
     params: { group_id: workspaceId, page: 1, limit: 100 }
   });
-  const before = await beforeResponse.json() as LiveApiResponse<{ list: LiveProject[] }>;
-  expect(before.data.list.filter(project => project.kind === 'docs')).toHaveLength(0);
+  const projects = await projectsResponse.json() as LiveApiResponse<{ list: LiveProject[] }>;
+  const docsProjects = projects.data.list.filter(project => project.kind === 'docs');
+  expect(docsProjects).toHaveLength(1);
+  expect(docsProjects[0]).toMatchObject({
+    name: '工作区文档',
+    group_id: workspaceId,
+    kind: 'docs'
+  });
+  const docsProjectId = docsProjects[0]._id;
 
-  const ensureResponsePromise = page.waitForResponse(response => {
-    const url = new URL(response.url());
-    return url.pathname === '/api/docs/workspace_project' && response.request().method() === 'GET';
-  });
-  let ensureRequestCount = 0;
-  page.on('request', request => {
-    if (new URL(request.url()).pathname === '/api/docs/workspace_project') {
-      ensureRequestCount += 1;
-    }
-  });
-  const docsEntry = page.getByRole('button', { name: '文档中心', exact: true });
-  await docsEntry.evaluate(button => {
-    const entryButton = button as HTMLButtonElement;
-    entryButton.click();
-    entryButton.click();
-  });
-
-  const ensureResponse = await ensureResponsePromise;
-  const firstEnsure = await ensureResponse.json() as LiveApiResponse<LiveProject>;
-  expect(firstEnsure).toMatchObject({
-    errcode: 0,
-    data: { name: '工作区文档', group_id: workspaceId, kind: 'docs' }
-  });
-  expect(ensureRequestCount).toBe(1);
-  const docsProjectId = firstEnsure.data._id;
-  await expect(page).toHaveURL(new RegExp(`/project/${docsProjectId}/interface/api$`));
+  await expect(page.getByRole('button', { name: '文档中心', exact: true })).toHaveCount(0);
+  const docsCard = page.locator('.card-container').filter({ hasText: '工作区文档' });
+  await expect(docsCard).toHaveCount(1);
+  await expect(docsCard.locator('.card-btns')).toHaveCount(0);
+  await expect(docsCard.locator('.copy-btns')).toHaveCount(0);
 
   const secondEnsureResponse = await page.request.get('/api/docs/workspace_project', {
     params: { workspace_id: workspaceId }
   });
   const secondEnsure = await secondEnsureResponse.json() as LiveApiResponse<LiveProject>;
   expect(secondEnsure.data._id).toBe(docsProjectId);
-
-  const projectsResponse = await page.request.get('/api/project/list', {
-    params: { group_id: workspaceId, page: 1, limit: 100 }
-  });
-  const projects = await projectsResponse.json() as LiveApiResponse<{ list: LiveProject[] }>;
-  expect(projects.data.list.filter(project => project.kind === 'docs')).toHaveLength(1);
 
   const docsResponse = await page.request.get('/api/docs/list', {
     params: { workspace_id: workspaceId, project_id: docsProjectId }
@@ -131,7 +117,6 @@ test('workspace docs entry provisions once and preserves Markdown outline naviga
   await expect(page.locator('#快速开始')).toBeInViewport();
 
   await page.goto(`/group/${workspaceId}`);
-  const docsCard = page.locator('.card-container').filter({ hasText: '工作区文档' });
   await expect(docsCard).toHaveCount(1);
   await expect(docsCard.locator('.card-btns')).toHaveCount(0);
   await expect(docsCard.locator('.copy-btns')).toHaveCount(0);

@@ -2,13 +2,11 @@ import React, { PureComponent as Component } from 'react';
 import type { ComponentType } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Row, Col, Button, Tooltip, Space, message } from 'antd';
+import { Row, Col, Button, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
 import { Link, withRouter } from 'react-router-dom';
 import type { RouteComponentProps } from 'react-router-dom';
 import { addProject, fetchProjectList, delProject } from '../../../reducer/modules/project';
-import { ensureWorkspaceDocsProject } from '../../../reducer/modules/docs';
-import type { WorkspaceDocsProject } from '../../../reducer/modules/docs';
 import ProjectCard from '../../../components/ProjectCard/ProjectCard';
 import ErrMsg from '../../../components/ErrMsg/ErrMsg';
 import { autobind } from 'core-decorators';
@@ -18,10 +16,7 @@ import type { BreadcrumbItem } from '../../../types/user';
 import type { RootState } from '../../../reducer/modules/reducer';
 import type { GroupRecord } from '../../../reducer/modules/group';
 import type { UnknownRecord } from '../../../reducer/types/runtime';
-import type { ApiResponse } from '../../../types/api';
-import type { ResolvedPromiseAction } from '../../../reducer/promiseTypes';
 import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
-import { openWorkspaceDocsProject } from './workspaceDocsEntry';
 
 import './ProjectList.scss';
 
@@ -38,9 +33,6 @@ interface ProjectListGroup extends GroupRecord {
 interface ProjectListProps extends RouteComponentProps {
   form: FormInstance;
   fetchProjectList: (id: string | number, page?: number) => unknown;
-  ensureWorkspaceDocsProject: (
-    workspaceId: string | number
-  ) => Promise<ResolvedPromiseAction<ApiResponse<WorkspaceDocsProject>>>;
   addProject: (data: UnknownRecord) => unknown;
   delProject: (id: string | number) => unknown;
   projectList: ProjectListItem[];
@@ -54,7 +46,6 @@ interface ProjectListState {
   visible: boolean;
   protocol: string;
   projectData: ProjectListItem[];
-  openingWorkspaceDocs: boolean;
 }
 
 const connectProjectList = asLegacyClassDecorator(connect(
@@ -71,7 +62,6 @@ const connectProjectList = asLegacyClassDecorator(connect(
     fetchProjectList,
     addProject,
     delProject,
-    ensureWorkspaceDocsProject,
     setBreadcrumb
   }
 ));
@@ -80,15 +70,12 @@ const routeProjectList = asLegacyClassDecorator(withRouter);
 @connectProjectList
 @routeProjectList
 class ProjectList extends Component<ProjectListProps, ProjectListState> {
-  openingWorkspaceDocsRequest = false;
-
   constructor(props: ProjectListProps) {
     super(props);
     this.state = {
       visible: false,
       protocol: 'http://',
-      projectData: [],
-      openingWorkspaceDocs: false
+      projectData: []
     };
   }
   static propTypes = {
@@ -96,7 +83,6 @@ class ProjectList extends Component<ProjectListProps, ProjectListState> {
     fetchProjectList: PropTypes.func,
     addProject: PropTypes.func,
     delProject: PropTypes.func,
-    ensureWorkspaceDocsProject: PropTypes.func,
     projectList: PropTypes.array,
     userInfo: PropTypes.object,
     tableLoading: PropTypes.bool,
@@ -130,32 +116,6 @@ class ProjectList extends Component<ProjectListProps, ProjectListState> {
     const id = this.props.currGroup._id;
     if (id !== undefined) this.props.fetchProjectList(id, this.props.currPage);
   };
-
-  @autobind
-  async openWorkspaceDocs() {
-    const workspaceId = this.props.currGroup._id;
-    if (workspaceId === undefined || this.openingWorkspaceDocsRequest) return;
-
-    this.openingWorkspaceDocsRequest = true;
-    this.setState({ openingWorkspaceDocs: true });
-    try {
-      const response = await openWorkspaceDocsProject({
-        workspaceId,
-        page: this.props.currPage,
-        ensure: this.props.ensureWorkspaceDocsProject,
-        refresh: this.props.fetchProjectList,
-        navigate: path => this.props.history.push(path)
-      });
-      if (response.errcode !== 0 || !response.data) {
-        message.error(response.errmsg || '文档中心打开失败');
-      }
-    } catch {
-      message.error('文档中心打开失败');
-    } finally {
-      this.openingWorkspaceDocsRequest = false;
-      this.setState({ openingWorkspaceDocs: false });
-    }
-  }
 
   UNSAFE_componentWillReceiveProps(nextProps: ProjectListProps) {
     this.props.setBreadcrumb([{ name: '' + (nextProps.currGroup.group_name || '') }]);
@@ -257,17 +217,9 @@ class ProjectList extends Component<ProjectListProps, ProjectListState> {
           </Col>
           <Col span={8}>
             {canManageProjects ? (
-              <Space>
-                <Button
-                  loading={this.state.openingWorkspaceDocs}
-                  onClick={this.openWorkspaceDocs}
-                >
-                  文档中心
-                </Button>
-                <Link to="/add-project">
-                  <Button type="primary">添加项目</Button>
-                </Link>
-              </Space>
+              <Link to="/add-project">
+                <Button type="primary">添加项目</Button>
+              </Link>
             ) : isSystemGroup ? (
               <Tooltip title="系统工作区不支持添加普通项目">
                 <Button type="primary" disabled>
