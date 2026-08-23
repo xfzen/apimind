@@ -12,9 +12,10 @@ import "apis/enterprise.api"
 import "apis/application.api"
 import "apis/connector.api"
 import "apis/identity.api"
+import "apis/auth.api"
 
 @server (
-	group:  ecp
+	group:  metaPublic
 	prefix: /api/v1
 )
 service ecp {
@@ -25,6 +26,55 @@ service ecp {
 	@doc "Build and contract version"
 	@handler Version
 	get /meta/version returns (VersionResp)
+}
+
+@server (
+	group:      authPublic
+	prefix:     /api/v1
+	middleware: RateLimit
+)
+service ecp {
+	@doc "Begin an OIDC login transaction"
+	@handler AuthStart
+	get /auth/start (AuthStartReq) returns (AuthStartResp)
+
+	@doc "Complete an OIDC login transaction"
+	@handler AuthCallback
+	get /auth/callback (AuthCallbackReq) returns (SessionSummaryResp)
+}
+
+@server (
+	group:      adminRead
+	prefix:     /api/v1
+	middleware: AdminSession
+)
+service ecp {
+	@doc "Current admin session"
+	@handler CurrentSession
+	get /auth/session returns (SessionSummaryResp)
+
+	@doc "List admin sessions"
+	@handler ListSessions
+	get /auth/sessions (SessionListReq) returns (SessionListResp)
+
+	@doc "List direct group members"
+	@handler ListDirectGroupMembers
+	get /identity/groups/:id/members (ListGroupMembersReq) returns (GroupMembersResp)
+}
+
+@server (
+	group:      adminWrite
+	prefix:     /api/v1
+	middleware: AdminSession,CSRF,IdempotencyHeaders,RateLimit
+)
+service ecp {
+	@doc "End the current admin session"
+	@handler Logout
+	post /auth/logout returns (Empty)
+
+	@doc "Revoke an admin session"
+	@handler RevokeSession
+	post /auth/sessions/:id/revoke (RevokeSessionReq) returns (Empty)
 
 	@doc "Register an application"
 	@handler RegisterApplication
@@ -37,10 +87,6 @@ service ecp {
 	@doc "Put a product manifest"
 	@handler PutManifest
 	put /applications/:id/manifest (PutManifestReq) returns (ManifestResp)
-
-	@doc "Register a product connector"
-	@handler RegisterConnector
-	post /connectors/register (RegisterConnectorReq) returns (ConnectorResp)
 
 	@doc "Admit a verified external identity"
 	@handler AdmitJIT
@@ -61,8 +107,19 @@ service ecp {
 	@doc "Add one direct member to an ECP-managed group"
 	@handler AddDirectGroupMember
 	post /identity/groups/:id/members (AddGroupMemberReq) returns (Empty)
+}
 
-	@doc "List direct group members"
-	@handler ListDirectGroupMembers
-	get /identity/groups/:id/members (ListGroupMembersReq) returns (GroupMembersResp)
+@server (
+	group:      connectorMachine
+	prefix:     /api/v1
+	middleware: ConnectorMachine,IdempotencyHeaders,RateLimit
+)
+service ecp {
+	@doc "Register a product connector"
+	@handler RegisterConnector
+	post /connectors/register (RegisterConnectorReq) returns (ConnectorResp)
+
+	@doc "Exchange a one-time product login transaction"
+	@handler ExchangeProductLogin
+	post /connector/auth/exchange (ProductLoginExchangeReq) returns (ProductLoginExchangeResp)
 }

@@ -13,7 +13,7 @@ jq -e '
   [.toolchains[] | select((.version | test("^(latest|main|master|dev)$")) or (.source | test("^https://") | not) or (.sha256 | test("^[0-9a-f]{64}$") | not))] | length == 0
 ' "$lock_file" >/dev/null
 jq -e '
-  [.go_modules[] | select((.version | test("^v[0-9]+\\.[0-9]+\\.[0-9]+([-.].+)?$") | not) or (.source | test("^https://github.com/(zeromicro|go-gorm|golang-migrate)/" ) | not) or (.sum | test("^h1:" ) | not))] | length == 0
+  [.go_modules[] | select((.version | test("^v[0-9]+\\.[0-9]+\\.[0-9]+([-.].+)?$") | not) or (.source | test("^https://github.com/(zeromicro|go-gorm|golang-migrate|coreos|golang)/" ) | not) or (.sum | test("^h1:" ) | not))] | length == 0
 ' "$lock_file" >/dev/null
 jq -e '
   [.npm_packages[] | select((.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+([-.].+)?$") | not) or (.integrity | test("^sha512-") | not))] | length == 0
@@ -37,6 +37,8 @@ if [ -f "$ecp_dir/server/go.mod" ]; then
   for module_spec in \
     'github.com/zeromicro/go-zero v1.10.2' \
     'github.com/golang-migrate/migrate/v4 v4.19.1' \
+    'github.com/coreos/go-oidc/v3 v3.20.0' \
+    'golang.org/x/oauth2 v0.36.0' \
     'gorm.io/gorm v1.31.2' \
     'gorm.io/driver/postgres v1.6.2' \
     'gorm.io/driver/mysql v1.6.0'; do

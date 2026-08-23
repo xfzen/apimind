@@ -1,0 +1,67 @@
+CREATE TABLE login_transactions (
+  id VARCHAR(36) PRIMARY KEY,
+  enterprise_id VARCHAR(36) NOT NULL,
+  oidc_client_id VARCHAR(36) NOT NULL,
+  application_instance_id VARCHAR(36) NULL,
+  kind VARCHAR(32) NOT NULL,
+  state_hash CHAR(64) NOT NULL UNIQUE,
+  pkce_verifier_hash CHAR(64) NOT NULL,
+  nonce_hash CHAR(64) NOT NULL,
+  redirect_uri VARCHAR(512) NOT NULL,
+  expires_at TIMESTAMP(6) NOT NULL,
+  used_at TIMESTAMP(6) NULL,
+  created_at TIMESTAMP(6) NOT NULL,
+  updated_at TIMESTAMP(6) NOT NULL,
+  CONSTRAINT fk_login_transactions_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprises(enterprise_id),
+  CONSTRAINT fk_login_transactions_oidc_client FOREIGN KEY (oidc_client_id) REFERENCES oidc_clients(id),
+  CONSTRAINT fk_login_transactions_instance FOREIGN KEY (application_instance_id) REFERENCES application_instances(id)
+) ENGINE=InnoDB;
+CREATE TABLE product_login_transactions (
+  id VARCHAR(36) PRIMARY KEY,
+  enterprise_id VARCHAR(36) NOT NULL,
+  application_instance_id VARCHAR(36) NOT NULL,
+  principal_id VARCHAR(36) NOT NULL,
+  code_hash CHAR(64) NOT NULL UNIQUE,
+  expires_at TIMESTAMP(6) NOT NULL,
+  used_at TIMESTAMP(6) NULL,
+  created_at TIMESTAMP(6) NOT NULL,
+  updated_at TIMESTAMP(6) NOT NULL,
+  CONSTRAINT fk_product_transactions_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprises(enterprise_id),
+  CONSTRAINT fk_product_transactions_instance FOREIGN KEY (application_instance_id) REFERENCES application_instances(id),
+  CONSTRAINT fk_product_transactions_principal FOREIGN KEY (principal_id) REFERENCES principals(id)
+) ENGINE=InnoDB;
+CREATE TABLE sessions (
+  id VARCHAR(36) PRIMARY KEY,
+  enterprise_id VARCHAR(36) NOT NULL,
+  principal_id VARCHAR(36) NOT NULL,
+  application_instance_id VARCHAR(36) NULL,
+  kind VARCHAR(32) NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  csrf_hash CHAR(64) NOT NULL,
+  expires_at TIMESTAMP(6) NOT NULL,
+  revoked_at TIMESTAMP(6) NULL,
+  version BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP(6) NOT NULL,
+  updated_at TIMESTAMP(6) NOT NULL,
+  CONSTRAINT fk_sessions_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprises(enterprise_id),
+  CONSTRAINT fk_sessions_principal FOREIGN KEY (principal_id) REFERENCES principals(id),
+  CONSTRAINT fk_sessions_instance FOREIGN KEY (application_instance_id) REFERENCES application_instances(id)
+) ENGINE=InnoDB;
+CREATE TABLE idempotency_records (
+  id VARCHAR(36) PRIMARY KEY,
+  enterprise_id VARCHAR(36) NOT NULL,
+  operation_id VARCHAR(128) NOT NULL,
+  idempotency_key VARCHAR(128) NOT NULL,
+  method VARCHAR(16) NOT NULL,
+  canonical_path VARCHAR(512) NOT NULL,
+  request_hash CHAR(64) NOT NULL,
+  response_status INT NOT NULL DEFAULT 0,
+  response_body_hash CHAR(64) NOT NULL DEFAULT '',
+  state VARCHAR(32) NOT NULL,
+  expires_at TIMESTAMP(6) NOT NULL,
+  created_at TIMESTAMP(6) NOT NULL,
+  updated_at TIMESTAMP(6) NOT NULL,
+  CONSTRAINT fk_idempotency_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprises(enterprise_id),
+  CONSTRAINT uq_idempotency_key UNIQUE (enterprise_id, idempotency_key),
+  CONSTRAINT uq_operation_id UNIQUE (enterprise_id, operation_id)
+) ENGINE=InnoDB;

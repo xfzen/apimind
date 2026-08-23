@@ -6,7 +6,11 @@ package handler
 import (
 	"net/http"
 
-	ecp "github.com/xfzen/ecp/server/api/internal/handler/ecp"
+	adminRead "github.com/xfzen/ecp/server/api/internal/handler/adminRead"
+	adminWrite "github.com/xfzen/ecp/server/api/internal/handler/adminWrite"
+	authPublic "github.com/xfzen/ecp/server/api/internal/handler/authPublic"
+	connectorMachine "github.com/xfzen/ecp/server/api/internal/handler/connectorMachine"
+	metaPublic "github.com/xfzen/ecp/server/api/internal/handler/metaPublic"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -14,78 +18,156 @@ import (
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AdminSession},
+			[]rest.Route{
+				{
+					// Current admin session
+					Method:  http.MethodGet,
+					Path:    "/auth/session",
+					Handler: adminRead.CurrentSessionHandler(serverCtx),
+				},
+				{
+					// List admin sessions
+					Method:  http.MethodGet,
+					Path:    "/auth/sessions",
+					Handler: adminRead.ListSessionsHandler(serverCtx),
+				},
+				{
+					// List direct group members
+					Method:  http.MethodGet,
+					Path:    "/identity/groups/:id/members",
+					Handler: adminRead.ListDirectGroupMembersHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AdminSession, serverCtx.CSRF, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
+			[]rest.Route{
+				{
+					// Register an application
+					Method:  http.MethodPost,
+					Path:    "/applications",
+					Handler: adminWrite.RegisterApplicationHandler(serverCtx),
+				},
+				{
+					// Register an application instance
+					Method:  http.MethodPost,
+					Path:    "/applications/:id/instances",
+					Handler: adminWrite.RegisterInstanceHandler(serverCtx),
+				},
+				{
+					// Put a product manifest
+					Method:  http.MethodPut,
+					Path:    "/applications/:id/manifest",
+					Handler: adminWrite.PutManifestHandler(serverCtx),
+				},
+				{
+					// End the current admin session
+					Method:  http.MethodPost,
+					Path:    "/auth/logout",
+					Handler: adminWrite.LogoutHandler(serverCtx),
+				},
+				{
+					// Revoke an admin session
+					Method:  http.MethodPost,
+					Path:    "/auth/sessions/:id/revoke",
+					Handler: adminWrite.RevokeSessionHandler(serverCtx),
+				},
+				{
+					// Create an ECP-managed direct group
+					Method:  http.MethodPost,
+					Path:    "/identity/groups",
+					Handler: adminWrite.CreateIdentityGroupHandler(serverCtx),
+				},
+				{
+					// Add one direct member to an ECP-managed group
+					Method:  http.MethodPost,
+					Path:    "/identity/groups/:id/members",
+					Handler: adminWrite.AddDirectGroupMemberHandler(serverCtx),
+				},
+				{
+					// Synchronize a directory-managed direct group
+					Method:  http.MethodPost,
+					Path:    "/identity/groups/directory/:externalId/sync",
+					Handler: adminWrite.SyncDirectoryGroupHandler(serverCtx),
+				},
+				{
+					// Admit a verified external identity
+					Method:  http.MethodPost,
+					Path:    "/identity/jit",
+					Handler: adminWrite.AdmitJITHandler(serverCtx),
+				},
+				{
+					// Block a principal locally
+					Method:  http.MethodPost,
+					Path:    "/identity/principals/:id/block",
+					Handler: adminWrite.BlockPrincipalHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RateLimit},
+			[]rest.Route{
+				{
+					// Complete an OIDC login transaction
+					Method:  http.MethodGet,
+					Path:    "/auth/callback",
+					Handler: authPublic.AuthCallbackHandler(serverCtx),
+				},
+				{
+					// Begin an OIDC login transaction
+					Method:  http.MethodGet,
+					Path:    "/auth/start",
+					Handler: authPublic.AuthStartHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.ConnectorMachine, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
+			[]rest.Route{
+				{
+					// Exchange a one-time product login transaction
+					Method:  http.MethodPost,
+					Path:    "/connector/auth/exchange",
+					Handler: connectorMachine.ExchangeProductLoginHandler(serverCtx),
+				},
+				{
+					// Register a product connector
+					Method:  http.MethodPost,
+					Path:    "/connectors/register",
+					Handler: connectorMachine.RegisterConnectorHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
 		[]rest.Route{
-			{
-				// Register an application
-				Method:  http.MethodPost,
-				Path:    "/applications",
-				Handler: ecp.RegisterApplicationHandler(serverCtx),
-			},
-			{
-				// Register an application instance
-				Method:  http.MethodPost,
-				Path:    "/applications/:id/instances",
-				Handler: ecp.RegisterInstanceHandler(serverCtx),
-			},
-			{
-				// Put a product manifest
-				Method:  http.MethodPut,
-				Path:    "/applications/:id/manifest",
-				Handler: ecp.PutManifestHandler(serverCtx),
-			},
-			{
-				// Register a product connector
-				Method:  http.MethodPost,
-				Path:    "/connectors/register",
-				Handler: ecp.RegisterConnectorHandler(serverCtx),
-			},
-			{
-				// Create an ECP-managed direct group
-				Method:  http.MethodPost,
-				Path:    "/identity/groups",
-				Handler: ecp.CreateIdentityGroupHandler(serverCtx),
-			},
-			{
-				// Add one direct member to an ECP-managed group
-				Method:  http.MethodPost,
-				Path:    "/identity/groups/:id/members",
-				Handler: ecp.AddDirectGroupMemberHandler(serverCtx),
-			},
-			{
-				// List direct group members
-				Method:  http.MethodGet,
-				Path:    "/identity/groups/:id/members",
-				Handler: ecp.ListDirectGroupMembersHandler(serverCtx),
-			},
-			{
-				// Synchronize a directory-managed direct group
-				Method:  http.MethodPost,
-				Path:    "/identity/groups/directory/:externalId/sync",
-				Handler: ecp.SyncDirectoryGroupHandler(serverCtx),
-			},
-			{
-				// Admit a verified external identity
-				Method:  http.MethodPost,
-				Path:    "/identity/jit",
-				Handler: ecp.AdmitJITHandler(serverCtx),
-			},
-			{
-				// Block a principal locally
-				Method:  http.MethodPost,
-				Path:    "/identity/principals/:id/block",
-				Handler: ecp.BlockPrincipalHandler(serverCtx),
-			},
 			{
 				// Service health
 				Method:  http.MethodGet,
 				Path:    "/meta/health",
-				Handler: ecp.HealthHandler(serverCtx),
+				Handler: metaPublic.HealthHandler(serverCtx),
 			},
 			{
 				// Build and contract version
 				Method:  http.MethodGet,
 				Path:    "/meta/version",
-				Handler: ecp.VersionHandler(serverCtx),
+				Handler: metaPublic.VersionHandler(serverCtx),
 			},
 		},
 		rest.WithPrefix("/api/v1"),

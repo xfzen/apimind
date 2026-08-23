@@ -28,6 +28,27 @@ type ApplicationResp struct {
 	Version      uint64 `json:"version"`
 }
 
+type AuthCallbackReq struct {
+	State string `form:"state"`
+	Code  string `form:"code"`
+}
+
+type AuthStartReq struct {
+	EnterpriseID          string `form:"enterprise_id"`
+	OIDCClientID          string `form:"oidc_client_id"`
+	ApplicationInstanceID string `form:"application_instance_id,optional"`
+	Kind                  string `form:"kind"`
+	RedirectURI           string `form:"redirect_uri"`
+}
+
+type AuthStartResp struct {
+	TransactionID string `json:"transaction_id"`
+	State         string `json:"state"`
+	Nonce         string `json:"nonce"`
+	CodeChallenge string `json:"code_challenge"`
+	ExpiresAt     int64  `json:"expires_at"`
+}
+
 type BlockPrincipalReq struct {
 	PrincipalID  string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
@@ -117,6 +138,16 @@ type PrincipalResp struct {
 	Version         uint64 `json:"version"`
 }
 
+type ProductLoginExchangeReq struct {
+	Code string `json:"code"`
+}
+
+type ProductLoginExchangeResp struct {
+	SessionToken string `json:"session_token"`
+	CSRFToken    string `json:"csrf_token"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
+
 type PutManifestReq struct {
 	ApplicationID string `path:"id"`
 	EnterpriseID  string `json:"enterprise_id"`
@@ -149,6 +180,29 @@ type RegisterInstanceReq struct {
 	InstanceKey   string `json:"instance_key"`
 	Environment   string `json:"environment,optional"`
 	CanonicalURL  string `json:"canonical_url"`
+}
+
+type RevokeSessionReq struct {
+	SessionID    string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+}
+
+type SessionListReq struct {
+	EnterpriseID string `form:"enterprise_id"`
+}
+
+type SessionListResp struct {
+	Sessions []SessionSummaryResp `json:"sessions"`
+}
+
+type SessionSummaryResp struct {
+	ID                    string `json:"id"`
+	EnterpriseID          string `json:"enterprise_id"`
+	PrincipalID           string `json:"principal_id"`
+	ApplicationInstanceID string `json:"application_instance_id,optional"`
+	Kind                  string `json:"kind"`
+	ExpiresAt             int64  `json:"expires_at"`
+	Revoked               bool   `json:"revoked"`
 }
 
 type SyncDirectoryGroupReq struct {

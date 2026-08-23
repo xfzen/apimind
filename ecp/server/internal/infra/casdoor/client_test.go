@@ -48,3 +48,10 @@ func TestClientRejectsNonHTTPSOutsideLocalMode(t *testing.T) {
 		t.Fatal("expected insecure endpoint rejection")
 	}
 }
+
+func TestOIDCVerifierRejectsNonHTTPSIssuerOutsideLocalMode(t *testing.T) {
+	_, err := NewOIDCVerifier(OIDCVerifierConfig{Issuer: "http://idp.example.com", ClientID: "client", SecretReference: "env://OIDC_SECRET"}, staticSecrets{})
+	if err == nil {
+		t.Fatal("expected insecure issuer rejection")
+	}
+}

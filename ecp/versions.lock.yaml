@@ -29,6 +29,8 @@
     "gorm.io/driver/postgres": {"version": "v1.6.2", "source": "https://github.com/go-gorm/postgres", "sum": "h1:BvXQ/cNUg63q5TFNg672DmDcowZSFrNLkkA3Xe6GXq4="},
     "gorm.io/driver/mysql": {"version": "v1.6.0", "source": "https://github.com/go-gorm/mysql", "sum": "h1:eNbLmNTpPpTOVZi8MMxCi2aaIm0ZpInbORNXDwyLGvg="},
     "github.com/golang-migrate/migrate/v4": {"version": "v4.19.1", "source": "https://github.com/golang-migrate/migrate", "sum": "h1:OCyb44lFuQfYXYLx1SCxPZQGU7mcaZ7gH9yH4jSFbBA="}
+    ,"github.com/coreos/go-oidc/v3": {"version": "v3.20.0", "source": "https://github.com/coreos/go-oidc", "sum": "h1:EtE0WIBHk03N+DqGkY4+UONzzZHk7amKt6IyNd7OsZE="}
+    ,"golang.org/x/oauth2": {"version": "v0.36.0", "source": "https://github.com/golang/oauth2", "sum": "h1:peZ/1z27fi9hUOFCAZaHyrpWG5lwe0RJEEEeH0ThlIs="}
   },
   "npm_packages": {
     "react": {"version": "18.3.1", "integrity": "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="},

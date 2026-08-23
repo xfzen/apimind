@@ -693,7 +693,7 @@ git commit -m "feat(ecp): add identity lifecycle"
 - Produces: `SessionService.Begin`, `Complete`, `ExchangeProductTransaction`, `Revoke`, and `RevokePrincipal`.
 - Produces middleware contracts: browser writes require session-bound CSRF; all writes require `Idempotency-Key` and `Operation-ID`; authentication and credential endpoints use bounded per-source and per-principal rate limits.
 
-- [ ] **Step 1: Write replay, audience, and cookie-boundary tests**
+- [x] **Step 1: Write replay, audience, and cookie-boundary tests**
 
 ```go
 func TestProductLoginTransactionIsSingleUse(t *testing.T) {
@@ -723,13 +723,13 @@ func TestIdempotencyKeyCannotChangePayload(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run session tests and verify failure**
+- [x] **Step 2: Run session tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/session -count=1`
 
 Expected: FAIL because SessionService does not exist.
 
-- [ ] **Step 3: Implement state, PKCE, nonce, audience, expiry, and one-time use**
+- [x] **Step 3: Implement state, PKCE, nonce, audience, expiry, and one-time use**
 
 Admin sessions bind `enterprise_id + principal_id`; product sessions bind `enterprise_id + application_instance_id + principal_id`. Never reuse Cookie names, session IDs, CSRF state, or Casdoor tokens across those domains. Store only hashed session and CSRF material. Browser cookies are `Secure`, `HttpOnly`, and explicitly scoped; every authenticated write validates the session-bound CSRF header before business logic. Idempotency records bind enterprise, operation ID, key, method, canonical path, request hash, response status, response body hash, and expiry. Rate-limit login, callback, credential, policy-repair, and export endpoints without logging secrets.
 
@@ -746,13 +746,13 @@ key-maintainer:    POST /signing-keys/*             dedicated operator credentia
 
 All later browser read/write APIs join `admin-read` or `admin-write`; Connector APIs join `connector-machine`; offline key publication joins `key-maintainer` and cannot be authenticated by a browser session, Connector credential, Casdoor Adapter credential or online delegation key. Tests inspect generated route registration and fail if a protected route is placed in the public group or a browser write omits any required middleware. `/auth/session` is singular and is the only endpoint loaded by `ecp-ui` authentication bootstrap; `/auth/sessions` remains a distinct administrative collection endpoint.
 
-- [ ] **Step 4: Regenerate auth routes and test callback failures**
+- [x] **Step 4: Regenerate auth routes and test callback failures**
 
 Run: `cd ecp/server && ./scripts/gencontracts.sh && go test ./internal/service/session ./internal/service/idempotency ./api/internal/middleware ./api/internal/handler/ecp -count=1`
 
 Expected: invalid state, redirect, PKCE, nonce, expired transaction, and replay tests all pass.
 
-- [ ] **Step 5: Commit sessions**
+- [x] **Step 5: Commit sessions**
 
 ```bash
 git add ecp/server

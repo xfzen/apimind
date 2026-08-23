@@ -13,6 +13,7 @@ type Config struct {
 	Casdoor  CasdoorConfig  `json:",optional"`
 	OIDC     OIDCConfig     `json:",optional"`
 	Identity IdentityConfig `json:",optional"`
+	Session  SessionConfig  `json:",optional"`
 }
 
 type CasdoorConfig struct {
@@ -25,12 +26,20 @@ type CasdoorConfig struct {
 }
 
 type OIDCConfig struct {
-	LocalMode bool `json:",default=false"`
+	LocalMode       bool   `json:",default=false"`
+	AdminAudience   string `json:",optional"`
+	Issuer          string `json:",optional"`
+	ClientID        string `json:",optional"`
+	SecretReference string `json:",optional"`
 }
 
 type IdentityConfig struct {
 	TrustedIssuers []string      `json:",optional"`
 	FreshnessTTL   time.Duration `json:",default=5m"`
+}
+
+type SessionConfig struct {
+	TTL time.Duration `json:",default=8h"`
 }
 
 type DatabaseConfig struct {

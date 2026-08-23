@@ -85,6 +85,20 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (domain.OID
 	return value, nil
 }
 
+func (s *Service) Get(ctx context.Context, enterpriseID, id string) (domain.OIDCClient, error) {
+	if s == nil || s.store == nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)
+	}
+	value, found, err := s.store.Get(ctx, enterpriseID, id)
+	if err != nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
+	}
+	if !found {
+		return domain.OIDCClient{}, decision("oidc_client_not_found", nil)
+	}
+	return value, nil
+}
+
 func (s *Service) RotateSecret(ctx context.Context, enterpriseID, id, secretReference string) (domain.OIDCClient, error) {
 	if s == nil || s.store == nil {
 		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)

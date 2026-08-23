@@ -61,6 +61,57 @@ components:
                 - version
             title: ApplicationResp
             type: object
+        AuthCallbackReq:
+            properties:
+                code:
+                    type: string
+                state:
+                    type: string
+            required:
+                - state
+                - code
+            title: AuthCallbackReq
+            type: object
+        AuthStartReq:
+            properties:
+                application_instance_id:
+                    type: string
+                enterprise_id:
+                    type: string
+                kind:
+                    type: string
+                oidc_client_id:
+                    type: string
+                redirect_uri:
+                    type: string
+            required:
+                - enterprise_id
+                - oidc_client_id
+                - kind
+                - redirect_uri
+            title: AuthStartReq
+            type: object
+        AuthStartResp:
+            properties:
+                code_challenge:
+                    type: string
+                expires_at:
+                    format: int64
+                    type: integer
+                nonce:
+                    type: string
+                state:
+                    type: string
+                transaction_id:
+                    type: string
+            required:
+                - transaction_id
+                - state
+                - nonce
+                - code_challenge
+                - expires_at
+            title: AuthStartResp
+            type: object
         BlockPrincipalReq:
             properties:
                 enterprise_id:
@@ -276,6 +327,29 @@ components:
                 - version
             title: PrincipalResp
             type: object
+        ProductLoginExchangeReq:
+            properties:
+                code:
+                    type: string
+            required:
+                - code
+            title: ProductLoginExchangeReq
+            type: object
+        ProductLoginExchangeResp:
+            properties:
+                csrf_token:
+                    type: string
+                expires_at:
+                    format: int64
+                    type: integer
+                session_token:
+                    type: string
+            required:
+                - session_token
+                - csrf_token
+                - expires_at
+            title: ProductLoginExchangeResp
+            type: object
         PutManifestReq:
             properties:
                 api_version:
@@ -351,6 +425,59 @@ components:
                 - canonical_url
             title: RegisterInstanceReq
             type: object
+        RevokeSessionReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: RevokeSessionReq
+            type: object
+        SessionListReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: SessionListReq
+            type: object
+        SessionListResp:
+            properties:
+                sessions:
+                    items:
+                        $ref: '#/components/schemas/SessionSummaryResp'
+                    type: array
+            required:
+                - sessions
+            title: SessionListResp
+            type: object
+        SessionSummaryResp:
+            properties:
+                application_instance_id:
+                    type: string
+                enterprise_id:
+                    type: string
+                expires_at:
+                    format: int64
+                    type: integer
+                id:
+                    type: string
+                kind:
+                    type: string
+                principal_id:
+                    type: string
+                revoked:
+                    format: boolean
+                    type: boolean
+            required:
+                - id
+                - enterprise_id
+                - principal_id
+                - kind
+                - expires_at
+                - revoked
+            title: SessionSummaryResp
+            type: object
         SyncDirectoryGroupReq:
             properties:
                 enterprise_id:
@@ -404,7 +531,7 @@ paths:
                     description: A successful response.
             summary: Register an application
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/applications/{id}/instances:
         post:
@@ -430,7 +557,7 @@ paths:
                     description: A successful response.
             summary: Register an application instance
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/applications/{id}/manifest:
         put:
@@ -456,7 +583,166 @@ paths:
                     description: A successful response.
             summary: Put a product manifest
             tags:
-                - ecp
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/auth/callback:
+        get:
+            operationId: AuthCallback
+            parameters:
+                - in: query
+                  name: state
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: code
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SessionSummaryResp'
+                    description: A successful response.
+            summary: Complete an OIDC login transaction
+            tags:
+                - authPublic
+            x-ecp-access: public
+    /api/v1/auth/logout:
+        post:
+            operationId: Logout
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Empty'
+                    description: A successful response.
+            summary: End the current admin session
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/auth/session:
+        get:
+            operationId: CurrentSession
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SessionSummaryResp'
+                    description: A successful response.
+            summary: Current admin session
+            tags:
+                - adminRead
+            x-ecp-access: public
+    /api/v1/auth/sessions:
+        get:
+            operationId: ListSessions
+            parameters:
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SessionListResp'
+                    description: A successful response.
+            summary: List admin sessions
+            tags:
+                - adminRead
+            x-ecp-access: public
+    /api/v1/auth/sessions/{id}/revoke:
+        post:
+            operationId: RevokeSession
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RevokeSessionReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Empty'
+                    description: A successful response.
+            summary: Revoke an admin session
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/auth/start:
+        get:
+            operationId: AuthStart
+            parameters:
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: oidc_client_id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: application_instance_id
+                  required: false
+                  schema:
+                    type: string
+                - in: query
+                  name: kind
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: redirect_uri
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AuthStartResp'
+                    description: A successful response.
+            summary: Begin an OIDC login transaction
+            tags:
+                - authPublic
+            x-ecp-access: public
+    /api/v1/connector/auth/exchange:
+        post:
+            operationId: ExchangeProductLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProductLoginExchangeReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ProductLoginExchangeResp'
+                    description: A successful response.
+            summary: Exchange a one-time product login transaction
+            tags:
+                - connectorMachine
             x-ecp-access: public
     /api/v1/connectors/register:
         post:
@@ -476,7 +762,7 @@ paths:
                     description: A successful response.
             summary: Register a product connector
             tags:
-                - ecp
+                - connectorMachine
             x-ecp-access: public
     /api/v1/identity/groups:
         post:
@@ -496,7 +782,7 @@ paths:
                     description: A successful response.
             summary: Create an ECP-managed direct group
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/identity/groups/{id}/members:
         get:
@@ -521,7 +807,7 @@ paths:
                     description: A successful response.
             summary: List direct group members
             tags:
-                - ecp
+                - adminRead
             x-ecp-access: public
         post:
             operationId: AddDirectGroupMember
@@ -546,7 +832,7 @@ paths:
                     description: A successful response.
             summary: Add one direct member to an ECP-managed group
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/identity/groups/directory/{externalId}/sync:
         post:
@@ -572,7 +858,7 @@ paths:
                     description: A successful response.
             summary: Synchronize a directory-managed direct group
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/identity/jit:
         post:
@@ -592,7 +878,7 @@ paths:
                     description: A successful response.
             summary: Admit a verified external identity
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/identity/principals/{id}/block:
         post:
@@ -618,7 +904,7 @@ paths:
                     description: A successful response.
             summary: Block a principal locally
             tags:
-                - ecp
+                - adminWrite
             x-ecp-access: public
     /api/v1/meta/health:
         get:
@@ -632,7 +918,7 @@ paths:
                     description: A successful response.
             summary: Service health
             tags:
-                - ecp
+                - metaPublic
             x-ecp-access: public
     /api/v1/meta/version:
         get:
@@ -646,5 +932,5 @@ paths:
                     description: A successful response.
             summary: Build and contract version
             tags:
-                - ecp
+                - metaPublic
             x-ecp-access: public
