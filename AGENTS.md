@@ -24,7 +24,8 @@ Do not add CLI workflows for ApiMind contract maintenance.
 
 Execution constraints:
 
-- Do not use subagents. Perform all repository analysis, implementation, review, and verification in the primary agent session.
+- Do not start subagents by default. Use subagents only when the user explicitly requests delegation; otherwise perform all repository analysis, implementation, review, and verification in the primary agent session.
+- When starting or restarting ApiMind locally, ensure that only the latest instance built from the current checkout remains running. Replace any older ApiMind instance instead of leaving multiple instances running in parallel.
 
 Software supply-chain constraints:
 
