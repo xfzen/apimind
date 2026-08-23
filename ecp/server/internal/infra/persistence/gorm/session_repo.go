@@ -32,11 +32,18 @@ func (s *SessionStore) MarkLoginTransactionUsed(ctx context.Context, id string, 
 func (s *SessionStore) CreateProductTransaction(ctx context.Context, value domain.ProductLoginTransaction) error {
 	return s.db.WithContext(ctx).Create(&value).Error
 }
-func (s *SessionStore) ConsumeProductTransaction(ctx context.Context, codeHash string, usedAt time.Time) (domain.ProductLoginTransaction, bool, error) {
+func (s *SessionStore) ConsumeProductTransaction(ctx context.Context, codeHash, enterpriseID, instanceID string, usedAt time.Time) (domain.ProductLoginTransaction, bool, error) {
 	var consumed domain.ProductLoginTransaction
 	err := WithTx(ctx, s.db, func(tx *gorm.DB) error {
 		var value domain.ProductLoginTransaction
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code_hash = ? AND used_at IS NULL", codeHash).First(&value).Error
+		query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code_hash = ? AND used_at IS NULL", codeHash)
+		if enterpriseID != "" {
+			query = query.Where("enterprise_id = ?", enterpriseID)
+		}
+		if instanceID != "" {
+			query = query.Where("application_instance_id = ?", instanceID)
+		}
+		err := query.First(&value).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}

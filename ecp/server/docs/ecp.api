@@ -195,6 +195,14 @@ service ecp {
 	@handler RegisterConnector
 	post /connectors/register (RegisterConnectorReq) returns (ConnectorResp)
 
+	@doc "Begin a product OIDC login transaction"
+	@handler StartProductLogin
+	post /connector/auth/start (ProductAuthStartReq) returns (ProductAuthStartResp)
+
+	@doc "Complete a product OIDC login and issue a one-time exchange"
+	@handler CompleteProductLogin
+	post /connector/auth/complete (ProductAuthCompleteReq) returns (ProductAuthCompleteResp)
+
 	@doc "Exchange a one-time product login transaction"
 	@handler ExchangeProductLogin
 	post /connector/auth/exchange (ProductLoginExchangeReq) returns (ProductLoginExchangeResp)

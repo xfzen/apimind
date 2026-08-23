@@ -19,6 +19,14 @@ type AuthorizationDecision struct {
 	IdentityFreshnessDeadline                                                                              time.Time
 }
 
+type AuthorizationIdentity struct {
+	PrincipalKind      string
+	IdentityProvider   string
+	PolicySubject      string
+	DirectGroupIDs     []string
+	DirectGroupVersion uint64
+}
+
 type AccessState struct {
 	LifecycleState                        string
 	LifecycleVersion, IdentitySyncVersion uint64

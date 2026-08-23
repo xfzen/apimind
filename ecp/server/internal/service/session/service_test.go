@@ -86,9 +86,9 @@ func (s *memoryStore) CreateProductTransaction(_ context.Context, value domain.P
 	s.products[value.ID] = value
 	return nil
 }
-func (s *memoryStore) ConsumeProductTransaction(_ context.Context, codeHash string, usedAt time.Time) (domain.ProductLoginTransaction, bool, error) {
+func (s *memoryStore) ConsumeProductTransaction(_ context.Context, codeHash, enterpriseID, instanceID string, usedAt time.Time) (domain.ProductLoginTransaction, bool, error) {
 	for id, value := range s.products {
-		if value.CodeHash == codeHash && value.UsedAt == nil {
+		if value.CodeHash == codeHash && value.UsedAt == nil && (enterpriseID == "" || value.EnterpriseID == enterpriseID) && (instanceID == "" || value.ApplicationInstanceID == instanceID) {
 			value.UsedAt = &usedAt
 			s.products[id] = value
 			return value, true, nil
@@ -141,6 +141,42 @@ func TestProductLoginTransactionIsSingleUse(t *testing.T) {
 	}
 	_, err = service.ExchangeProductTransaction(context.Background(), transaction.Code)
 	assertReason(t, err, "login_transaction_used")
+}
+
+func TestProductOIDCCallbackIssuesOneTimeExchangeWithoutCreatingSession(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
+	store := &memoryStore{}
+	service := New(store, clock, time.Hour)
+	begin, err := service.Begin(context.Background(), BeginInput{EnterpriseID: "ent-1", OIDCClientID: "oidc-product", ApplicationInstanceID: "ins-1", Kind: ProductSession, RedirectURI: "https://product.example.com/api/enterprise/auth/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier := fakeVerifier{claims: OIDCClaims{PrincipalID: "principal-1", Audience: "product-client", Nonce: begin.Nonce}}
+	exchange, err := service.CompleteProduct(context.Background(), CompleteInput{TransactionID: begin.TransactionID, State: begin.State, PKCEVerifier: begin.PKCEVerifier, Nonce: begin.Nonce, Code: "code", ExpectedAudience: "product-client", Verifier: verifier})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(store.sessions) != 0 {
+		t.Fatalf("sessions created before exchange = %d", len(store.sessions))
+	}
+	productSession, err := service.ExchangeProductTransaction(context.Background(), exchange.Code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if productSession.Kind != ProductSession || productSession.ApplicationInstanceID != "ins-1" {
+		t.Fatalf("session = %+v", productSession)
+	}
+}
+
+func TestProductOIDCCallbackCannotCrossConnectorInstance(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
+	service := New(&memoryStore{}, clock, time.Hour)
+	begin, err := service.Begin(context.Background(), BeginInput{EnterpriseID: "ent-1", OIDCClientID: "oidc-product", ApplicationInstanceID: "ins-1", Kind: ProductSession, RedirectURI: "https://product.example.com/api/enterprise/auth/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.CompleteProduct(context.Background(), CompleteInput{TransactionID: begin.TransactionID, State: begin.State, PKCEVerifier: begin.PKCEVerifier, Nonce: begin.Nonce, Code: "code", ExpectedAudience: "product-client", ExpectedEnterpriseID: "ent-1", ExpectedApplicationInstanceID: "ins-2", ExpectedOIDCClientID: "oidc-product", Verifier: fakeVerifier{claims: OIDCClaims{PrincipalID: "principal-1", Audience: "product-client", Nonce: begin.Nonce}}})
+	assertReason(t, err, "login_transaction_scope_mismatch")
 }
 
 func TestAdminAndProductSessionScopesAreIsolated(t *testing.T) {

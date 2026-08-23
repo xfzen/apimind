@@ -16,6 +16,7 @@ func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 type Store interface {
 	BoundaryExists(context.Context, string, string) (bool, error)
+	GetAuthorizationIdentity(context.Context, string, string) (domain.AuthorizationIdentity, bool, error)
 	GetAccessState(context.Context, string, string, string) (domain.AccessState, error)
 	GetPolicyProjection(context.Context, string, string) (domain.PolicyProjection, bool, error)
 	GetSecurityConfig(context.Context, string, string) (domain.SecurityConfig, bool, error)
@@ -51,6 +52,18 @@ func (s *Service) Authorize(ctx context.Context, request domain.AuthorizationReq
 	if !exists {
 		return deny("boundary_mismatch", domain.AccessState{}, domain.PolicyProjection{}, 0, request), nil
 	}
+	identity, found, err := s.store.GetAuthorizationIdentity(ctx, request.EnterpriseID, request.PrincipalID)
+	if err != nil {
+		return domain.AuthorizationDecision{}, err
+	}
+	if !found {
+		return deny("principal_not_found", domain.AccessState{}, domain.PolicyProjection{}, 0, request), nil
+	}
+	request.PrincipalKind = identity.PrincipalKind
+	request.IdentityProvider = identity.IdentityProvider
+	request.PolicySubject = identity.PolicySubject
+	request.DirectGroupIDs = append([]string(nil), identity.DirectGroupIDs...)
+	request.DirectGroupVersion = identity.DirectGroupVersion
 	state, err := s.store.GetAccessState(ctx, request.EnterpriseID, request.PrincipalID, request.IdentityProvider)
 	if err != nil {
 		return domain.AuthorizationDecision{}, err

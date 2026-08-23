@@ -16,6 +16,7 @@ import (
 type Store interface {
 	Create(context.Context, domain.OIDCClient) error
 	Get(context.Context, string, string) (domain.OIDCClient, bool, error)
+	GetByInstance(context.Context, string, string) (domain.OIDCClient, bool, error)
 	Update(context.Context, domain.OIDCClient) error
 	InstanceBelongsTo(context.Context, string, string, string) (bool, error)
 }
@@ -90,6 +91,20 @@ func (s *Service) Get(ctx context.Context, enterpriseID, id string) (domain.OIDC
 		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)
 	}
 	value, found, err := s.store.Get(ctx, enterpriseID, id)
+	if err != nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
+	}
+	if !found {
+		return domain.OIDCClient{}, decision("oidc_client_not_found", nil)
+	}
+	return value, nil
+}
+
+func (s *Service) GetByInstance(ctx context.Context, enterpriseID, instanceID string) (domain.OIDCClient, error) {
+	if s == nil || s.store == nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)
+	}
+	value, found, err := s.store.GetByInstance(ctx, enterpriseID, instanceID)
 	if err != nil {
 		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
 	}

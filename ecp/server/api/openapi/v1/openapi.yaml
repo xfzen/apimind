@@ -1049,6 +1049,70 @@ components:
                 - version
             title: PrincipalResp
             type: object
+        ProductAuthCompleteReq:
+            properties:
+                code:
+                    type: string
+                nonce:
+                    type: string
+                pkce_verifier:
+                    type: string
+                state:
+                    type: string
+                transaction_id:
+                    type: string
+            required:
+                - transaction_id
+                - state
+                - pkce_verifier
+                - nonce
+                - code
+            title: ProductAuthCompleteReq
+            type: object
+        ProductAuthCompleteResp:
+            properties:
+                exchange_code:
+                    type: string
+                expires_at:
+                    format: int64
+                    type: integer
+            required:
+                - exchange_code
+                - expires_at
+            title: ProductAuthCompleteResp
+            type: object
+        ProductAuthStartReq:
+            properties:
+                redirect_uri:
+                    type: string
+            required:
+                - redirect_uri
+            title: ProductAuthStartReq
+            type: object
+        ProductAuthStartResp:
+            properties:
+                authorization_url:
+                    type: string
+                expires_at:
+                    format: int64
+                    type: integer
+                nonce:
+                    type: string
+                pkce_verifier:
+                    type: string
+                state:
+                    type: string
+                transaction_id:
+                    type: string
+            required:
+                - transaction_id
+                - state
+                - pkce_verifier
+                - nonce
+                - authorization_url
+                - expires_at
+            title: ProductAuthStartResp
+            type: object
         ProductLoginExchangeReq:
             properties:
                 code:
@@ -1742,6 +1806,26 @@ paths:
             tags:
                 - connectorMachine
             x-ecp-access: public
+    /api/v1/connector/auth/complete:
+        post:
+            operationId: CompleteProductLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProductAuthCompleteReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ProductAuthCompleteResp'
+                    description: A successful response.
+            summary: Complete a product OIDC login and issue a one-time exchange
+            tags:
+                - connectorMachine
+            x-ecp-access: public
     /api/v1/connector/auth/exchange:
         post:
             operationId: ExchangeProductLogin
@@ -1759,6 +1843,26 @@ paths:
                                 $ref: '#/components/schemas/ProductLoginExchangeResp'
                     description: A successful response.
             summary: Exchange a one-time product login transaction
+            tags:
+                - connectorMachine
+            x-ecp-access: public
+    /api/v1/connector/auth/start:
+        post:
+            operationId: StartProductLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProductAuthStartReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ProductAuthStartResp'
+                    description: A successful response.
+            summary: Begin a product OIDC login transaction
             tags:
                 - connectorMachine
             x-ecp-access: public

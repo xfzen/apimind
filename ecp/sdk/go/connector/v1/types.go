@@ -122,55 +122,109 @@ type ConnectorCredential struct {
 	ConnectorID string
 	Secret      string
 }
-type InstanceRegistration struct{ EnterpriseID, ApplicationID, InstanceID, ConnectorKey, CanonicalURL string }
+type InstanceRegistration struct {
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceID    string `json:"instance_id"`
+	ConnectorKey  string `json:"connector_key"`
+	CanonicalURL  string `json:"canonical_url"`
+}
 type InstanceRegistrationResult struct {
-	ConnectorID, RootFingerprint string
-	KeySet                       SignedKeySet
+	ConnectorID     string       `json:"connector_id"`
+	RootFingerprint string       `json:"root_fingerprint"`
+	KeySet          SignedKeySet `json:"delegation_key_set"`
 }
 type HeartbeatRequest struct {
-	InstanceID, Version string
-	ObservedAt          time.Time
+	InstanceID string    `json:"instance_id"`
+	Version    string    `json:"version"`
+	ObservedAt time.Time `json:"observed_at"`
 }
-type SessionResolutionRequest struct{ InstanceID, SessionToken string }
+type SessionResolutionRequest struct {
+	InstanceID   string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
 type SessionResolution struct {
-	PrincipalID      string
-	Revoked          bool
-	ExpiresAt        time.Time
-	LifecycleVersion uint64
+	PrincipalID      string    `json:"principal_id"`
+	Revoked          bool      `json:"revoked"`
+	ExpiresAt        time.Time `json:"expires_at"`
+	LifecycleVersion uint64    `json:"lifecycle_version"`
 }
 type AuthorizationRequest struct {
-	EnterpriseID, ApplicationInstanceID, PrincipalID, Action, ResourceID string
-	ResourceVersion                                                      uint64
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id"`
+	PrincipalID           string `json:"principal_id"`
+	Action                string `json:"action"`
+	ResourceID            string `json:"resource_id"`
+	ResourceVersion       uint64 `json:"resource_version"`
 }
 type AuthorizationDecision struct {
-	Allow                                                                           bool
-	Reason                                                                          string
-	PolicyVersion, LifecycleVersion, IdentitySyncVersion, AuthorizedResourceVersion uint64
+	Allow                     bool   `json:"allow"`
+	Reason                    string `json:"reason"`
+	PolicyVersion             uint64 `json:"policy_version"`
+	LifecycleVersion          uint64 `json:"lifecycle_version"`
+	IdentitySyncVersion       uint64 `json:"identity_sync_version"`
+	AuthorizedResourceVersion uint64 `json:"authorized_resource_version"`
 }
 type AuditEvent struct {
-	OperationID, Action, ResourceType, ResourceID, Outcome string
-	OccurredAt                                             time.Time
-	SafeDiff                                               map[string]string
+	OperationID  string            `json:"operation_id"`
+	Action       string            `json:"action"`
+	ResourceType string            `json:"resource_type"`
+	ResourceID   string            `json:"resource_id"`
+	Outcome      string            `json:"outcome"`
+	OccurredAt   time.Time         `json:"occurred_at"`
+	SafeDiff     map[string]string `json:"safe_diff,omitempty"`
 }
 type PolicyVersion struct {
-	Version              uint64
-	State, CanonicalHash string
+	Version       uint64 `json:"version"`
+	State         string `json:"state"`
+	CanonicalHash string `json:"canonical_hash"`
 }
 type LifecycleCursor struct {
-	Cursor string
-	Limit  int
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit"`
 }
 type LifecycleChange struct {
-	PrincipalID, State string
-	Version            uint64
+	PrincipalID string `json:"principal_id"`
+	State       string `json:"state"`
+	Version     uint64 `json:"version"`
 }
 type LifecycleChanges struct {
-	Changes    []LifecycleChange
-	NextCursor string
+	Changes    []LifecycleChange `json:"changes"`
+	NextCursor string            `json:"next_cursor"`
 }
 type KeySetAck struct {
-	Version        uint64
-	AcceptedKeyIDs []string
+	Version        uint64   `json:"version"`
+	AcceptedKeyIDs []string `json:"accepted_key_ids"`
+}
+
+type ProductLoginStartRequest struct {
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id"`
+	RedirectURI           string `json:"redirect_uri"`
+}
+type ProductLoginStart struct {
+	TransactionID    string    `json:"transaction_id"`
+	State            string    `json:"state"`
+	PKCEVerifier     string    `json:"pkce_verifier"`
+	Nonce            string    `json:"nonce"`
+	AuthorizationURL string    `json:"authorization_url"`
+	ExpiresAt        time.Time `json:"expires_at"`
+}
+type ProductLoginCompleteRequest struct {
+	TransactionID string `json:"transaction_id"`
+	State         string `json:"state"`
+	PKCEVerifier  string `json:"pkce_verifier"`
+	Nonce         string `json:"nonce"`
+	Code          string `json:"code"`
+}
+type ProductLoginComplete struct {
+	ExchangeCode string    `json:"exchange_code"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+type ProductLoginExchange struct {
+	SessionToken string    `json:"session_token"`
+	CSRFToken    string    `json:"csrf_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 type ProductAPI interface {

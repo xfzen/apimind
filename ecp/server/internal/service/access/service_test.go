@@ -18,15 +18,18 @@ type fakeEngine struct {
 	allow bool
 	err   error
 	calls int
+	last  domain.AuthorizationRequest
 }
 
-func (e *fakeEngine) Authorize(_ context.Context, _ domain.AuthorizationRequest) (bool, error) {
+func (e *fakeEngine) Authorize(_ context.Context, request domain.AuthorizationRequest) (bool, error) {
 	e.calls++
+	e.last = request
 	return e.allow, e.err
 }
 
 type fakeStore struct {
 	boundary   bool
+	identity   domain.AuthorizationIdentity
 	state      domain.AccessState
 	projection domain.PolicyProjection
 	config     domain.SecurityConfig
@@ -35,6 +38,9 @@ type fakeStore struct {
 
 func (s fakeStore) BoundaryExists(context.Context, string, string) (bool, error) {
 	return s.boundary, s.err
+}
+func (s fakeStore) GetAuthorizationIdentity(context.Context, string, string) (domain.AuthorizationIdentity, bool, error) {
+	return s.identity, s.identity.PolicySubject != "", s.err
 }
 func (s fakeStore) GetAccessState(context.Context, string, string, string) (domain.AccessState, error) {
 	return s.state, s.err
@@ -48,7 +54,7 @@ func (s fakeStore) GetSecurityConfig(context.Context, string, string) (domain.Se
 
 func baseFixture(clock *fakeClock) (*Service, *fakeEngine) {
 	engine := &fakeEngine{allow: true}
-	store := fakeStore{boundary: true, state: domain.AccessState{LifecycleState: "active", LifecycleVersion: 1, IdentitySyncVersion: 1, IdentityFreshnessDeadline: clock.Now().Add(5 * time.Minute)}, projection: domain.PolicyProjection{Base: domain.Base{ID: "pol-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", PolicyVersion: 1, ReconciliationState: "in_sync"}, config: domain.SecurityConfig{Base: domain.Base{ID: "sec-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", Version: 1}}
+	store := fakeStore{boundary: true, identity: domain.AuthorizationIdentity{PrincipalKind: "human", IdentityProvider: "casdoor", PolicySubject: "principal-1", DirectGroupVersion: 1}, state: domain.AccessState{LifecycleState: "active", LifecycleVersion: 1, IdentitySyncVersion: 1, IdentityFreshnessDeadline: clock.Now().Add(5 * time.Minute)}, projection: domain.PolicyProjection{Base: domain.Base{ID: "pol-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", PolicyVersion: 1, ReconciliationState: "in_sync"}, config: domain.SecurityConfig{Base: domain.Base{ID: "sec-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", Version: 1}}
 	return New(store, engine, NewCache(clock), clock), engine
 }
 
@@ -106,5 +112,21 @@ func TestPolicyEngineFailureNeverSynthesizesAllow(t *testing.T) {
 	decision, err := service.Authorize(context.Background(), requestFor("project.read"))
 	if err == nil || decision.Allow {
 		t.Fatalf("decision=%+v err=%v", decision, err)
+	}
+}
+
+func TestAuthorizationIdentityIsLoadedByECPNotTrustedFromConnector(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)}
+	service, engine := baseFixture(clock)
+	request := requestFor("project.read")
+	request.PolicySubject = "attacker"
+	request.DirectGroupIDs = []string{"admin"}
+	request.DirectGroupVersion = 999
+	decision, err := service.Authorize(context.Background(), request)
+	if err != nil || !decision.Allow {
+		t.Fatalf("decision=%+v err=%v", decision, err)
+	}
+	if engine.last.PolicySubject != "principal-1" || engine.last.DirectGroupVersion != 1 || len(engine.last.DirectGroupIDs) != 0 {
+		t.Fatalf("engine request trusted connector identity: %+v", engine.last)
 	}
 }

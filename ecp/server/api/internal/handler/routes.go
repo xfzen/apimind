@@ -266,10 +266,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: connectorMachine.IngestConnectorAuditHandler(serverCtx),
 				},
 				{
+					// Complete a product OIDC login and issue a one-time exchange
+					Method:  http.MethodPost,
+					Path:    "/connector/auth/complete",
+					Handler: connectorMachine.CompleteProductLoginHandler(serverCtx),
+				},
+				{
 					// Exchange a one-time product login transaction
 					Method:  http.MethodPost,
 					Path:    "/connector/auth/exchange",
 					Handler: connectorMachine.ExchangeProductLoginHandler(serverCtx),
+				},
+				{
+					// Begin a product OIDC login transaction
+					Method:  http.MethodPost,
+					Path:    "/connector/auth/start",
+					Handler: connectorMachine.StartProductLoginHandler(serverCtx),
 				},
 				{
 					// Report product Connector health

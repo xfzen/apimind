@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -72,12 +73,47 @@ func (c *Client) RegisterInstance(ctx context.Context, input InstanceRegistratio
 	return output, err
 }
 func (c *Client) Heartbeat(ctx context.Context, input HeartbeatRequest) error {
-	return c.do(ctx, http.MethodPost, "api/v1/connector/heartbeat", input, &struct{}{})
+	payload := map[string]any{"instance_id": input.InstanceID, "version": input.Version, "observed_at": input.ObservedAt.Unix()}
+	return c.do(ctx, http.MethodPost, "api/v1/connector/heartbeat", payload, &struct{}{})
 }
 func (c *Client) ResolveSession(ctx context.Context, input SessionResolutionRequest) (SessionResolution, error) {
-	var output SessionResolution
+	var output struct {
+		PrincipalID      string `json:"principal_id"`
+		Revoked          bool   `json:"revoked"`
+		ExpiresAt        int64  `json:"expires_at"`
+		LifecycleVersion uint64 `json:"lifecycle_version"`
+	}
 	err := c.do(ctx, http.MethodPost, "api/v1/connector/sessions/resolve", input, &output)
-	return output, err
+	return SessionResolution{PrincipalID: output.PrincipalID, Revoked: output.Revoked, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC(), LifecycleVersion: output.LifecycleVersion}, err
+}
+func (c *Client) BeginProductLogin(ctx context.Context, input ProductLoginStartRequest) (ProductLoginStart, error) {
+	var output struct {
+		TransactionID    string `json:"transaction_id"`
+		State            string `json:"state"`
+		PKCEVerifier     string `json:"pkce_verifier"`
+		Nonce            string `json:"nonce"`
+		AuthorizationURL string `json:"authorization_url"`
+		ExpiresAt        int64  `json:"expires_at"`
+	}
+	err := c.do(ctx, http.MethodPost, "api/v1/connector/auth/start", input, &output)
+	return ProductLoginStart{TransactionID: output.TransactionID, State: output.State, PKCEVerifier: output.PKCEVerifier, Nonce: output.Nonce, AuthorizationURL: output.AuthorizationURL, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC()}, err
+}
+func (c *Client) CompleteProductLogin(ctx context.Context, input ProductLoginCompleteRequest) (ProductLoginComplete, error) {
+	var output struct {
+		ExchangeCode string `json:"exchange_code"`
+		ExpiresAt    int64  `json:"expires_at"`
+	}
+	err := c.do(ctx, http.MethodPost, "api/v1/connector/auth/complete", input, &output)
+	return ProductLoginComplete{ExchangeCode: output.ExchangeCode, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC()}, err
+}
+func (c *Client) ExchangeProductLogin(ctx context.Context, code string) (ProductLoginExchange, error) {
+	var output struct {
+		SessionToken string `json:"session_token"`
+		CSRFToken    string `json:"csrf_token"`
+		ExpiresAt    int64  `json:"expires_at"`
+	}
+	err := c.do(ctx, http.MethodPost, "api/v1/connector/auth/exchange", map[string]string{"code": code}, &output)
+	return ProductLoginExchange{SessionToken: output.SessionToken, CSRFToken: output.CSRFToken, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC()}, err
 }
 func (c *Client) Authorize(ctx context.Context, input AuthorizationRequest) (AuthorizationDecision, error) {
 	var output AuthorizationDecision
@@ -92,7 +128,11 @@ func (c *Client) BatchAuthorize(ctx context.Context, input []AuthorizationReques
 	return output.Decisions, err
 }
 func (c *Client) IngestAuditEvents(ctx context.Context, input []AuditEvent) error {
-	return c.do(ctx, http.MethodPost, "api/v1/connector/audit/events", map[string]any{"events": input}, &struct{}{})
+	events := make([]map[string]any, len(input))
+	for index := range input {
+		events[index] = map[string]any{"operation_id": input[index].OperationID, "action": input[index].Action, "resource_type": input[index].ResourceType, "resource_id": input[index].ResourceID, "outcome": input[index].Outcome, "occurred_at": input[index].OccurredAt.Unix()}
+	}
+	return c.do(ctx, http.MethodPost, "api/v1/connector/audit/events", map[string]any{"events": events}, &struct{}{})
 }
 func (c *Client) GetPolicyVersion(ctx context.Context, instanceID string) (PolicyVersion, error) {
 	var output PolicyVersion

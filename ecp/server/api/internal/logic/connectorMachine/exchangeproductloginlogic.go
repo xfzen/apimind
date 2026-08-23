@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
 
@@ -32,7 +33,11 @@ func (l *ExchangeProductLoginLogic) ExchangeProductLogin(req *types.ProductLogin
 	if req == nil || l.svcCtx.Sessions == nil {
 		return nil, fmt.Errorf("session service is unavailable")
 	}
-	value, err := l.svcCtx.Sessions.ExchangeProductTransaction(l.ctx, req.Code)
+	claims, found := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
+	if !found || !hasScope(claims.Scopes, "session.resolve") {
+		return nil, fmt.Errorf("connector_scope_denied")
+	}
+	value, err := l.svcCtx.Sessions.ExchangeProductTransactionFor(l.ctx, req.Code, claims.EnterpriseID, claims.ApplicationInstanceID)
 	if err != nil {
 		return nil, err
 	}

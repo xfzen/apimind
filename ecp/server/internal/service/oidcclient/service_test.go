@@ -29,6 +29,15 @@ func (s *memoryStore) Get(_ context.Context, enterpriseID, id string) (domain.OI
 	return value, found && value.EnterpriseID == enterpriseID, nil
 }
 
+func (s *memoryStore) GetByInstance(_ context.Context, enterpriseID, instanceID string) (domain.OIDCClient, bool, error) {
+	for _, value := range s.clients {
+		if value.EnterpriseID == enterpriseID && value.InstanceID == instanceID && value.Status == "active" {
+			return value, true, nil
+		}
+	}
+	return domain.OIDCClient{}, false, nil
+}
+
 func (s *memoryStore) Update(_ context.Context, value domain.OIDCClient) error {
 	s.clients[value.ID] = value
 	return nil

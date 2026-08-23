@@ -10,6 +10,7 @@ import (
 
 	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/config"
+	"github.com/xfzen/ecp/server/internal/domain"
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
@@ -31,24 +32,25 @@ import (
 )
 
 type ServiceContext struct {
-	Config         config.Config
-	DB             *gorm.DB
-	Registry       *registryservice.Service
-	Casdoor        *casdoor.Client
-	OIDCClients    *oidcclientservice.Service
-	Identity       *identityservice.Service
-	Lifecycle      *lifecycleservice.Service
-	Sessions       *sessionservice.Service
-	Idempotency    *idempotencyservice.Service
-	Access         *accessservice.Service
-	AdminQuery     *adminqueryservice.Service
-	Policy         *policyservice.Service
-	SecurityConfig *securityconfigservice.Service
-	Connector      *connectorservice.Service
-	Credential     *credentialservice.Service
-	Audit          *auditservice.Service
-	AuditIngestDB  *gorm.DB
-	AuditReadDB    *gorm.DB
+	Config          config.Config
+	DB              *gorm.DB
+	Registry        *registryservice.Service
+	Casdoor         *casdoor.Client
+	OIDCClients     *oidcclientservice.Service
+	Identity        *identityservice.Service
+	Lifecycle       *lifecycleservice.Service
+	Sessions        *sessionservice.Service
+	Idempotency     *idempotencyservice.Service
+	Access          *accessservice.Service
+	AdminQuery      *adminqueryservice.Service
+	Policy          *policyservice.Service
+	SecurityConfig  *securityconfigservice.Service
+	Connector       *connectorservice.Service
+	Credential      *credentialservice.Service
+	Audit           *auditservice.Service
+	AuditIngestDB   *gorm.DB
+	AuditReadDB     *gorm.DB
+	NewOIDCVerifier func(domain.OIDCClient) (sessionservice.OIDCVerifier, error)
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
@@ -63,6 +65,11 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		cfg.OIDC.AdminAudience = cfg.OIDC.ClientID
 	}
 	ctx := &ServiceContext{Config: cfg}
+	ctx.NewOIDCVerifier = func(client domain.OIDCClient) (sessionservice.OIDCVerifier, error) {
+		return casdoor.NewOIDCVerifier(casdoor.OIDCVerifierConfig{
+			Issuer: cfg.OIDC.Issuer, ClientID: client.ClientID, SecretReference: client.SecretReference, LocalMode: cfg.OIDC.LocalMode,
+		}, envSecretProvider{})
+	}
 	databaseConfig := cfg.Database
 	if cfg.Audit.Enabled {
 		businessDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.BusinessDSNReference)

@@ -55,3 +55,32 @@ func TestConnectorCallsUseMachineCredential(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestProductLoginUsesSnakeCaseWireContractAndUnixTime(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/connector/auth/start" {
+			t.Fatalf("path = %s", request.URL.Path)
+		}
+		var body map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["application_instance_id"] != "instance-a" || body["redirect_uri"] != "https://product.example.com/api/enterprise/auth/callback" {
+			t.Fatalf("body = %#v", body)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"transaction_id":"tx-1","state":"state","pkce_verifier":"verifier","nonce":"nonce","authorization_url":"https://id.example.com/auth","expires_at":1787443200}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.BeginProductLogin(context.Background(), ProductLoginStartRequest{EnterpriseID: "enterprise-1", ApplicationInstanceID: "instance-a", RedirectURI: "https://product.example.com/api/enterprise/auth/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.TransactionID != "tx-1" || result.ExpiresAt.Unix() != 1787443200 {
+		t.Fatalf("result = %+v", result)
+	}
+}

@@ -26,6 +26,15 @@ func (s *OIDCClientStore) Get(ctx context.Context, enterpriseID, id string) (dom
 	return value, err == nil, err
 }
 
+func (s *OIDCClientStore) GetByInstance(ctx context.Context, enterpriseID, instanceID string) (domain.OIDCClient, bool, error) {
+	var value domain.OIDCClient
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND instance_id = ? AND status = ?", enterpriseID, instanceID, "active").First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.OIDCClient{}, false, nil
+	}
+	return value, err == nil, err
+}
+
 func (s *OIDCClientStore) Update(ctx context.Context, value domain.OIDCClient) error {
 	return s.db.WithContext(ctx).Save(&value).Error
 }

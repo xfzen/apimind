@@ -27,6 +27,28 @@ type ConnectorHeartbeatReq {
 type ConnectorHeartbeatResp {
 	Accepted bool `json:"accepted"`
 }
+type ProductAuthStartReq {
+	RedirectURI string `json:"redirect_uri"`
+}
+type ProductAuthStartResp {
+	TransactionID    string `json:"transaction_id"`
+	State            string `json:"state"`
+	PKCEVerifier     string `json:"pkce_verifier"`
+	Nonce            string `json:"nonce"`
+	AuthorizationURL string `json:"authorization_url"`
+	ExpiresAt        int64  `json:"expires_at"`
+}
+type ProductAuthCompleteReq {
+	TransactionID string `json:"transaction_id"`
+	State         string `json:"state"`
+	PKCEVerifier  string `json:"pkce_verifier"`
+	Nonce         string `json:"nonce"`
+	Code          string `json:"code"`
+}
+type ProductAuthCompleteResp {
+	ExchangeCode string `json:"exchange_code"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
 type ResolveProductSessionReq {
 	InstanceID string `json:"instance_id"`
 	SessionToken string `json:"session_token"`

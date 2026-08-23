@@ -417,6 +417,32 @@ type PrincipalResp struct {
 	Version         uint64 `json:"version"`
 }
 
+type ProductAuthCompleteReq struct {
+	TransactionID string `json:"transaction_id"`
+	State         string `json:"state"`
+	PKCEVerifier  string `json:"pkce_verifier"`
+	Nonce         string `json:"nonce"`
+	Code          string `json:"code"`
+}
+
+type ProductAuthCompleteResp struct {
+	ExchangeCode string `json:"exchange_code"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
+
+type ProductAuthStartReq struct {
+	RedirectURI string `json:"redirect_uri"`
+}
+
+type ProductAuthStartResp struct {
+	TransactionID    string `json:"transaction_id"`
+	State            string `json:"state"`
+	PKCEVerifier     string `json:"pkce_verifier"`
+	Nonce            string `json:"nonce"`
+	AuthorizationURL string `json:"authorization_url"`
+	ExpiresAt        int64  `json:"expires_at"`
+}
+
 type ProductLoginExchangeReq struct {
 	Code string `json:"code"`
 }

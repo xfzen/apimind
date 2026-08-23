@@ -37,11 +37,12 @@ type CasdoorConfig struct {
 }
 
 type OIDCConfig struct {
-	LocalMode       bool   `json:",default=false"`
-	AdminAudience   string `json:",optional"`
-	Issuer          string `json:",optional"`
-	ClientID        string `json:",optional"`
-	SecretReference string `json:",optional"`
+	LocalMode             bool   `json:",default=false"`
+	AdminAudience         string `json:",optional"`
+	Issuer                string `json:",optional"`
+	AuthorizationEndpoint string `json:",optional"`
+	ClientID              string `json:",optional"`
+	SecretReference       string `json:",optional"`
 }
 
 type IdentityConfig struct {

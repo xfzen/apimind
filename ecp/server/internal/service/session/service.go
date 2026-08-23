@@ -30,7 +30,7 @@ type Store interface {
 	GetLoginTransaction(context.Context, string) (domain.LoginTransaction, bool, error)
 	MarkLoginTransactionUsed(context.Context, string, time.Time) (bool, error)
 	CreateProductTransaction(context.Context, domain.ProductLoginTransaction) error
-	ConsumeProductTransaction(context.Context, string, time.Time) (domain.ProductLoginTransaction, bool, error)
+	ConsumeProductTransaction(context.Context, string, string, string, time.Time) (domain.ProductLoginTransaction, bool, error)
 	CreateSession(context.Context, domain.Session) error
 	GetSessionByTokenHash(context.Context, string) (domain.Session, bool, error)
 	ListSessions(context.Context, string) ([]domain.Session, error)
@@ -106,65 +106,104 @@ func (s *Service) Begin(ctx context.Context, input BeginInput) (BeginResult, err
 	return BeginResult{TransactionID: value.ID, State: state, PKCEVerifier: verifier, Nonce: nonce, ExpiresAt: expires}, nil
 }
 
-type CompleteInput struct{ TransactionID, State, PKCEVerifier, Nonce, Code, ExpectedAudience string }
+type CompleteInput struct {
+	TransactionID, State, PKCEVerifier, Nonce, Code, ExpectedAudience         string
+	ExpectedEnterpriseID, ExpectedApplicationInstanceID, ExpectedOIDCClientID string
+	Verifier                                                                  OIDCVerifier
+}
 
 func (s *Service) Complete(ctx context.Context, input CompleteInput) (domain.Session, error) {
+	transaction, principalID, err := s.completePrincipal(ctx, input)
+	if err != nil {
+		return domain.Session{}, err
+	}
+	if transaction.Kind != AdminSession {
+		return domain.Session{}, decision("login_transaction_kind_mismatch", nil)
+	}
+	return s.issueSession(ctx, transaction.EnterpriseID, transaction.ApplicationInstanceID, principalID, transaction.Kind)
+}
+
+func (s *Service) CompleteProduct(ctx context.Context, input CompleteInput) (ProductTransactionResult, error) {
+	transaction, principalID, err := s.completePrincipal(ctx, input)
+	if err != nil {
+		return ProductTransactionResult{}, err
+	}
+	if transaction.Kind != ProductSession || transaction.ApplicationInstanceID == "" {
+		return ProductTransactionResult{}, decision("login_transaction_kind_mismatch", nil)
+	}
+	return s.IssueProductTransaction(ctx, ProductTransactionInput{EnterpriseID: transaction.EnterpriseID, ApplicationInstanceID: transaction.ApplicationInstanceID, PrincipalID: principalID})
+}
+
+func (s *Service) completePrincipal(ctx context.Context, input CompleteInput) (domain.LoginTransaction, string, error) {
 	if s == nil || s.store == nil {
-		return domain.Session{}, decision("session_unavailable", nil)
+		return domain.LoginTransaction{}, "", decision("session_unavailable", nil)
 	}
 	transaction, found, err := s.store.GetLoginTransaction(ctx, input.TransactionID)
 	if err != nil {
-		return domain.Session{}, decision("session_store_error", err)
+		return domain.LoginTransaction{}, "", decision("session_store_error", err)
 	}
 	if !found {
-		return domain.Session{}, decision("login_transaction_not_found", nil)
+		return domain.LoginTransaction{}, "", decision("login_transaction_not_found", nil)
 	}
 	if transaction.UsedAt != nil {
-		return domain.Session{}, decision("login_transaction_used", nil)
+		return domain.LoginTransaction{}, "", decision("login_transaction_used", nil)
+	}
+	if input.ExpectedEnterpriseID != "" && transaction.EnterpriseID != input.ExpectedEnterpriseID {
+		return domain.LoginTransaction{}, "", decision("login_transaction_scope_mismatch", nil)
+	}
+	if input.ExpectedApplicationInstanceID != "" && transaction.ApplicationInstanceID != input.ExpectedApplicationInstanceID {
+		return domain.LoginTransaction{}, "", decision("login_transaction_scope_mismatch", nil)
+	}
+	if input.ExpectedOIDCClientID != "" && transaction.OIDCClientID != input.ExpectedOIDCClientID {
+		return domain.LoginTransaction{}, "", decision("login_transaction_scope_mismatch", nil)
 	}
 	if s.clock.Now().After(transaction.ExpiresAt) {
-		return domain.Session{}, decision("login_transaction_expired", nil)
+		return domain.LoginTransaction{}, "", decision("login_transaction_expired", nil)
 	}
 	if !hashEqual(transaction.StateHash, input.State) {
-		return domain.Session{}, decision("oidc_state_mismatch", nil)
+		return domain.LoginTransaction{}, "", decision("oidc_state_mismatch", nil)
 	}
 	if !hashEqual(transaction.PKCEVerifierHash, input.PKCEVerifier) {
-		return domain.Session{}, decision("oidc_pkce_mismatch", nil)
+		return domain.LoginTransaction{}, "", decision("oidc_pkce_mismatch", nil)
 	}
 	if !hashEqual(transaction.NonceHash, input.Nonce) {
-		return domain.Session{}, decision("oidc_nonce_mismatch", nil)
+		return domain.LoginTransaction{}, "", decision("oidc_nonce_mismatch", nil)
 	}
-	if s.verifier == nil {
-		return domain.Session{}, decision("oidc_verifier_unavailable", nil)
+	verifier := input.Verifier
+	if verifier == nil {
+		verifier = s.verifier
+	}
+	if verifier == nil {
+		return domain.LoginTransaction{}, "", decision("oidc_verifier_unavailable", nil)
 	}
 	used, err := s.store.MarkLoginTransactionUsed(ctx, transaction.ID, s.clock.Now().UTC())
 	if err != nil {
-		return domain.Session{}, decision("session_store_error", err)
+		return domain.LoginTransaction{}, "", decision("session_store_error", err)
 	}
 	if !used {
-		return domain.Session{}, decision("login_transaction_used", nil)
+		return domain.LoginTransaction{}, "", decision("login_transaction_used", nil)
 	}
-	claims, err := s.verifier.Verify(ctx, input.Code, input.PKCEVerifier, transaction.RedirectURI)
+	claims, err := verifier.Verify(ctx, input.Code, input.PKCEVerifier, transaction.RedirectURI)
 	if err != nil {
-		return domain.Session{}, decision("oidc_exchange_failed", err)
+		return domain.LoginTransaction{}, "", decision("oidc_exchange_failed", err)
 	}
 	if claims.Nonce != input.Nonce {
-		return domain.Session{}, decision("oidc_nonce_mismatch", nil)
+		return domain.LoginTransaction{}, "", decision("oidc_nonce_mismatch", nil)
 	}
 	if input.ExpectedAudience == "" || claims.Audience != input.ExpectedAudience {
-		return domain.Session{}, decision("oidc_audience_mismatch", nil)
+		return domain.LoginTransaction{}, "", decision("oidc_audience_mismatch", nil)
 	}
 	principalID := claims.PrincipalID
 	if principalID == "" {
 		if s.resolver == nil {
-			return domain.Session{}, decision("identity_resolver_unavailable", nil)
+			return domain.LoginTransaction{}, "", decision("identity_resolver_unavailable", nil)
 		}
 		principalID, err = s.resolver.ResolvePrincipal(ctx, transaction.EnterpriseID, claims.Issuer, claims.Subject)
 		if err != nil {
-			return domain.Session{}, decision("identity_resolution_failed", err)
+			return domain.LoginTransaction{}, "", decision("identity_resolution_failed", err)
 		}
 	}
-	return s.issueSession(ctx, transaction.EnterpriseID, transaction.ApplicationInstanceID, principalID, transaction.Kind)
+	return transaction, principalID, nil
 }
 
 type ProductTransactionInput struct{ EnterpriseID, ApplicationInstanceID, PrincipalID string }
@@ -188,11 +227,15 @@ func (s *Service) IssueProductTransaction(ctx context.Context, input ProductTran
 }
 
 func (s *Service) ExchangeProductTransaction(ctx context.Context, code string) (domain.Session, error) {
+	return s.ExchangeProductTransactionFor(ctx, code, "", "")
+}
+
+func (s *Service) ExchangeProductTransactionFor(ctx context.Context, code, enterpriseID, instanceID string) (domain.Session, error) {
 	if s == nil || s.store == nil || code == "" {
 		return domain.Session{}, decision("login_transaction_invalid", nil)
 	}
 	now := s.clock.Now().UTC()
-	value, consumed, err := s.store.ConsumeProductTransaction(ctx, hash(code), now)
+	value, consumed, err := s.store.ConsumeProductTransaction(ctx, hash(code), enterpriseID, instanceID, now)
 	if err != nil {
 		return domain.Session{}, decision("session_store_error", err)
 	}
