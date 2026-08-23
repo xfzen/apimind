@@ -8,6 +8,12 @@ services:
       - source: server_dev_config
         target: /app/etc/apimind.yaml
 
+x-ecp-integration:
+  compose-file: ../ecp/deploy/compose.yaml
+  api: http://127.0.0.1:18890
+  ui: http://127.0.0.1:4001
+  note: ECP remains a separately deployable service boundary and is started by the root enterprise-dev target.
+
 configs:
   server_dev_config:
     file: ./server.dev.yaml

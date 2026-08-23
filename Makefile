@@ -2,6 +2,7 @@ COMPOSE ?= docker compose
 COMPOSE_ENV ?= .env
 COMPOSE_BASE = $(COMPOSE) --env-file $(COMPOSE_ENV) -f deploy/docker-compose.yml
 COMPOSE_DEV = $(COMPOSE_BASE) -f deploy/docker-compose.dev.yml
+ECP_COMPOSE = $(COMPOSE) --env-file ecp/deploy/.env -f ecp/deploy/compose.yaml
 
 .DEFAULT_GOAL := help
 
@@ -42,6 +43,24 @@ build-components: build-server build-web ## Build Server and Web inputs on the h
 .PHONY: dev
 dev: config bootstrap build-components ## Start MongoDB, Server, and Web on development ports.
 	APIMIND_WEB_PORT=4000 $(COMPOSE_DEV) up -d --build --remove-orphans
+
+.PHONY: ecp-build
+ecp-build: ## Build the ECP API, migration runner, UI server, and browser assets.
+	cd ecp/server && ./scripts/verify.sh
+	cd ecp/ui && npm ci --ignore-scripts --no-audit --registry=https://registry.npmjs.org && npm run build
+
+.PHONY: ecp-dev
+ecp-dev: ecp-build ## Start the current checkout's ECP stack on ports 4001 and 18890.
+	@test -f ecp/deploy/.env || cp ecp/deploy/.env.example ecp/deploy/.env
+	$(ECP_COMPOSE) up -d --build --remove-orphans
+
+.PHONY: enterprise-dev
+enterprise-dev: dev ecp-dev ## Start ApiMind app-dev and the ECP stack without changing existing ports.
+
+.PHONY: ecp-down
+ecp-down: ## Stop ECP while preserving its databases.
+	@test -f ecp/deploy/.env || cp ecp/deploy/.env.example ecp/deploy/.env
+	$(ECP_COMPOSE) down --remove-orphans
 
 .PHONY: up
 up: config bootstrap build-components ## Start the production-shaped local stack.

@@ -13,6 +13,7 @@
 - npm 10+；
 - Docker；
 - 可用端口：Server `127.0.0.1:18889`、Web `127.0.0.1:4000`。MongoDB 仅在 Compose 网络中访问。
+- 企业模式另使用 ECP API `127.0.0.1:18890`、ECP UI `127.0.0.1:4001` 和本地 Casdoor `127.0.0.1:4002`；嵌入式 Server `18888` 不变。
 
 所有软件、工具链、依赖和容器镜像必须来自官方上游或发布者维护的 Registry。
 
@@ -41,6 +42,14 @@ make bootstrap
 ```bash
 make dev
 ```
+
+企业模式先按 [`ecp/deploy/README.md`](../ecp/deploy/README.md) 替换示例 Secret 与 OIDC/签名配置，再运行：
+
+```bash
+make enterprise-dev
+```
+
+ECP 是当前单仓内的独立服务边界，使用独立 PostgreSQL 数据库和账号；不会写入 ApiMind 的 MongoDB，也不会复用 Casdoor 数据库。每次启动均使用 `--remove-orphans` 替换旧容器。本机进程模式使用 `ecp/server/scripts/dev-start.sh`，它会先通过 checkout-local PID 文件停止旧实例，不使用广域进程匹配。
 
 Server 与 Web 在宿主机使用官方 Go 和 npm 工具链编译，不在 Docker 中编译；Docker 只运行 MongoDB，并将宿主机构建产物装入最小运行时镜像。
 
