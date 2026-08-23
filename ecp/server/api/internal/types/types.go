@@ -3,6 +3,22 @@
 
 package types
 
+type AddGroupMemberReq struct {
+	GroupID      string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	PrincipalID  string `json:"principal_id"`
+}
+
+type AdmitJITReq struct {
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	Issuer        string `json:"issuer"`
+	Subject       string `json:"subject"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	DisplayName   string `json:"display_name,optional"`
+}
+
 type ApplicationResp struct {
 	ID           string `json:"id"`
 	EnterpriseID string `json:"enterprise_id"`
@@ -10,6 +26,11 @@ type ApplicationResp struct {
 	Name         string `json:"name"`
 	Status       string `json:"status"`
 	Version      uint64 `json:"version"`
+}
+
+type BlockPrincipalReq struct {
+	PrincipalID  string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
 }
 
 type ConnectorResp struct {
@@ -22,6 +43,11 @@ type ConnectorResp struct {
 	Version       uint64 `json:"version"`
 }
 
+type CreateGroupReq struct {
+	EnterpriseID string `json:"enterprise_id"`
+	Name         string `json:"name"`
+}
+
 type Empty struct {
 }
 
@@ -29,6 +55,21 @@ type EnterpriseResp struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
 	Status string `json:"status"`
+}
+
+type GroupMembersResp struct {
+	PrincipalIDs []string `json:"principal_ids"`
+}
+
+type GroupResp struct {
+	ID                  string `json:"id"`
+	EnterpriseID        string `json:"enterprise_id"`
+	Provider            string `json:"provider"`
+	ExternalID          string `json:"external_id"`
+	Name                string `json:"name"`
+	ManagementMode      string `json:"management_mode"`
+	DirectMemberVersion uint64 `json:"direct_member_version"`
+	Status              string `json:"status"`
 }
 
 type HealthResp struct {
@@ -47,11 +88,33 @@ type InstanceResp struct {
 	Version       uint64 `json:"version"`
 }
 
+type LifecycleResp struct {
+	PrincipalID string `json:"principal_id"`
+	State       string `json:"state"`
+	Version     uint64 `json:"version"`
+}
+
+type ListGroupMembersReq struct {
+	GroupID      string `path:"id"`
+	EnterpriseID string `form:"enterprise_id"`
+}
+
 type ManifestResp struct {
 	ApplicationID string `json:"application_id"`
 	APIVersion    string `json:"api_version"`
 	ManifestHash  string `json:"manifest_hash"`
 	Version       uint64 `json:"version"`
+}
+
+type PrincipalResp struct {
+	ID              string `json:"id"`
+	EnterpriseID    string `json:"enterprise_id"`
+	Issuer          string `json:"issuer"`
+	Subject         string `json:"subject"`
+	NormalizedEmail string `json:"normalized_email"`
+	DisplayName     string `json:"display_name"`
+	Status          string `json:"status"`
+	Version         uint64 `json:"version"`
 }
 
 type PutManifestReq struct {
@@ -86,6 +149,14 @@ type RegisterInstanceReq struct {
 	InstanceKey   string `json:"instance_key"`
 	Environment   string `json:"environment,optional"`
 	CanonicalURL  string `json:"canonical_url"`
+}
+
+type SyncDirectoryGroupReq struct {
+	ExternalID   string   `path:"externalId"`
+	EnterpriseID string   `json:"enterprise_id"`
+	Provider     string   `json:"provider"`
+	Name         string   `json:"name"`
+	PrincipalIDs []string `json:"principal_ids"`
 }
 
 type VersionResp struct {

@@ -10,6 +10,8 @@ import (
 	"github.com/xfzen/ecp/server/config"
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
+	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
+	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
 
@@ -22,6 +24,8 @@ type ServiceContext struct {
 	Registry    *registryservice.Service
 	Casdoor     *casdoor.Client
 	OIDCClients *oidcclientservice.Service
+	Identity    *identityservice.Service
+	Lifecycle   *lifecycleservice.Service
 }
 
 func NewServiceContext(cfg config.Config) *ServiceContext {
@@ -34,6 +38,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.DB = db
 		ctx.Registry = registryservice.New(persistence.NewRegistryStore(db))
 		ctx.OIDCClients = oidcclientservice.New(persistence.NewOIDCClientStore(db), cfg.OIDC.LocalMode)
+		ctx.Identity = identityservice.New(persistence.NewIdentityStore(db), cfg.Identity.TrustedIssuers)
+		ctx.Lifecycle = lifecycleservice.New(persistence.NewLifecycleStore(db), nil, cfg.Identity.FreshnessTTL)
 	}
 	if cfg.Casdoor.Enabled {
 		client, err := casdoor.NewClient(casdoor.Config{

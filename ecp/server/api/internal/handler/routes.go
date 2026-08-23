@@ -40,6 +40,42 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: ecp.RegisterConnectorHandler(serverCtx),
 			},
 			{
+				// Create an ECP-managed direct group
+				Method:  http.MethodPost,
+				Path:    "/identity/groups",
+				Handler: ecp.CreateIdentityGroupHandler(serverCtx),
+			},
+			{
+				// Add one direct member to an ECP-managed group
+				Method:  http.MethodPost,
+				Path:    "/identity/groups/:id/members",
+				Handler: ecp.AddDirectGroupMemberHandler(serverCtx),
+			},
+			{
+				// List direct group members
+				Method:  http.MethodGet,
+				Path:    "/identity/groups/:id/members",
+				Handler: ecp.ListDirectGroupMembersHandler(serverCtx),
+			},
+			{
+				// Synchronize a directory-managed direct group
+				Method:  http.MethodPost,
+				Path:    "/identity/groups/directory/:externalId/sync",
+				Handler: ecp.SyncDirectoryGroupHandler(serverCtx),
+			},
+			{
+				// Admit a verified external identity
+				Method:  http.MethodPost,
+				Path:    "/identity/jit",
+				Handler: ecp.AdmitJITHandler(serverCtx),
+			},
+			{
+				// Block a principal locally
+				Method:  http.MethodPost,
+				Path:    "/identity/principals/:id/block",
+				Handler: ecp.BlockPrincipalHandler(serverCtx),
+			},
+			{
 				// Service health
 				Method:  http.MethodGet,
 				Path:    "/meta/health",

@@ -600,7 +600,7 @@ git commit -m "feat(ecp): add casdoor adapter"
 - Produces: `Identity.ResolveExternalIdentity`, `Identity.AdmitJIT`, `Identity.CreateManagedGroup`, `Identity.SyncDirectoryGroup`, `Identity.ListDirectGroupMembers`, `Lifecycle.Block`, `Lifecycle.MarkSyncSuccess`, `Lifecycle.MarkSyncFailure`, and `Lifecycle.AssertFresh`.
 - Stable denial reasons: `principal_blocked`, `principal_pending_external_sync`, `identity_state_stale`, `identity_conflict`, `jit_not_allowed`.
 
-- [ ] **Step 1: Write failing JIT and stale-sync tests**
+- [x] **Step 1: Write failing JIT and stale-sync tests**
 
 ```go
 func TestJITRejectsUnverifiedEmail(t *testing.T) {
@@ -630,17 +630,17 @@ func TestDirectoryManagedGroupRejectsControlPlaneMutation(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run identity tests and verify failure**
+- [x] **Step 2: Run identity tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/identity ./internal/service/lifecycle -count=1`
 
 Expected: FAIL because identity services do not exist.
 
-- [ ] **Step 3: Implement stable issuer+subject mappings and direct groups**
+- [x] **Step 3: Implement stable issuer+subject mappings and direct groups**
 
 Do not use email, username, DN, or display name as a primary key. Store direct Casdoor group mappings only; nested groups remain rejected in G0. `ecp_managed` groups permit audited direct-member mutations through the Casdoor adapter; `directory_managed` groups are read-only in ECP and only change through verified directory synchronization. The migration also creates one-time invitations and `legacy_identity_mapping`; invitations bind enterprise, application, normalized verified email, expiry, and use state.
 
-- [ ] **Step 4: Implement local denial overlay and sync state**
+- [x] **Step 4: Implement local denial overlay and sync state**
 
 ```go
 type SyncState struct {
@@ -657,13 +657,13 @@ type SyncState struct {
 
 `blocked` and `pending_external_sync` deny immediately. Human/group Allow values cannot outlive `FreshnessDeadline`.
 
-- [ ] **Step 5: Regenerate APIs and run identity tests**
+- [x] **Step 5: Regenerate APIs and run identity tests**
 
 Run: `cd ecp/server && ./scripts/gencontracts.sh && go test ./internal/service/identity ./internal/service/lifecycle ./tests/contracts -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit identity lifecycle**
+- [x] **Step 6: Commit identity lifecycle**
 
 ```bash
 git add ecp/server

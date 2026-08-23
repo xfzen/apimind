@@ -1,0 +1,72 @@
+syntax = "v1"
+
+type AdmitJITReq {
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	Issuer        string `json:"issuer"`
+	Subject       string `json:"subject"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	DisplayName   string `json:"display_name,optional"`
+}
+
+type PrincipalResp {
+	ID              string `json:"id"`
+	EnterpriseID    string `json:"enterprise_id"`
+	Issuer          string `json:"issuer"`
+	Subject         string `json:"subject"`
+	NormalizedEmail string `json:"normalized_email"`
+	DisplayName     string `json:"display_name"`
+	Status          string `json:"status"`
+	Version         uint64 `json:"version"`
+}
+
+type BlockPrincipalReq {
+	PrincipalID  string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+}
+
+type LifecycleResp {
+	PrincipalID string `json:"principal_id"`
+	State       string `json:"state"`
+	Version     uint64 `json:"version"`
+}
+
+type CreateGroupReq {
+	EnterpriseID string `json:"enterprise_id"`
+	Name         string `json:"name"`
+}
+
+type SyncDirectoryGroupReq {
+	ExternalID   string   `path:"externalId"`
+	EnterpriseID string   `json:"enterprise_id"`
+	Provider     string   `json:"provider"`
+	Name         string   `json:"name"`
+	PrincipalIDs []string `json:"principal_ids"`
+}
+
+type AddGroupMemberReq {
+	GroupID      string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	PrincipalID  string `json:"principal_id"`
+}
+
+type ListGroupMembersReq {
+	GroupID      string `path:"id"`
+	EnterpriseID string `form:"enterprise_id"`
+}
+
+type GroupResp {
+	ID                  string `json:"id"`
+	EnterpriseID        string `json:"enterprise_id"`
+	Provider            string `json:"provider"`
+	ExternalID          string `json:"external_id"`
+	Name                string `json:"name"`
+	ManagementMode      string `json:"management_mode"`
+	DirectMemberVersion uint64 `json:"direct_member_version"`
+	Status              string `json:"status"`
+}
+
+type GroupMembersResp {
+	PrincipalIDs []string `json:"principal_ids"`
+}

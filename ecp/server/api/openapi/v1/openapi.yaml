@@ -1,5 +1,42 @@
 components:
     schemas:
+        AddGroupMemberReq:
+            properties:
+                enterprise_id:
+                    type: string
+                principal_id:
+                    type: string
+            required:
+                - enterprise_id
+                - principal_id
+            title: AddGroupMemberReq
+            type: object
+        AdmitJITReq:
+            properties:
+                application_id:
+                    type: string
+                display_name:
+                    type: string
+                email:
+                    type: string
+                email_verified:
+                    format: boolean
+                    type: boolean
+                enterprise_id:
+                    type: string
+                issuer:
+                    type: string
+                subject:
+                    type: string
+            required:
+                - enterprise_id
+                - application_id
+                - issuer
+                - subject
+                - email
+                - email_verified
+            title: AdmitJITReq
+            type: object
         ApplicationResp:
             properties:
                 enterprise_id:
@@ -23,6 +60,14 @@ components:
                 - status
                 - version
             title: ApplicationResp
+            type: object
+        BlockPrincipalReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: BlockPrincipalReq
             type: object
         ConnectorResp:
             properties:
@@ -51,6 +96,17 @@ components:
                 - version
             title: ConnectorResp
             type: object
+        CreateGroupReq:
+            properties:
+                enterprise_id:
+                    type: string
+                name:
+                    type: string
+            required:
+                - enterprise_id
+                - name
+            title: CreateGroupReq
+            type: object
         Empty:
             title: Empty
             type: object
@@ -67,6 +123,46 @@ components:
                 - name
                 - status
             title: EnterpriseResp
+            type: object
+        GroupMembersResp:
+            properties:
+                principal_ids:
+                    items:
+                        type: string
+                    type: array
+            required:
+                - principal_ids
+            title: GroupMembersResp
+            type: object
+        GroupResp:
+            properties:
+                direct_member_version:
+                    format: int64
+                    type: integer
+                enterprise_id:
+                    type: string
+                external_id:
+                    type: string
+                id:
+                    type: string
+                management_mode:
+                    type: string
+                name:
+                    type: string
+                provider:
+                    type: string
+                status:
+                    type: string
+            required:
+                - id
+                - enterprise_id
+                - provider
+                - external_id
+                - name
+                - management_mode
+                - direct_member_version
+                - status
+            title: GroupResp
             type: object
         HealthResp:
             properties:
@@ -109,6 +205,29 @@ components:
                 - version
             title: InstanceResp
             type: object
+        LifecycleResp:
+            properties:
+                principal_id:
+                    type: string
+                state:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - principal_id
+                - state
+                - version
+            title: LifecycleResp
+            type: object
+        ListGroupMembersReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: ListGroupMembersReq
+            type: object
         ManifestResp:
             properties:
                 api_version:
@@ -126,6 +245,36 @@ components:
                 - manifest_hash
                 - version
             title: ManifestResp
+            type: object
+        PrincipalResp:
+            properties:
+                display_name:
+                    type: string
+                enterprise_id:
+                    type: string
+                id:
+                    type: string
+                issuer:
+                    type: string
+                normalized_email:
+                    type: string
+                status:
+                    type: string
+                subject:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - id
+                - enterprise_id
+                - issuer
+                - subject
+                - normalized_email
+                - display_name
+                - status
+                - version
+            title: PrincipalResp
             type: object
         PutManifestReq:
             properties:
@@ -201,6 +350,25 @@ components:
                 - instance_key
                 - canonical_url
             title: RegisterInstanceReq
+            type: object
+        SyncDirectoryGroupReq:
+            properties:
+                enterprise_id:
+                    type: string
+                name:
+                    type: string
+                principal_ids:
+                    items:
+                        type: string
+                    type: array
+                provider:
+                    type: string
+            required:
+                - enterprise_id
+                - provider
+                - name
+                - principal_ids
+            title: SyncDirectoryGroupReq
             type: object
         VersionResp:
             properties:
@@ -307,6 +475,148 @@ paths:
                                 $ref: '#/components/schemas/ConnectorResp'
                     description: A successful response.
             summary: Register a product connector
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/identity/groups:
+        post:
+            operationId: CreateIdentityGroup
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateGroupReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GroupResp'
+                    description: A successful response.
+            summary: Create an ECP-managed direct group
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/identity/groups/{id}/members:
+        get:
+            operationId: ListDirectGroupMembers
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GroupMembersResp'
+                    description: A successful response.
+            summary: List direct group members
+            tags:
+                - ecp
+            x-ecp-access: public
+        post:
+            operationId: AddDirectGroupMember
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AddGroupMemberReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Empty'
+                    description: A successful response.
+            summary: Add one direct member to an ECP-managed group
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/identity/groups/directory/{externalId}/sync:
+        post:
+            operationId: SyncDirectoryGroup
+            parameters:
+                - in: path
+                  name: externalId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SyncDirectoryGroupReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GroupResp'
+                    description: A successful response.
+            summary: Synchronize a directory-managed direct group
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/identity/jit:
+        post:
+            operationId: AdmitJIT
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AdmitJITReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PrincipalResp'
+                    description: A successful response.
+            summary: Admit a verified external identity
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/identity/principals/{id}/block:
+        post:
+            operationId: BlockPrincipal
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BlockPrincipalReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LifecycleResp'
+                    description: A successful response.
+            summary: Block a principal locally
             tags:
                 - ecp
             x-ecp-access: public

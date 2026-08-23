@@ -11,6 +11,7 @@ import "apis/operation.api"
 import "apis/enterprise.api"
 import "apis/application.api"
 import "apis/connector.api"
+import "apis/identity.api"
 
 @server (
 	group:  ecp
@@ -40,4 +41,28 @@ service ecp {
 	@doc "Register a product connector"
 	@handler RegisterConnector
 	post /connectors/register (RegisterConnectorReq) returns (ConnectorResp)
+
+	@doc "Admit a verified external identity"
+	@handler AdmitJIT
+	post /identity/jit (AdmitJITReq) returns (PrincipalResp)
+
+	@doc "Block a principal locally"
+	@handler BlockPrincipal
+	post /identity/principals/:id/block (BlockPrincipalReq) returns (LifecycleResp)
+
+	@doc "Create an ECP-managed direct group"
+	@handler CreateIdentityGroup
+	post /identity/groups (CreateGroupReq) returns (GroupResp)
+
+	@doc "Synchronize a directory-managed direct group"
+	@handler SyncDirectoryGroup
+	post /identity/groups/directory/:externalId/sync (SyncDirectoryGroupReq) returns (GroupResp)
+
+	@doc "Add one direct member to an ECP-managed group"
+	@handler AddDirectGroupMember
+	post /identity/groups/:id/members (AddGroupMemberReq) returns (Empty)
+
+	@doc "List direct group members"
+	@handler ListDirectGroupMembers
+	get /identity/groups/:id/members (ListGroupMembersReq) returns (GroupMembersResp)
 }

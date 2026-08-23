@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig `json:",optional"`
 	Casdoor  CasdoorConfig  `json:",optional"`
 	OIDC     OIDCConfig     `json:",optional"`
+	Identity IdentityConfig `json:",optional"`
 }
 
 type CasdoorConfig struct {
@@ -25,6 +26,11 @@ type CasdoorConfig struct {
 
 type OIDCConfig struct {
 	LocalMode bool `json:",default=false"`
+}
+
+type IdentityConfig struct {
+	TrustedIssuers []string      `json:",optional"`
+	FreshnessTTL   time.Duration `json:",default=5m"`
 }
 
 type DatabaseConfig struct {
