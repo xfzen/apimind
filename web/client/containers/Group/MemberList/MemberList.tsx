@@ -23,6 +23,12 @@ import type { RootState } from '../../../reducer/modules/reducer';
 import type { GroupRecord } from '../../../reducer/modules/group';
 import type { UnknownRecord } from '../../../reducer/types/runtime';
 import { asLegacyClassDecorator } from '../../../types/legacyDecorators';
+import {
+  EnterpriseMemberNotice,
+  withEnterpriseCapabilities,
+  type EnterpriseCapabilityProps
+} from '../../../components/Enterprise/EnterpriseEntries';
+import { areEnterpriseMembersReadOnly } from '../../../services/enterpriseCapabilities';
 const Option = Select.Option;
 
 interface GroupMember extends UnknownRecord {
@@ -41,7 +47,7 @@ function arrayAddKey(arr: GroupMember[]): GroupMember[] {
 }
 
 type MemberActionResponse<T = unknown> = { payload: { data: ApiResponse<T> } };
-interface MemberListProps {
+interface MemberListProps extends EnterpriseCapabilityProps {
   currGroup: GroupRecord;
   uid: number | null;
   role: string;
@@ -230,6 +236,7 @@ class MemberList extends Component<MemberListProps, MemberListState> {
   }
 
   render() {
+    const enterpriseManaged = areEnterpriseMembersReadOnly(this.props.enterpriseCapabilities);
     const columns: TableColumnsType<GroupMember> = [
       {
         title:
@@ -251,7 +258,7 @@ class MemberList extends Component<MemberListProps, MemberListState> {
       },
       {
         title:
-          this.state.role === 'owner' || this.state.role === 'admin' ? (
+          !enterpriseManaged && (this.state.role === 'owner' || this.state.role === 'admin') ? (
             <div className="btn-container">
               <Button className="btn" type="primary" onClick={this.showAddMemberModal}>
                 添加成员
@@ -263,7 +270,7 @@ class MemberList extends Component<MemberListProps, MemberListState> {
         key: 'action',
         className: 'member-opration',
         render: (_text: unknown, record: GroupMember) => {
-          if (this.state.role === 'owner' || this.state.role === 'admin') {
+          if (!enterpriseManaged && (this.state.role === 'owner' || this.state.role === 'admin')) {
             return (
               <div>
                 <Select
@@ -320,7 +327,8 @@ class MemberList extends Component<MemberListProps, MemberListState> {
     userinfo = [...ownerinfo, ...devinfo, ...guestinfo];
     return (
       <div className="m-panel">
-        {this.state.visible ? (
+        <EnterpriseMemberNotice capabilities={this.props.enterpriseCapabilities} />
+        {!enterpriseManaged && this.state.visible ? (
           <Modal
             title="添加成员"
             open={this.state.visible}
@@ -362,4 +370,6 @@ class MemberList extends Component<MemberListProps, MemberListState> {
   }
 }
 
-export default MemberList as unknown as ComponentType;
+export default withEnterpriseCapabilities(
+  MemberList as unknown as ComponentType<MemberListProps>
+) as unknown as ComponentType;

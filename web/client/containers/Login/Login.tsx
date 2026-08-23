@@ -1,4 +1,4 @@
-import React, { PureComponent as Component } from 'react';
+import React, { PureComponent as Component, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import type { FormInstance, RadioChangeEvent } from 'antd';
@@ -21,6 +21,11 @@ import {
 } from '../../reducer/selectors/user';
 import type { LoginCredentials, LoginResponse, UserState } from '../../types/user';
 import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+import {
+  getEnterpriseCapabilities,
+  loadingEnterpriseCapabilities,
+  type EnterpriseCapabilities
+} from '../../services/enterpriseCapabilities';
 
 import './Login.scss';
 
@@ -44,6 +49,7 @@ interface LoginProps {
   loginLdapActions?: (values: LoginCredentials) => LoginDispatchResult;
   loginData?: UserState;
   isLDAP?: boolean;
+  enterpriseCapabilities: EnterpriseCapabilities;
 }
 
 interface LoginState {
@@ -128,6 +134,25 @@ class Login extends Component<LoginProps, LoginState> {
   render() {
     const { isLDAP } = this.props;
 
+    if (this.props.enterpriseCapabilities.status === 'loading') {
+      return <div>正在加载登录方式…</div>;
+    }
+    if (this.props.enterpriseCapabilities.status === 'unavailable') {
+      return <div>暂时无法确认企业登录方式，请稍后重试。</div>;
+    }
+    if (this.props.enterpriseCapabilities.status === 'enterprise') {
+      return (
+        <Button
+          style={changeHeight}
+          type="primary"
+          className="login-form-button"
+          onClick={() => window.location.assign(this.props.enterpriseCapabilities.authStartPath)}
+        >
+          企业账号登录
+        </Button>
+      );
+    }
+
     const emailRule =
       this.state.loginType === 'ldap'
         ? {}
@@ -191,11 +216,17 @@ class Login extends Component<LoginProps, LoginState> {
   }
 }
 
-type LoginFormProps = Omit<Partial<LoginProps>, 'form'>;
+type LoginFormProps = Omit<Partial<LoginProps>, 'form' | 'enterpriseCapabilities'>;
 
 function LoginForm(props: LoginFormProps) {
   const [form] = Form.useForm<LoginCredentials>();
-  return <Login {...props} form={form} />;
+  const [enterpriseCapabilities, setEnterpriseCapabilities] = useState<EnterpriseCapabilities>(
+    loadingEnterpriseCapabilities
+  );
+  useEffect(() => {
+    void getEnterpriseCapabilities().then(setEnterpriseCapabilities);
+  }, []);
+  return <Login {...props} form={form} enterpriseCapabilities={enterpriseCapabilities} />;
 }
 
 export default LoginForm;

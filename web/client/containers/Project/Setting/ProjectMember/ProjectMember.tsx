@@ -38,6 +38,12 @@ import type { ApiResponse } from '../../../../types/api';
 import type { RootState } from '../../../../reducer/modules/reducer';
 import type { UnknownRecord } from '../../../../reducer/types/runtime';
 import { asLegacyClassDecorator } from '../../../../types/legacyDecorators';
+import {
+  EnterpriseMemberNotice,
+  withEnterpriseCapabilities,
+  type EnterpriseCapabilityProps
+} from '../../../../components/Enterprise/EnterpriseEntries';
+import { areEnterpriseMembersReadOnly } from '../../../../services/enterpriseCapabilities';
 
 const Option = Select.Option;
 
@@ -55,7 +61,7 @@ const arrayAddKey = (arr: MemberItem[]): MemberItem[] => {
   });
 };
 
-interface ProjectMemberProps extends RouteComponentProps<{ id: string }> {
+interface ProjectMemberProps extends RouteComponentProps<{ id: string }>, EnterpriseCapabilityProps {
   projectId?: number; projectMsg: MemberProject; uid: number; projectList: ProjectItem[];
   addMember: (...args: unknown[]) => Promise<ActionResult<AddedMembers>>;
   delMember: (...args: unknown[]) => Promise<ActionResult<unknown>>;
@@ -266,7 +272,9 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
   }
 
   render() {
-    const isEmailChangeEable = this.state.role === 'owner' || this.state.role === 'admin';
+    const enterpriseManaged = areEnterpriseMembersReadOnly(this.props.enterpriseCapabilities);
+    const isEmailChangeEable =
+      !enterpriseManaged && (this.state.role === 'owner' || this.state.role === 'admin');
     const columns: ColumnsType<MemberItem> = [
       {
         title:
@@ -285,7 +293,7 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
                     checkedChildren="开"
                     unCheckedChildren="关"
                     checked={record.email_notice}
-                    disabled={!(isEmailChangeEable || record.uid === this.props.uid)}
+                    disabled={enterpriseManaged || !(isEmailChangeEable || record.uid === this.props.uid)}
                     onChange={e => this.changeEmailNotice(e, record.uid)}
                   />
                 </span>
@@ -296,7 +304,7 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
       },
       {
         title:
-          this.state.role === 'owner' || this.state.role === 'admin' ? (
+          !enterpriseManaged && (this.state.role === 'owner' || this.state.role === 'admin') ? (
             <div className="btn-container">
               <Button className="btn" type="primary" icon={<Icon type="plus" />} onClick={this.showAddMemberModal}>
                 添加成员
@@ -311,7 +319,7 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
         key: 'action',
         className: 'member-opration',
         render: (_text: unknown, record: MemberItem) => {
-          if (this.state.role === 'owner' || this.state.role === 'admin') {
+          if (!enterpriseManaged && (this.state.role === 'owner' || this.state.role === 'admin')) {
             return (
               <div>
                 <Select
@@ -359,7 +367,8 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
     return (
       <div className="g-row">
         <div className="m-panel">
-          {this.state.visible ? (
+          <EnterpriseMemberNotice capabilities={this.props.enterpriseCapabilities} />
+          {!enterpriseManaged && this.state.visible ? (
             <Modal
               title="添加成员"
               open={this.state.visible}
@@ -390,12 +399,13 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
           ) : (
             ''
           )}
-          <Modal
-            title="批量导入成员"
-            open={this.state.modalVisible}
-            onOk={this.handleModalOk}
-            onCancel={this.handleModalCancel}
-          >
+          {!enterpriseManaged ? (
+            <Modal
+              title="批量导入成员"
+              open={this.state.modalVisible}
+              onOk={this.handleModalOk}
+              onCancel={this.handleModalCancel}
+            >
             <Row gutter={6} className="modal-input">
               <Col span="5">
                 <div className="label usernamelabel">项目名: </div>
@@ -412,7 +422,8 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
                 </Select>
               </Col>
             </Row>
-          </Modal>
+            </Modal>
+          ) : null}
 
           <Table
             columns={columns}
@@ -464,4 +475,6 @@ class ProjectMember extends Component<ProjectMemberProps, ProjectMemberState> {
   }
 }
 
-export default ProjectMember as unknown as ComponentType<RouteComponentProps<{ id: string }> & { projectId?: number }>;
+export default withEnterpriseCapabilities(
+  ProjectMember as unknown as ComponentType<ProjectMemberProps>
+) as unknown as ComponentType<RouteComponentProps<{ id: string }> & { projectId?: number }>;

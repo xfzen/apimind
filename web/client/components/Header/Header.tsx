@@ -21,6 +21,9 @@ import { buildApiUrl } from '../../utils/backend';
 import type { ApiResponse } from '../../types/api';
 import type { RootState } from '../../reducer/modules/reducer';
 import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+import { EnterpriseAdminLink } from '../Enterprise/EnterpriseEntries';
+import { getEnterpriseCapabilities, getSessionMode } from '../../services/enterpriseCapabilities';
+import request from '../../utils/request';
 
 interface HeaderMenuEntry {
   path: string;
@@ -127,6 +130,9 @@ const ToolUser = (props: ToolUserProps) => {
     <ul>
       <li className="toolbar-li item-search">
         <Srch />
+      </li>
+      <li className="toolbar-li">
+        <EnterpriseAdminLink />
       </li>
       <LegacyPopover
         overlayClassName="popover-index"
@@ -284,22 +290,37 @@ export default class HeaderCom extends Component<HeaderProps> {
   relieveLink = () => {
     this.props.changeMenuItem('');
   };
-  logout = (e: MouseEvent<HTMLAnchorElement>) => {
+  logout = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    this.props
-      .logoutActions()
-      .then(res => {
-        if (res.payload.data.errcode == 0) {
+    try {
+      const capabilities = await getEnterpriseCapabilities();
+      const sessionMode = getSessionMode(capabilities);
+      if (sessionMode === 'blocked') {
+        message.error('暂时无法确认企业登录状态，请稍后重试');
+        return;
+      }
+      if (sessionMode === 'enterprise') {
+        const response = await request.post<ApiResponse<unknown>>('/api/enterprise/auth/logout');
+        if (response.data.errcode === 0) {
           this.props.history.push('/');
           this.props.changeMenuItem('/');
           message.success('退出成功! ');
         } else {
-          message.error(res.payload.data.errmsg);
+          message.error(response.data.errmsg);
         }
-      })
-      .catch((err: unknown) => {
-        message.error(String(err));
-      });
+        return;
+      }
+      const response = await this.props.logoutActions();
+      if (response.payload.data.errcode === 0) {
+        this.props.history.push('/');
+        this.props.changeMenuItem('/');
+        message.success('退出成功! ');
+      } else {
+        message.error(response.payload.data.errmsg);
+      }
+    } catch (err) {
+      message.error(String(err));
+    }
   };
   handleLogin = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
