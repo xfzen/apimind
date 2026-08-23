@@ -84,11 +84,13 @@ type DelegationKeySet struct {
 	PreviousFingerprint string                      `gorm:"column:previous_fingerprint;type:varchar(64);not null" json:"previous_fingerprint"`
 	Keys                []DelegationVerificationKey `gorm:"-" json:"keys"`
 	KeysJSON            []byte                      `gorm:"column:keys_json;type:text;not null" json:"-"`
+	Algorithm           string                      `gorm:"column:algorithm;type:varchar(16);not null" json:"-"`
+	SignedPayload       []byte                      `gorm:"column:signed_payload;type:text;not null" json:"-"`
 	PayloadHash         string                      `gorm:"column:payload_hash;type:varchar(64);not null" json:"payload_hash"`
 	SigningKeyID        string                      `gorm:"column:signing_kid;type:varchar(128);not null" json:"signing_kid"`
-	RootSignature       string                      `gorm:"column:root_signature;type:text;not null" json:"root_signature"`
-	Fingerprint         string                      `gorm:"column:fingerprint;type:varchar(64);not null" json:"fingerprint"`
-	CreatedAt           time.Time                   `gorm:"column:created_at;precision:6;not null" json:"created_at"`
+	RootSignature       string                      `gorm:"column:root_signature;type:text;not null" json:"-"`
+	Fingerprint         string                      `gorm:"column:fingerprint;type:varchar(64);not null" json:"-"`
+	CreatedAt           time.Time                   `gorm:"column:created_at;precision:6;not null" json:"-"`
 }
 
 func (DelegationKeySet) TableName() string { return "delegation_keysets" }

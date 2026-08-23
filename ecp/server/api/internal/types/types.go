@@ -244,26 +244,11 @@ type CredentialUsageResp struct {
 	Credentials []CredentialResp `json:"credentials"`
 }
 
-type DelegationKeyItem struct {
-	KeyID     string `json:"kid"`
-	Algorithm string `json:"alg"`
-	PublicKey string `json:"public_key"`
-	NotBefore int64  `json:"not_before"`
-	NotAfter  int64  `json:"not_after"`
-	Status    string `json:"status"`
-}
-
 type DelegationKeySetResp struct {
-	Version             uint64              `json:"version"`
-	Purpose             string              `json:"purpose"`
-	PreviousVersion     uint64              `json:"previous_version"`
-	PreviousFingerprint string              `json:"previous_fingerprint"`
-	Keys                []DelegationKeyItem `json:"keys"`
-	PayloadHash         string              `json:"payload_hash"`
-	SigningKeyID        string              `json:"signing_kid"`
-	RootSignature       string              `json:"root_signature"`
-	Fingerprint         string              `json:"fingerprint"`
-	RootFingerprint     string              `json:"root_fingerprint"`
+	Algorithm    string `json:"alg"`
+	SigningKeyID string `json:"signing_kid"`
+	Payload      []byte `json:"payload"`
+	Signature    string `json:"signature"`
 }
 
 type Empty struct {
@@ -498,7 +483,7 @@ type ProductResourceSearchReq struct {
 type PublishDelegationKeySetReq struct {
 	Algorithm    string `json:"alg"`
 	SigningKeyID string `json:"signing_kid"`
-	Payload      string `json:"payload"`
+	Payload      []byte `json:"payload"`
 	Signature    string `json:"signature"`
 }
 

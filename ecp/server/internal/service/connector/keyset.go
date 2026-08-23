@@ -142,6 +142,8 @@ func verifyKeySetEnvelope(root ed25519.PublicKey, envelope SignedKeySetEnvelope)
 	}
 	value.PayloadHash = want
 	fingerprint := sha256.Sum256(envelope.Payload)
+	value.Algorithm = envelope.Algorithm
+	value.SignedPayload = append([]byte(nil), envelope.Payload...)
 	value.Fingerprint = base64.RawURLEncoding.EncodeToString(fingerprint[:])
 	value.RootSignature = envelope.Signature
 	for _, key := range value.Keys {
@@ -158,6 +160,8 @@ func SignKeySetEnvelope(rootPrivate ed25519.PrivateKey, value domain.DelegationK
 		return SignedKeySetEnvelope{}, decision("keyset_signing_key_invalid", nil)
 	}
 	value.PayloadHash = ""
+	value.Algorithm = ""
+	value.SignedPayload = nil
 	value.RootSignature = ""
 	value.Fingerprint = ""
 	core, err := json.Marshal(value)

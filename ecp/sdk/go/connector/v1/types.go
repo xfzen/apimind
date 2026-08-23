@@ -68,7 +68,7 @@ type SignedDelegation struct {
 type VerificationKey struct {
 	KeyID     string    `json:"kid"`
 	Algorithm string    `json:"alg"`
-	PublicKey []byte    `json:"public_key"`
+	PublicKey string    `json:"public_key"`
 	NotBefore time.Time `json:"not_before"`
 	NotAfter  time.Time `json:"not_after"`
 	Status    string    `json:"status"`

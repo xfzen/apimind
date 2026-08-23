@@ -36,6 +36,9 @@ func TestPublishKeySetPinsRootAndEnforcesChain(t *testing.T) {
 	if published.Version != 1 || published.Fingerprint == "" {
 		t.Fatalf("published = %+v", published)
 	}
+	if published.Algorithm != envelope.Algorithm || string(published.SignedPayload) != string(envelope.Payload) || published.RootSignature != envelope.Signature {
+		t.Fatalf("published envelope does not preserve signed bytes: %+v", published)
+	}
 	second := first
 	second.Version = 2
 	second.PreviousVersion = 1

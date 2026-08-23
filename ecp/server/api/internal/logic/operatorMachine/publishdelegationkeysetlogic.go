@@ -5,7 +5,6 @@ package operatorMachine
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
@@ -40,20 +39,12 @@ func (l *PublishDelegationKeySetLogic) PublishDelegationKeySet(req *types.Publis
 	if !found {
 		return nil, fmt.Errorf("operator claims unavailable")
 	}
-	payload, err := base64.StdEncoding.DecodeString(req.Payload)
-	if err != nil {
-		payload, err = base64.RawURLEncoding.DecodeString(req.Payload)
-	}
-	if err != nil {
+	if len(req.Payload) == 0 {
 		return nil, fmt.Errorf("keyset payload invalid")
 	}
-	value, err := l.svcCtx.Connector.PublishDelegationKeySet(l.ctx, connectorservice.Claims{ConnectorID: contextClaims.CredentialID, Channel: domain.TrustChannelKeySetOperator, Scopes: contextClaims.Scopes}, connectorservice.SignedKeySetEnvelope{Algorithm: req.Algorithm, SigningKeyID: req.SigningKeyID, Payload: payload, Signature: req.Signature})
+	value, err := l.svcCtx.Connector.PublishDelegationKeySet(l.ctx, connectorservice.Claims{ConnectorID: contextClaims.CredentialID, Channel: domain.TrustChannelKeySetOperator, Scopes: contextClaims.Scopes}, connectorservice.SignedKeySetEnvelope{Algorithm: req.Algorithm, SigningKeyID: req.SigningKeyID, Payload: req.Payload, Signature: req.Signature})
 	if err != nil {
 		return nil, err
 	}
-	keys := make([]types.DelegationKeyItem, 0, len(value.Keys))
-	for _, key := range value.Keys {
-		keys = append(keys, types.DelegationKeyItem{KeyID: key.KeyID, Algorithm: key.Algorithm, PublicKey: key.PublicKey, NotBefore: key.NotBefore.Unix(), NotAfter: key.NotAfter.Unix(), Status: key.Status})
-	}
-	return &types.DelegationKeySetResp{Version: value.Version, Purpose: value.Purpose, PreviousVersion: value.PreviousVersion, PreviousFingerprint: value.PreviousFingerprint, Keys: keys, PayloadHash: value.PayloadHash, SigningKeyID: value.SigningKeyID, RootSignature: value.RootSignature, Fingerprint: value.Fingerprint, RootFingerprint: l.svcCtx.Config.Connector.RootFingerprint}, nil
+	return &types.DelegationKeySetResp{Algorithm: value.Algorithm, SigningKeyID: value.SigningKeyID, Payload: append([]byte(nil), value.SignedPayload...), Signature: value.RootSignature}, nil
 }

@@ -148,7 +148,8 @@ func SignKeySet(rootPrivateKey ed25519.PrivateKey, value KeySet) (SignedKeySet, 
 		return SignedKeySet{}, ErrKeySetSignature
 	}
 	for _, key := range value.Keys {
-		if key.KeyID == "" || key.Algorithm != AlgorithmEdDSA || len(key.PublicKey) != ed25519.PublicKeySize || !key.NotAfter.After(key.NotBefore) {
+		publicKey, decodeErr := base64.RawURLEncoding.DecodeString(key.PublicKey)
+		if decodeErr != nil || key.KeyID == "" || key.Algorithm != AlgorithmEdDSA || len(publicKey) != ed25519.PublicKeySize || !key.NotAfter.After(key.NotBefore) {
 			return SignedKeySet{}, ErrKeySetSignature
 		}
 	}
@@ -209,7 +210,8 @@ func VerifyKeySet(rootPublicKey ed25519.PublicKey, signed SignedKeySet, previous
 		now = time.Now().UTC()
 	}
 	for _, key := range value.Keys {
-		if key.Algorithm != AlgorithmEdDSA || len(key.PublicKey) != ed25519.PublicKeySize || !key.NotAfter.After(key.NotBefore) {
+		publicKey, decodeErr := base64.RawURLEncoding.DecodeString(key.PublicKey)
+		if decodeErr != nil || key.Algorithm != AlgorithmEdDSA || len(publicKey) != ed25519.PublicKeySize || !key.NotAfter.After(key.NotBefore) {
 			return KeySet{}, ErrKeySetSignature
 		}
 	}

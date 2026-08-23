@@ -3,6 +3,7 @@ package connectorv1
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"testing"
 	"time"
@@ -94,7 +95,7 @@ func TestSignedKeySetRejectsBrokenChainAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
-	first, err := SignKeySet(rootPrivate, KeySet{Version: 1, Purpose: KeySetPurposeDelegation, Keys: []VerificationKey{{KeyID: "online-1", Algorithm: AlgorithmEdDSA, PublicKey: keyPublic, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour), Status: KeyStatusActive}}, SigningKeyID: "root-1"})
+	first, err := SignKeySet(rootPrivate, KeySet{Version: 1, Purpose: KeySetPurposeDelegation, Keys: []VerificationKey{{KeyID: "online-1", Algorithm: AlgorithmEdDSA, PublicKey: base64.RawURLEncoding.EncodeToString(keyPublic), NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour), Status: KeyStatusActive}}, SigningKeyID: "root-1"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,10 +2,14 @@ package connectorv1
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHealthUsesVersionedPath(t *testing.T) {
@@ -114,5 +118,41 @@ func TestAuthenticateServiceCredentialUsesConnectorChannelAndReturnsSharedDecisi
 	}
 	if result.PrincipalID != "cred-1" || !result.Decision.Allow || result.Decision.PolicyVersion != 3 || result.Decision.AuthorizedResourceVersion != 7 {
 		t.Fatalf("result=%+v", result)
+	}
+}
+
+func TestGetDelegationKeySetPreservesSignedEnvelopeForVerification(t *testing.T) {
+	rootPublic, rootPrivate, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	onlinePublic, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
+	signed, err := SignKeySet(rootPrivate, KeySet{Version: 1, Purpose: KeySetPurposeDelegation, SigningKeyID: "root-1", Keys: []VerificationKey{{KeyID: "online-1", Algorithm: AlgorithmEdDSA, PublicKey: base64.RawURLEncoding.EncodeToString(onlinePublic), NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour), Status: KeyStatusActive}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/connector/signing-keys/delegation" {
+			t.Fatalf("path=%s", request.URL.Path)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(response).Encode(signed)
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	received, err := client.GetDelegationKeySet(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	verified, err := VerifyKeySet(rootPublic, received, nil, now)
+	if err != nil || verified.Version != 1 || verified.Keys[0].KeyID != "online-1" {
+		t.Fatalf("verified=%+v err=%v", verified, err)
 	}
 }

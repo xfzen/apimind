@@ -24,9 +24,6 @@ func hasScope(values []string, scope string) bool {
 	return false
 }
 func keySetResponse(value domain.DelegationKeySet, rootFingerprint string) *types.DelegationKeySetResp {
-	keys := make([]types.DelegationKeyItem, 0, len(value.Keys))
-	for _, key := range value.Keys {
-		keys = append(keys, types.DelegationKeyItem{KeyID: key.KeyID, Algorithm: key.Algorithm, PublicKey: key.PublicKey, NotBefore: key.NotBefore.Unix(), NotAfter: key.NotAfter.Unix(), Status: key.Status})
-	}
-	return &types.DelegationKeySetResp{Version: value.Version, Purpose: value.Purpose, PreviousVersion: value.PreviousVersion, PreviousFingerprint: value.PreviousFingerprint, Keys: keys, PayloadHash: value.PayloadHash, SigningKeyID: value.SigningKeyID, RootSignature: value.RootSignature, Fingerprint: value.Fingerprint, RootFingerprint: rootFingerprint}
+	_ = rootFingerprint
+	return &types.DelegationKeySetResp{Algorithm: value.Algorithm, SigningKeyID: value.SigningKeyID, Payload: append([]byte(nil), value.SignedPayload...), Signature: value.RootSignature}
 }

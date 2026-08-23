@@ -616,68 +616,23 @@ components:
                 - credentials
             title: CredentialUsageResp
             type: object
-        DelegationKeyItem:
+        DelegationKeySetResp:
             properties:
                 alg:
                     type: string
-                kid:
-                    type: string
-                not_after:
-                    format: int64
-                    type: integer
-                not_before:
-                    format: int64
-                    type: integer
-                public_key:
-                    type: string
-                status:
-                    type: string
-            required:
-                - kid
-                - alg
-                - public_key
-                - not_before
-                - not_after
-                - status
-            title: DelegationKeyItem
-            type: object
-        DelegationKeySetResp:
-            properties:
-                fingerprint:
-                    type: string
-                keys:
+                payload:
                     items:
-                        $ref: '#/components/schemas/DelegationKeyItem'
+                        $ref: '#/components/schemas/byte'
                     type: array
-                payload_hash:
-                    type: string
-                previous_fingerprint:
-                    type: string
-                previous_version:
-                    format: int64
-                    type: integer
-                purpose:
-                    type: string
-                root_fingerprint:
-                    type: string
-                root_signature:
+                signature:
                     type: string
                 signing_kid:
                     type: string
-                version:
-                    format: int64
-                    type: integer
             required:
-                - version
-                - purpose
-                - previous_version
-                - previous_fingerprint
-                - keys
-                - payload_hash
+                - alg
                 - signing_kid
-                - root_signature
-                - fingerprint
-                - root_fingerprint
+                - payload
+                - signature
             title: DelegationKeySetResp
             type: object
         Empty:
@@ -1225,7 +1180,9 @@ components:
                 alg:
                     type: string
                 payload:
-                    type: string
+                    items:
+                        $ref: '#/components/schemas/byte'
+                    type: array
                 signature:
                     type: string
                 signing_kid:
