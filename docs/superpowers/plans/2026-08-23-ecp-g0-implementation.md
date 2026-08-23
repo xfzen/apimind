@@ -1417,7 +1417,7 @@ git commit -m "feat(ecp-ui): add enterprise administration"
 - Consumes: a pinned `github.com/xfzen/ecp/sdk/go` version plus `ecp-api` auth, authorize, lifecycle, audit, and Connector HTTP contracts; no ECP server-internal package.
 - Produces: ApiMind Product Session resolution, one mode-aware Authorizer for Web/HTTP/MCP, resource directory callbacks, audit Outbox, compatibility projection, explicit `enterprise.enabled=false` community default, and minimal conditional Web entry changes.
 
-- [ ] **Step 1: Write failing ApiMind Connector tests**
+- [x] **Step 1: Write failing ApiMind Connector tests**
 
 ```go
 func TestInstanceAdminCannotDiscoverUnauthorizedProject(t *testing.T) {
@@ -1436,13 +1436,13 @@ func TestInstanceAdminCannotDiscoverUnauthorizedProject(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify failure**
+- [x] **Step 2: Run the focused tests and verify failure**
 
 Run: `cd server && go test ./internal/ecp -count=1`
 
 Expected: FAIL because `internal/ecp` does not exist.
 
-- [ ] **Step 3: Add the ApiMind contract fragment and regenerate using existing scripts**
+- [x] **Step 3: Add the ApiMind contract fragment and regenerate using existing scripts**
 
 Add same-origin auth start/callback/logout and Connector callback types to `server/docs/apis/enterprise.api`, import it from `server/docs/apimind.api`, then run:
 
@@ -1455,7 +1455,7 @@ Do not add a second generator or edit generated routes/types manually.
 
 Do not add an unpublished SDK requirement or a local `replace` to `server/go.mod`. Root `go.work` uses `./server`, `./ecp/server`, and `./ecp/sdk/go`, making the monorepo build the canonical integration path for this phase. `go list -m` tests must prove ApiMind imports only `github.com/xfzen/ecp/sdk/go/connector/v1`, `GOWORK=off` must continue to pass for the copied ECP boundary, and `ecp/scripts/verify-boundary.sh` must still pass after root workspace integration. If ECP is moved to its own repository later, first publish and verify the SDK through the official Go Proxy, add that exact release to ApiMind, then remove only the ECP `use` entries; source import paths remain unchanged.
 
-- [ ] **Step 4: Implement one backend authorization entry**
+- [x] **Step 4: Implement one backend authorization entry**
 
 ```go
 type Authorizer interface {
@@ -1468,15 +1468,15 @@ Wire the Authorizer through `ServiceContext` as the only ECP authorization imple
 
 Introduce `enterprise.enabled` in this task, defaulting to false. With it disabled, ServiceContext wires the existing community identity/authorization behavior and makes no ECP network call; with it enabled, Product Session resolution and ECP Authorizer are mandatory and ECP outage follows the documented fail-closed/cache rules. Task 14 must preserve this mode boundary while converging protected surfaces. The time-bounded `legacy_auth_compat` migration state is added later in Task 15, but no intermediate commit may force ECP on existing deployments.
 
-- [ ] **Step 5: Implement resource versions and compatibility projection**
+- [x] **Step 5: Implement resource versions and compatibility projection**
 
 Workspace/project hierarchy, project access mode, and authorization root changes must alter `resource_version`. Projection writes carry an operation ID and never become an authorization source.
 
-- [ ] **Step 6: Make only the approved, mode-aware YApi Web changes**
+- [x] **Step 6: Make only the approved, mode-aware YApi Web changes**
 
 When the same-origin server capability response reports `enterprise.enabled=false`, Login, registration and member pages retain current community behavior and no ECP entry is rendered. When enabled, Login navigates to the same-origin enterprise auth endpoint, Header links to `ecp-ui`, and old member pages become read-only summaries with an ECP deep link. Web never reads environment variables or calls ECP directly; it consumes only the Go-side capability. Do not rewrite routing, Redux, document pages, Mock, or test UI.
 
-- [ ] **Step 7: Run ApiMind backend and Web verification**
+- [x] **Step 7: Run ApiMind backend and Web verification**
 
 Run:
 
@@ -1494,7 +1494,7 @@ npm run build
 
 Expected: PASS; generation leaves no stale output, community mode produces no ECP call/UI change, and enterprise mode uses only same-origin integration.
 
-- [ ] **Step 8: Commit ApiMind integration**
+- [x] **Step 8: Commit ApiMind integration**
 
 ```bash
 git add server web

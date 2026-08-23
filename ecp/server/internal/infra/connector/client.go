@@ -89,6 +89,24 @@ func (c *Client) GetResourceAncestry(ctx context.Context, delegation domain.Sign
 	return resourceReferences(response.Resources), nil
 }
 
+func (c *Client) ApplyCompatibilityProjection(ctx context.Context, delegation domain.SignedDelegation, input productresource.ProjectionInput) error {
+	var response struct {
+		Applied bool   `json:"applied"`
+		Reason  string `json:"reason"`
+	}
+	request := map[string]any{
+		"delegation": delegation, "operation_id": input.OperationID, "resource_type": input.ResourceType,
+		"resource_id": input.ResourceID, "payload_hash": input.PayloadHash, "payload": input.Payload,
+	}
+	if err := c.call(ctx, http.MethodPost, "api/enterprise/connector/v1/projections/members", request, &response); err != nil {
+		return err
+	}
+	if response.Reason != "" {
+		return &StableDenial{Reason: "projection_rejected"}
+	}
+	return nil
+}
+
 func resourceReferences(values []wireResource) []domain.ResourceReference {
 	result := make([]domain.ResourceReference, len(values))
 	for index := range values {

@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -74,5 +75,35 @@ func TestGetResourceAncestryPreservesComparableVersions(t *testing.T) {
 	}
 	if len(resources) != 2 || resources[0].ResourceVersion != 3 || resources[1].ResourceVersion != 2 {
 		t.Fatalf("resources = %+v", resources)
+	}
+}
+
+func TestApplyCompatibilityProjectionUsesOperationBoundCallback(t *testing.T) {
+	payload := []byte(`{"schema_version":"apimind.compatibility.members/v1","members":[]}`)
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/enterprise/connector/v1/projections/members" {
+			t.Fatalf("path = %s", request.URL.Path)
+		}
+		var body struct {
+			OperationID string `json:"operation_id"`
+			Payload     []byte `json:"payload"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body.OperationID != "operation-1" || !bytes.Equal(body.Payload, payload) {
+			t.Fatalf("body=%+v", body)
+		}
+		_ = json.NewEncoder(response).Encode(map[string]any{"applied": true})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, OutboundCredential{ClientID: "outbound-1", Secret: "outbound-secret", Audience: "instance-a"}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.ApplyCompatibilityProjection(context.Background(), domain.SignedDelegation{}, productresource.ProjectionInput{
+		InstanceID: "instance-a", ResourceType: "project", ResourceID: "20", OperationID: "operation-1", PayloadHash: "hash", Payload: payload,
+	}); err != nil {
+		t.Fatal(err)
 	}
 }
