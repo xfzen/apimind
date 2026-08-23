@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 	"gorm.io/gorm"
@@ -17,6 +18,17 @@ func (s *AccessStore) BoundaryExists(ctx context.Context, enterpriseID, instance
 	return count == 1, err
 }
 func (s *AccessStore) GetAuthorizationIdentity(ctx context.Context, enterpriseID, principalID string) (domain.AuthorizationIdentity, bool, error) {
+	if len(principalID) > 5 && principalID[:5] == "cred_" {
+		var credential domain.ServiceCredential
+		err := s.db.WithContext(ctx).Where("enterprise_id = ? AND id = ?", enterpriseID, principalID).First(&credential).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.AuthorizationIdentity{}, false, nil
+		}
+		if err != nil {
+			return domain.AuthorizationIdentity{}, false, err
+		}
+		return domain.AuthorizationIdentity{PrincipalKind: "service", IdentityProvider: "service_credential", PolicySubject: credential.ID}, true, nil
+	}
 	var principal domain.Principal
 	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND id = ? AND status = ?", enterpriseID, principalID, "active").First(&principal).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -46,6 +58,23 @@ func (s *AccessStore) GetAuthorizationIdentity(ctx context.Context, enterpriseID
 }
 func (s *AccessStore) GetAccessState(ctx context.Context, enterpriseID, principalID, provider string) (domain.AccessState, error) {
 	state := domain.AccessState{LifecycleState: "active"}
+	if provider == "service_credential" {
+		var credential domain.ServiceCredential
+		if err := s.db.WithContext(ctx).Where("enterprise_id = ? AND id = ?", enterpriseID, principalID).First(&credential).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				state.LifecycleState = "blocked"
+				return state, nil
+			}
+			return state, err
+		}
+		now := time.Now().UTC()
+		active := credential.Status == "active" || (credential.Status == "rotating" && credential.OverlapUntil != nil && now.Before(*credential.OverlapUntil))
+		if !active || !now.Before(credential.ExpiresAt) || credential.RevokedAt != nil {
+			state.LifecycleState = "blocked"
+		}
+		state.LifecycleVersion = credential.Version
+		return state, nil
+	}
 	var lifecycle domain.PrincipalLifecycle
 	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND principal_id = ?", enterpriseID, principalID).First(&lifecycle).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {

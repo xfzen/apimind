@@ -54,7 +54,7 @@ func (s fakeStore) GetSecurityConfig(context.Context, string, string) (domain.Se
 
 func baseFixture(clock *fakeClock) (*Service, *fakeEngine) {
 	engine := &fakeEngine{allow: true}
-	store := fakeStore{boundary: true, identity: domain.AuthorizationIdentity{PrincipalKind: "human", IdentityProvider: "casdoor", PolicySubject: "principal-1", DirectGroupVersion: 1}, state: domain.AccessState{LifecycleState: "active", LifecycleVersion: 1, IdentitySyncVersion: 1, IdentityFreshnessDeadline: clock.Now().Add(5 * time.Minute)}, projection: domain.PolicyProjection{Base: domain.Base{ID: "pol-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", PolicyVersion: 1, ReconciliationState: "in_sync"}, config: domain.SecurityConfig{Base: domain.Base{ID: "sec-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", Version: 1}}
+	store := fakeStore{boundary: true, identity: domain.AuthorizationIdentity{PrincipalKind: "human", IdentityProvider: "casdoor", PolicySubject: "principal-1", DirectGroupVersion: 1}, state: domain.AccessState{LifecycleState: "active", LifecycleVersion: 1, IdentitySyncVersion: 1, IdentityFreshnessDeadline: clock.Now().Add(5 * time.Minute)}, projection: domain.PolicyProjection{Base: domain.Base{ID: "pol-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", CasdoorPermissionID: "acme/apimind-ins-1", PolicyVersion: 1, ReconciliationState: "in_sync"}, config: domain.SecurityConfig{Base: domain.Base{ID: "sec-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", Version: 1}}
 	return New(store, engine, NewCache(clock), clock), engine
 }
 
@@ -73,6 +73,22 @@ func TestBlockedPrincipalOverridesPolicyAllow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if decision.Allow || decision.Reason != "principal_blocked" || engine.calls != 0 {
+		t.Fatalf("decision=%+v calls=%d", decision, engine.calls)
+	}
+}
+
+func TestRevokedServiceCredentialOverridesPolicyAllow(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)}
+	service, engine := baseFixture(clock)
+	store := service.store.(fakeStore)
+	store.identity = domain.AuthorizationIdentity{PrincipalKind: "service", IdentityProvider: "service_credential", PolicySubject: "cred-1"}
+	store.state.LifecycleState = "blocked"
+	service.store = store
+	decision, err := service.Authorize(context.Background(), domain.AuthorizationRequest{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "cred-1", Action: "project.read", ResourceID: "project-1", ResourceVersion: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Allow || decision.Reason != "credential_revoked" || engine.calls != 0 {
 		t.Fatalf("decision=%+v calls=%d", decision, engine.calls)
 	}
 }
@@ -128,6 +144,32 @@ func TestAuthorizationIdentityIsLoadedByECPNotTrustedFromConnector(t *testing.T)
 	}
 	if engine.last.PolicySubject != "principal-1" || engine.last.DirectGroupVersion != 1 || len(engine.last.DirectGroupIDs) != 0 {
 		t.Fatalf("engine request trusted connector identity: %+v", engine.last)
+	}
+}
+
+func TestCasdoorPermissionBindingIsLoadedByECPNotTrustedFromConnector(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)}
+	service, engine := baseFixture(clock)
+	request := requestFor("project.read")
+	request.PermissionID = "attacker/admin"
+	decision, err := service.Authorize(context.Background(), request)
+	if err != nil || !decision.Allow {
+		t.Fatalf("decision=%+v err=%v", decision, err)
+	}
+	if engine.last.PermissionID != "acme/apimind-ins-1" {
+		t.Fatalf("engine trusted connector permission binding: %+v", engine.last)
+	}
+}
+
+func TestMissingCasdoorPermissionBindingFailsClosed(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)}
+	service, engine := baseFixture(clock)
+	store := service.store.(fakeStore)
+	store.projection.CasdoorPermissionID = ""
+	service.store = store
+	decision, err := service.Authorize(context.Background(), requestFor("project.read"))
+	if err != nil || decision.Allow || decision.Reason != "policy_binding_missing" || engine.calls != 0 {
+		t.Fatalf("decision=%+v err=%v calls=%d", decision, err, engine.calls)
 	}
 }
 

@@ -34,11 +34,19 @@ func (s *memoryStore) Put(_ context.Context, value domain.PolicyProjection) (dom
 func TestMutationReadsBackCanonicalPolicyAndAdvancesVersion(t *testing.T) {
 	adapter, store := &fakeAdapter{}, &memoryStore{}
 	service := New(store, adapter)
-	value, err := service.Reconcile(context.Background(), ReconcileInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", ManifestVersion: 2, Policies: []casdoor.Policy{{Owner: "acme", Name: "read", PType: "p", V0: "role:reader", V1: "project.read", V2: "allow"}}})
+	value, err := service.Reconcile(context.Background(), ReconcileInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", CasdoorPermissionID: "acme/apimind-ins-1", ManifestVersion: 2, Policies: []casdoor.Policy{{Owner: "acme", Name: "read", PType: "p", V0: "role:reader", V1: "project.read", V2: "allow"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value.PolicyVersion != 1 || value.ReconciliationState != "in_sync" || value.NormalizedHash == "" {
+	if value.PolicyVersion != 1 || value.ReconciliationState != "in_sync" || value.NormalizedHash == "" || value.CasdoorPermissionID != "acme/apimind-ins-1" {
 		t.Fatalf("projection=%+v", value)
+	}
+}
+
+func TestReconcileRejectsPermissionOutsidePolicyOwner(t *testing.T) {
+	service := New(&memoryStore{}, &fakeAdapter{})
+	_, err := service.Reconcile(context.Background(), ReconcileInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", CasdoorPermissionID: "attacker/admin", ManifestVersion: 1, Policies: []casdoor.Policy{{Owner: "acme", Name: "read", PType: "p"}}})
+	if err == nil || err.Error() != "casdoor_permission_binding_invalid" {
+		t.Fatalf("err=%v", err)
 	}
 }

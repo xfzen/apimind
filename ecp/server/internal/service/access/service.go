@@ -70,6 +70,9 @@ func (s *Service) Authorize(ctx context.Context, request domain.AuthorizationReq
 	}
 	switch state.LifecycleState {
 	case "blocked":
+		if request.PrincipalKind == "service" {
+			return deny("credential_revoked", state, domain.PolicyProjection{}, 0, request), nil
+		}
 		return deny("principal_blocked", state, domain.PolicyProjection{}, 0, request), nil
 	case "pending_external_sync":
 		return deny("principal_pending_external_sync", state, domain.PolicyProjection{}, 0, request), nil
@@ -87,6 +90,10 @@ func (s *Service) Authorize(ctx context.Context, request domain.AuthorizationReq
 	if !found || projection.ReconciliationState != "in_sync" {
 		return deny("policy_drift", state, projection, 0, request), nil
 	}
+	if projection.CasdoorPermissionID == "" {
+		return deny("policy_binding_missing", state, projection, 0, request), nil
+	}
+	request.PermissionID = projection.CasdoorPermissionID
 	config, _, err := s.store.GetSecurityConfig(ctx, request.EnterpriseID, request.ApplicationInstanceID)
 	if err != nil {
 		return domain.AuthorizationDecision{}, err

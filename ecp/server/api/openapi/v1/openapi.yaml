@@ -329,8 +329,6 @@ components:
                     type: string
                 identity_provider:
                     type: string
-                policy_id:
-                    type: string
                 policy_subject:
                     type: string
                 principal_id:
@@ -351,7 +349,6 @@ components:
                 - policy_subject
                 - direct_group_ids
                 - direct_group_version
-                - policy_id
                 - action
                 - resource_id
                 - resource_version
@@ -973,6 +970,8 @@ components:
             properties:
                 application_instance_id:
                     type: string
+                casdoor_permission_id:
+                    type: string
                 manifest_version:
                     format: int64
                     type: integer
@@ -985,6 +984,7 @@ components:
                     type: string
             required:
                 - application_instance_id
+                - casdoor_permission_id
                 - normalized_hash
                 - manifest_version
                 - policy_version
@@ -1241,6 +1241,8 @@ components:
             type: object
         ReconcilePoliciesReq:
             properties:
+                casdoor_permission_id:
+                    type: string
                 enterprise_id:
                     type: string
                 manifest_version:
@@ -1252,6 +1254,7 @@ components:
                     type: array
             required:
                 - enterprise_id
+                - casdoor_permission_id
                 - manifest_version
                 - policies
             title: ReconcilePoliciesReq

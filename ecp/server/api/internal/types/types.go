@@ -133,7 +133,6 @@ type AuthorizeReq struct {
 	PolicySubject         string   `json:"policy_subject"`
 	DirectGroupIDs        []string `json:"direct_group_ids"`
 	DirectGroupVersion    uint64   `json:"direct_group_version"`
-	PolicyID              string   `json:"policy_id"`
 	Action                string   `json:"action"`
 	ResourceID            string   `json:"resource_id"`
 	ResourceVersion       uint64   `json:"resource_version"`
@@ -386,6 +385,7 @@ type PolicyItem struct {
 
 type PolicyProjectionResp struct {
 	ApplicationInstanceID string `json:"application_instance_id"`
+	CasdoorPermissionID   string `json:"casdoor_permission_id"`
 	NormalizedHash        string `json:"normalized_hash"`
 	ManifestVersion       uint64 `json:"manifest_version"`
 	PolicyVersion         uint64 `json:"policy_version"`
@@ -507,6 +507,7 @@ type PutSecurityConfigReq struct {
 type ReconcilePoliciesReq struct {
 	ApplicationInstanceID string       `path:"id"`
 	EnterpriseID          string       `json:"enterprise_id"`
+	CasdoorPermissionID   string       `json:"casdoor_permission_id"`
 	ManifestVersion       uint64       `json:"manifest_version"`
 	Policies              []PolicyItem `json:"policies"`
 }

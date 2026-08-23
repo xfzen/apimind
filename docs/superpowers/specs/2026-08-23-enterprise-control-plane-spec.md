@@ -527,7 +527,7 @@ enterprise/{enterprise_id}/application/{application_id}/instance/{instance_id}/.
 - Casdoor 中该命名空间的 Role、Permission 和 Policy 是授权事实来源；
 - ecp-ui 和 Connector 只能通过 ecp-api 修改产品策略；
 - 直接通过 Casdoor UI/API 修改保留命名空间属于不受支持操作；
-- `policy_projection` 只记录 Casdoor策略 ID、规范化 Hash、Manifest Version、Policy Version 和最后对账状态，不保存一份可独立编辑的 Grant；
+- `policy_projection` 只记录经 ECP 对账的 Casdoor Permission ID、Policy ID、规范化 Hash、Manifest Version、Policy Version 和最后对账状态，不保存一份可独立编辑的 Grant；产品授权请求不得指定或覆盖 Permission ID；
 - ecp-ui 的权限查询通过 ecp-api 读取 Casdoor事实并使用受版本约束的短期缓存；
 - Casdoor恢复后可以从 Casdoor策略重建 `policy_projection`，不能用 Projection 反向覆盖未经确认的策略。
 

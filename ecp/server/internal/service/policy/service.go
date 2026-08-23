@@ -33,6 +33,7 @@ func New(store Store, adapter Adapter) *Service { return &Service{store: store, 
 
 type ReconcileInput struct {
 	EnterpriseID, ApplicationInstanceID string
+	CasdoorPermissionID                 string
 	ManifestVersion                     uint64
 	Policies                            []casdoor.Policy
 }
@@ -40,6 +41,9 @@ type ReconcileInput struct {
 func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.PolicyProjection, error) {
 	if s == nil || s.store == nil || s.adapter == nil || input.EnterpriseID == "" || input.ApplicationInstanceID == "" {
 		return domain.PolicyProjection{}, fmt.Errorf("policy_service_unavailable")
+	}
+	if !validPermissionID(input.CasdoorPermissionID, input.Policies) {
+		return domain.PolicyProjection{}, fmt.Errorf("casdoor_permission_binding_invalid")
 	}
 	prefix := "ecp:" + input.ApplicationInstanceID + ":"
 	desired := normalize(input.Policies, prefix)
@@ -76,6 +80,7 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 	value.ManifestVersion = input.ManifestVersion
 	value.PolicyVersion++
 	value.NormalizedHash = actualHash
+	value.CasdoorPermissionID = input.CasdoorPermissionID
 	value.CasdoorPolicyIDs = policyIDs(actual)
 	value.UpdatedAt = now
 	value.ReconciliationState = "in_sync"
@@ -92,6 +97,19 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 		return persisted, fmt.Errorf("policy_readback_mismatch")
 	}
 	return persisted, nil
+}
+
+func validPermissionID(permissionID string, policies []casdoor.Policy) bool {
+	owner, name, ok := strings.Cut(permissionID, "/")
+	if !ok || owner == "" || name == "" || strings.Contains(name, "/") || len(policies) == 0 {
+		return false
+	}
+	for _, policy := range policies {
+		if policy.Owner == "" || policy.Owner != owner {
+			return false
+		}
+	}
+	return true
 }
 func normalize(values []casdoor.Policy, prefix string) []casdoor.Policy {
 	result := append([]casdoor.Policy(nil), values...)

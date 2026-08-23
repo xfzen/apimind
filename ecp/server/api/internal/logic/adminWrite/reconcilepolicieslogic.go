@@ -43,9 +43,9 @@ func (l *ReconcilePoliciesLogic) ReconcilePolicies(req *types.ReconcilePoliciesR
 	for _, value := range req.Policies {
 		policies = append(policies, casdoor.Policy{Owner: value.Owner, Name: value.Name, PType: value.PType, V0: value.V0, V1: value.V1, V2: value.V2, V3: value.V3, V4: value.V4, V5: value.V5})
 	}
-	projection, err := l.svcCtx.Policy.Reconcile(l.ctx, policyservice.ReconcileInput{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, ManifestVersion: req.ManifestVersion, Policies: policies})
+	projection, err := l.svcCtx.Policy.Reconcile(l.ctx, policyservice.ReconcileInput{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, CasdoorPermissionID: req.CasdoorPermissionID, ManifestVersion: req.ManifestVersion, Policies: policies})
 	if err != nil {
 		return nil, err
 	}
-	return &types.PolicyProjectionResp{ApplicationInstanceID: projection.ApplicationInstanceID, NormalizedHash: projection.NormalizedHash, ManifestVersion: projection.ManifestVersion, PolicyVersion: projection.PolicyVersion, ReconciliationState: projection.ReconciliationState}, nil
+	return &types.PolicyProjectionResp{ApplicationInstanceID: projection.ApplicationInstanceID, CasdoorPermissionID: projection.CasdoorPermissionID, NormalizedHash: projection.NormalizedHash, ManifestVersion: projection.ManifestVersion, PolicyVersion: projection.PolicyVersion, ReconciliationState: projection.ReconciliationState}, nil
 }

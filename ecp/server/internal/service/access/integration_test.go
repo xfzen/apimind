@@ -43,7 +43,7 @@ func TestAuthorizationStatePersistsOnBothDialects(t *testing.T) {
 					}
 				}
 				projectionStore := persistence.NewPolicyStore(tx)
-				if _, err := projectionStore.Put(context.Background(), domain.PolicyProjection{Base: domain.Base{ID: "pol-access", EnterpriseID: "ent-access", CreatedAt: now, UpdatedAt: now}, ApplicationInstanceID: "ins-access", CasdoorPolicyIDs: []string{"ent-access/read"}, NormalizedHash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", ManifestVersion: 1, PolicyVersion: 1, ReconciliationState: "in_sync", LastError: ""}); err != nil {
+				if _, err := projectionStore.Put(context.Background(), domain.PolicyProjection{Base: domain.Base{ID: "pol-access", EnterpriseID: "ent-access", CreatedAt: now, UpdatedAt: now}, ApplicationInstanceID: "ins-access", CasdoorPermissionID: "ent-access/apimind-ins-access", CasdoorPolicyIDs: []string{"ent-access/read"}, NormalizedHash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", ManifestVersion: 1, PolicyVersion: 1, ReconciliationState: "in_sync", LastError: ""}); err != nil {
 					return err
 				}
 				security := securityconfigservice.New(persistence.NewSecurityConfigStore(tx))
