@@ -4,6 +4,8 @@ set -eu
 ecp_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/ecp-boundary.XXXXXX")
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
+GOCACHE="$tmp_dir/go-build-cache"
+export GOCACHE
 cp -R "$ecp_dir" "$tmp_dir/ecp"
 rm -rf "$tmp_dir/ecp/.artifacts" "$tmp_dir/ecp/.run" "$tmp_dir/ecp/server/dist" "$tmp_dir/ecp/ui/dist" "$tmp_dir/ecp/ui/node_modules"
 

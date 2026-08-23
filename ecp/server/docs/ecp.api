@@ -8,6 +8,9 @@ syntax = "v1"
 
 import "apis/common.api"
 import "apis/operation.api"
+import "apis/enterprise.api"
+import "apis/application.api"
+import "apis/connector.api"
 
 @server (
 	group:  ecp
@@ -21,4 +24,20 @@ service ecp {
 	@doc "Build and contract version"
 	@handler Version
 	get /meta/version returns (VersionResp)
+
+	@doc "Register an application"
+	@handler RegisterApplication
+	post /applications (RegisterApplicationReq) returns (ApplicationResp)
+
+	@doc "Register an application instance"
+	@handler RegisterInstance
+	post /applications/:id/instances (RegisterInstanceReq) returns (InstanceResp)
+
+	@doc "Put a product manifest"
+	@handler PutManifest
+	put /applications/:id/manifest (PutManifestReq) returns (ManifestResp)
+
+	@doc "Register a product connector"
+	@handler RegisterConnector
+	post /connectors/register (RegisterConnectorReq) returns (ConnectorResp)
 }

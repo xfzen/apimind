@@ -1,7 +1,72 @@
 components:
     schemas:
+        ApplicationResp:
+            properties:
+                enterprise_id:
+                    type: string
+                id:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - id
+                - enterprise_id
+                - key
+                - name
+                - status
+                - version
+            title: ApplicationResp
+            type: object
+        ConnectorResp:
+            properties:
+                application_id:
+                    type: string
+                connector_key:
+                    type: string
+                enterprise_id:
+                    type: string
+                id:
+                    type: string
+                instance_id:
+                    type: string
+                status:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - id
+                - enterprise_id
+                - application_id
+                - instance_id
+                - connector_key
+                - status
+                - version
+            title: ConnectorResp
+            type: object
         Empty:
             title: Empty
+            type: object
+        EnterpriseResp:
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+            required:
+                - id
+                - name
+                - status
+            title: EnterpriseResp
             type: object
         HealthResp:
             properties:
@@ -13,6 +78,129 @@ components:
                 - status
                 - version
             title: HealthResp
+            type: object
+        InstanceResp:
+            properties:
+                application_id:
+                    type: string
+                canonical_url:
+                    type: string
+                enterprise_id:
+                    type: string
+                environment:
+                    type: string
+                id:
+                    type: string
+                instance_key:
+                    type: string
+                status:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - id
+                - enterprise_id
+                - application_id
+                - instance_key
+                - environment
+                - canonical_url
+                - status
+                - version
+            title: InstanceResp
+            type: object
+        ManifestResp:
+            properties:
+                api_version:
+                    type: string
+                application_id:
+                    type: string
+                manifest_hash:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - application_id
+                - api_version
+                - manifest_hash
+                - version
+            title: ManifestResp
+            type: object
+        PutManifestReq:
+            properties:
+                api_version:
+                    type: string
+                body:
+                    type: string
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+                - api_version
+                - body
+            title: PutManifestReq
+            type: object
+        RegisterApplicationReq:
+            properties:
+                enterprise_id:
+                    type: string
+                id:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+            required:
+                - id
+                - enterprise_id
+                - key
+                - name
+            title: RegisterApplicationReq
+            type: object
+        RegisterConnectorReq:
+            properties:
+                application_id:
+                    type: string
+                connector_key:
+                    type: string
+                enterprise_id:
+                    type: string
+                instance_id:
+                    type: string
+            required:
+                - enterprise_id
+                - application_id
+                - instance_id
+                - connector_key
+            title: RegisterConnectorReq
+            type: object
+        RegisterEnterpriseReq:
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+            required:
+                - id
+                - name
+            title: RegisterEnterpriseReq
+            type: object
+        RegisterInstanceReq:
+            properties:
+                canonical_url:
+                    type: string
+                enterprise_id:
+                    type: string
+                environment:
+                    type: string
+                instance_key:
+                    type: string
+            required:
+                - enterprise_id
+                - instance_key
+                - canonical_url
+            title: RegisterInstanceReq
             type: object
         VersionResp:
             properties:
@@ -30,6 +218,98 @@ info:
     version: v1
 openapi: 3.0.3
 paths:
+    /api/v1/applications:
+        post:
+            operationId: RegisterApplication
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RegisterApplicationReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApplicationResp'
+                    description: A successful response.
+            summary: Register an application
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/applications/{id}/instances:
+        post:
+            operationId: RegisterInstance
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RegisterInstanceReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InstanceResp'
+                    description: A successful response.
+            summary: Register an application instance
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/applications/{id}/manifest:
+        put:
+            operationId: PutManifest
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PutManifestReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ManifestResp'
+                    description: A successful response.
+            summary: Put a product manifest
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/connectors/register:
+        post:
+            operationId: RegisterConnector
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RegisterConnectorReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConnectorResp'
+                    description: A successful response.
+            summary: Register a product connector
+            tags:
+                - ecp
+            x-ecp-access: public
     /api/v1/meta/health:
         get:
             operationId: Health

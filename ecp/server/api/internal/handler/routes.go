@@ -16,6 +16,30 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// Register an application
+				Method:  http.MethodPost,
+				Path:    "/applications",
+				Handler: ecp.RegisterApplicationHandler(serverCtx),
+			},
+			{
+				// Register an application instance
+				Method:  http.MethodPost,
+				Path:    "/applications/:id/instances",
+				Handler: ecp.RegisterInstanceHandler(serverCtx),
+			},
+			{
+				// Put a product manifest
+				Method:  http.MethodPut,
+				Path:    "/applications/:id/manifest",
+				Handler: ecp.PutManifestHandler(serverCtx),
+			},
+			{
+				// Register a product connector
+				Method:  http.MethodPost,
+				Path:    "/connectors/register",
+				Handler: ecp.RegisterConnectorHandler(serverCtx),
+			},
+			{
 				// Service health
 				Method:  http.MethodGet,
 				Path:    "/meta/health",

@@ -438,7 +438,7 @@ git commit -m "feat(ecp): add dual-dialect persistence"
 - Produces: `Registry.RegisterApplication`, `Registry.RegisterInstance`, `Registry.PutManifest`, and `Registry.RegisterConnector`.
 - Produces HTTP: `POST /api/v1/applications`, `POST /api/v1/applications/:id/instances`, `PUT /api/v1/applications/:id/manifest`, `POST /api/v1/connectors/register`.
 
-- [ ] **Step 1: Write service tests for single-enterprise and instance isolation**
+- [x] **Step 1: Write service tests for single-enterprise and instance isolation**
 
 ```go
 func TestRegisterInstanceRequiresKnownApplication(t *testing.T) {
@@ -459,13 +459,13 @@ func TestConnectorCannotCrossInstance(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the service tests and verify failure**
+- [x] **Step 2: Run the service tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/registry -count=1`
 
 Expected: FAIL because Registry does not exist.
 
-- [ ] **Step 3: Implement stable domain types**
+- [x] **Step 3: Implement stable domain types**
 
 ```go
 type ApplicationInstance struct {
@@ -490,19 +490,19 @@ type ProductManifest struct {
 
 Validate stable machine identifiers, canonical URLs, N/N-1 manifest compatibility, and one active enterprise per deployment.
 
-- [ ] **Step 4: Add API fragments and regenerate**
+- [x] **Step 4: Add API fragments and regenerate**
 
 Run: `cd ecp/server && ./scripts/gencontracts.sh`
 
 Expected: registry routes appear under group `ecp`; generated routes/types contain no manual edits.
 
-- [ ] **Step 5: Run registry, migration, and contract tests**
+- [x] **Step 5: Run registry, migration, and contract tests**
 
 Run: `cd ecp/server && go test ./internal/service/registry ./internal/infra/persistence/gorm ./tests/contracts -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the registry**
+- [x] **Step 6: Commit the registry**
 
 ```bash
 git add ecp/server

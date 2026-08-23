@@ -3,12 +3,89 @@
 
 package types
 
+type ApplicationResp struct {
+	ID           string `json:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Version      uint64 `json:"version"`
+}
+
+type ConnectorResp struct {
+	ID            string `json:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceID    string `json:"instance_id"`
+	ConnectorKey  string `json:"connector_key"`
+	Status        string `json:"status"`
+	Version       uint64 `json:"version"`
+}
+
 type Empty struct {
+}
+
+type EnterpriseResp struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 type HealthResp struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
+}
+
+type InstanceResp struct {
+	ID            string `json:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceKey   string `json:"instance_key"`
+	Environment   string `json:"environment"`
+	CanonicalURL  string `json:"canonical_url"`
+	Status        string `json:"status"`
+	Version       uint64 `json:"version"`
+}
+
+type ManifestResp struct {
+	ApplicationID string `json:"application_id"`
+	APIVersion    string `json:"api_version"`
+	ManifestHash  string `json:"manifest_hash"`
+	Version       uint64 `json:"version"`
+}
+
+type PutManifestReq struct {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	APIVersion    string `json:"api_version"`
+	Body          string `json:"body"`
+}
+
+type RegisterApplicationReq struct {
+	ID           string `json:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+}
+
+type RegisterConnectorReq struct {
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceID    string `json:"instance_id"`
+	ConnectorKey  string `json:"connector_key"`
+}
+
+type RegisterEnterpriseReq struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type RegisterInstanceReq struct {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	InstanceKey   string `json:"instance_key"`
+	Environment   string `json:"environment,optional"`
+	CanonicalURL  string `json:"canonical_url"`
 }
 
 type VersionResp struct {

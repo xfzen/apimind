@@ -1,0 +1,18 @@
+syntax = "v1"
+
+type RegisterConnectorReq {
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceID    string `json:"instance_id"`
+	ConnectorKey  string `json:"connector_key"`
+}
+
+type ConnectorResp {
+	ID            string `json:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceID    string `json:"instance_id"`
+	ConnectorKey  string `json:"connector_key"`
+	Status        string `json:"status"`
+	Version       uint64 `json:"version"`
+}

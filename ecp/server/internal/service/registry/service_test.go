@@ -1,0 +1,115 @@
+package registry
+
+import (
+	"context"
+	"testing"
+
+	"github.com/xfzen/ecp/server/internal/domain"
+)
+
+func TestRegisterInstanceRequiresKnownApplication(t *testing.T) {
+	store := newMemoryStore()
+	svc := New(store)
+	if _, err := svc.RegisterEnterprise(context.Background(), RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := svc.RegisterInstance(context.Background(), RegisterInstanceInput{
+		EnterpriseID: "ent-1", ApplicationID: "missing", InstanceKey: "prod", CanonicalURL: "https://api.example.com",
+	})
+	assertReason(t, err, "application_not_found")
+}
+
+func TestConnectorCannotCrossInstance(t *testing.T) {
+	store := newMemoryStore()
+	svc := New(store)
+	ctx := context.Background()
+	_, _ = svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"})
+	_, _ = svc.RegisterApplication(ctx, RegisterApplicationInput{ID: "app-1", EnterpriseID: "ent-1", Key: "apimind", Name: "ApiMind"})
+	instanceA, err := svc.RegisterInstance(ctx, RegisterInstanceInput{EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceKey: "a", CanonicalURL: "https://a.example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	instanceB, err := svc.RegisterInstance(ctx, RegisterInstanceInput{EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceKey: "b", CanonicalURL: "https://b.example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	credential := ConnectorCredential{EnterpriseID: "ent-1", InstanceID: instanceA.ID}
+	err = svc.AssertConnectorScope(ctx, credential, instanceB.ID)
+	assertReason(t, err, "connector_scope_mismatch")
+}
+
+func TestDeploymentRejectsSecondEnterprise(t *testing.T) {
+	svc := New(newMemoryStore())
+	ctx := context.Background()
+	_, err := svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-2", Name: "Other"})
+	assertReason(t, err, "single_enterprise_violation")
+}
+
+func assertReason(t *testing.T, err error, reason string) {
+	t.Helper()
+	decision, ok := err.(*DecisionError)
+	if !ok || decision.Reason != reason {
+		t.Fatalf("error=%v, want reason=%s", err, reason)
+	}
+}
+
+type memoryStore struct {
+	enterprises  map[string]domain.Enterprise
+	applications map[string]domain.Application
+	instances    map[string]domain.ApplicationInstance
+	manifests    map[string]domain.ProductManifest
+	connectors   map[string]domain.Connector
+}
+
+func newMemoryStore() *memoryStore {
+	return &memoryStore{
+		enterprises: map[string]domain.Enterprise{}, applications: map[string]domain.Application{},
+		instances: map[string]domain.ApplicationInstance{}, manifests: map[string]domain.ProductManifest{}, connectors: map[string]domain.Connector{},
+	}
+}
+
+func (s *memoryStore) CountEnterprises(context.Context) (int64, error) {
+	return int64(len(s.enterprises)), nil
+}
+func (s *memoryStore) CreateEnterprise(_ context.Context, value domain.Enterprise) error {
+	s.enterprises[value.ID] = value
+	return nil
+}
+func (s *memoryStore) GetEnterprise(_ context.Context, id string) (domain.Enterprise, bool, error) {
+	value, ok := s.enterprises[id]
+	return value, ok, nil
+}
+func (s *memoryStore) GetApplication(_ context.Context, enterpriseID, id string) (domain.Application, bool, error) {
+	value, ok := s.applications[id]
+	return value, ok && value.EnterpriseID == enterpriseID, nil
+}
+func (s *memoryStore) CreateApplication(_ context.Context, value domain.Application) error {
+	s.applications[value.ID] = value
+	return nil
+}
+func (s *memoryStore) GetInstance(_ context.Context, enterpriseID, id string) (domain.ApplicationInstance, bool, error) {
+	value, ok := s.instances[id]
+	return value, ok && value.EnterpriseID == enterpriseID, nil
+}
+func (s *memoryStore) CreateInstance(_ context.Context, value domain.ApplicationInstance) error {
+	s.instances[value.ID] = value
+	return nil
+}
+
+func (s *memoryStore) PutManifest(_ context.Context, value domain.ProductManifest) (domain.ProductManifest, error) {
+	if current, exists := s.manifests[value.ApplicationID]; exists {
+		value.ID = current.ID
+		value.CreatedAt = current.CreatedAt
+		value.Version = current.Version + 1
+	}
+	s.manifests[value.ApplicationID] = value
+	return value, nil
+}
+func (s *memoryStore) CreateConnector(_ context.Context, value domain.Connector) error {
+	s.connectors[value.ID] = value
+	return nil
+}

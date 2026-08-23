@@ -1,0 +1,50 @@
+syntax = "v1"
+
+type RegisterApplicationReq {
+	ID           string `json:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+}
+
+type ApplicationResp {
+	ID           string `json:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Version      uint64 `json:"version"`
+}
+
+type RegisterInstanceReq {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	InstanceKey   string `json:"instance_key"`
+	Environment   string `json:"environment,optional"`
+	CanonicalURL  string `json:"canonical_url"`
+}
+
+type InstanceResp {
+	ID            string `json:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	ApplicationID string `json:"application_id"`
+	InstanceKey   string `json:"instance_key"`
+	Environment   string `json:"environment"`
+	CanonicalURL  string `json:"canonical_url"`
+	Status        string `json:"status"`
+	Version       uint64 `json:"version"`
+}
+
+type PutManifestReq {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	APIVersion    string `json:"api_version"`
+	Body          string `json:"body"`
+}
+
+type ManifestResp {
+	ApplicationID string `json:"application_id"`
+	APIVersion    string `json:"api_version"`
+	ManifestHash  string `json:"manifest_hash"`
+	Version       uint64 `json:"version"`
+}

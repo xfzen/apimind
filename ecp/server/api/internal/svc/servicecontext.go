@@ -3,13 +3,15 @@ package svc
 import (
 	"github.com/xfzen/ecp/server/config"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
+	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
 
 	"gorm.io/gorm"
 )
 
 type ServiceContext struct {
-	Config config.Config
-	DB     *gorm.DB
+	Config   config.Config
+	DB       *gorm.DB
+	Registry *registryservice.Service
 }
 
 func NewServiceContext(cfg config.Config) *ServiceContext {
@@ -20,6 +22,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 			panic(err)
 		}
 		ctx.DB = db
+		ctx.Registry = registryservice.New(persistence.NewRegistryStore(db))
 	}
 	return ctx
 }
