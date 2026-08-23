@@ -1,0 +1,24 @@
+info (
+	title:  "ECP HTTP API"
+	desc:   "Enterprise Control Plane API"
+	author: "ApiMind"
+)
+
+syntax = "v1"
+
+import "apis/common.api"
+import "apis/operation.api"
+
+@server (
+	group:  ecp
+	prefix: /api/v1
+)
+service ecp {
+	@doc "Service health"
+	@handler Health
+	get /meta/health returns (HealthResp)
+
+	@doc "Build and contract version"
+	@handler Version
+	get /meta/version returns (VersionResp)
+}

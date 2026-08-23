@@ -186,7 +186,7 @@ Expected: both pass and the feasibility report contains no unresolved mandatory 
 - Consumes: ApiMind generation pattern from `server/docs/apimind.api`, `server/scripts/genapi.sh`, and `server/scripts/gencontracts.sh`.
 - Produces: stable modules `github.com/xfzen/ecp/server` and `github.com/xfzen/ecp/sdk/go`, Connector v1 public primitives, `GET /api/v1/meta/health`, `GET /api/v1/meta/version`, deterministic goctl routes/types/OpenAPI, and one runnable `ecp-api` binary.
 
-- [ ] **Step 1: Write the failing generation-policy test**
+- [x] **Step 1: Write the failing generation-policy test**
 
 ```go
 func TestGenerationUsesCanonicalContract(t *testing.T) {
@@ -208,13 +208,13 @@ func TestGenerationUsesCanonicalContract(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify the missing scaffold fails**
+- [x] **Step 2: Run the test and verify the missing scaffold fails**
 
 Run: `cd ecp/server && go test ./tests/contracts -run TestGenerationUsesCanonicalContract -count=1`
 
 Expected: FAIL because `scripts/genapi.sh` does not exist.
 
-- [ ] **Step 3: Create the canonical API entry and health contract**
+- [x] **Step 3: Create the canonical API entry and health contract**
 
 ```go
 syntax = "v1"
@@ -235,7 +235,7 @@ service ecp {
 }
 ```
 
-- [ ] **Step 4: Create the generator using the ApiMind ownership pattern**
+- [x] **Step 4: Create the generator using the ApiMind ownership pattern**
 
 ```sh
 #!/bin/sh
@@ -255,15 +255,15 @@ rm -rf api/internal/config
 
 `bootstrap-tools.sh` verifies `versions.lock.yaml`, then builds the exact goctl and goctl-swagger versions from `ecp/tools/go.mod` into `.artifacts/toolchain/bin`; it never downloads a prebuilt binary from an unofficial source or uses the ambient PATH. Create `gencontracts.sh` with the same ordering as ApiMind: run `genapi.sh`, generate Swagger input into a temporary directory with checkout-local pinned `goctl-swagger v0.2.0`, then run `go run ./cmd/contractgen openapi <temporary-swagger-json>` to write normalized `api/openapi/v1/openapi.yaml`. Run that complete sequence twice in `tests/contracts/generation_test.go` and require byte-identical output. `ecp/.gitignore` ignores `.artifacts/`, `.run/`, service/UI `dist/`, coverage and local secrets, but not lock files.
 
-Before generating the service contract, create the SDK module and a minimal versioned Connector v1 package. `ecp/go.work` uses only `./server`, `./sdk/go`, and `./tools`; it must remain valid after `ecp/` is copied outside ApiMind. The server may import the SDK but the SDK cannot import the server.
+Before generating the service contract, create the SDK module and a minimal versioned Connector v1 package. `ecp/go.work` uses only `./server`, `./sdk/go`, and `./tools`; it must remain valid after `ecp/` is copied outside ApiMind. The SDK cannot import the server. The server must not add an unreleased `github.com/xfzen/ecp/sdk/go v0.1.0` requirement merely to exercise the workspace: Task 8 publishes the SDK first, and only then may the server or ApiMind add the released version. Local `replace` directives remain forbidden.
 
-`verify-boundary.sh` is incremental: it copies only `ecp/` into a clean temporary directory, rejects imports or script paths into the parent repository, and tests every ECP component that exists at the current task. Task 1 requires SDK/server/tooling to pass; Task 11 adds UI checks. It does not claim deployment completeness. Task 16 adds `verify-standalone.sh`, which requires every final component including Compose and dual-dialect operations.
+`verify-boundary.sh` is incremental: it copies only `ecp/` into a clean temporary directory, rejects imports or script paths into the parent repository, and tests every ECP component that exists at the current task. It tests `tools`, `sdk/go`, and `server` as isolated modules with `GOWORK=off`; do not run `go work sync`, because merging generator and runtime build lists leaks tool-only transitive versions into the service graph. Task 1 requires SDK/server/tooling to pass; Task 11 adds UI checks. It does not claim deployment completeness. Task 16 adds `verify-standalone.sh`, which requires every final component including Compose and dual-dialect operations.
 
-- [ ] **Step 5: Generate, replace generated wiring with the hand-owned ServiceContext, and implement health/version Logic**
+- [x] **Step 5: Generate, replace generated wiring with the hand-owned ServiceContext, and implement health/version Logic**
 
 `api/internal/svc/servicecontext.go` imports the root `config` package and exposes only `Config config.Config` in this task. This removes the generated `api/internal/config` dependency before the first build and establishes the same ownership split as ApiMind.
 
-- [ ] **Step 6: Run the service and contract tests**
+- [x] **Step 6: Run the service and contract tests**
 
 Run:
 
@@ -281,7 +281,7 @@ cd ../..
 
 Expected: all commands exit 0; `dist/ecp-api` exists and SDK/server/tooling pass from an ECP-only temporary copy.
 
-- [ ] **Step 7: Verify generation is idempotent**
+- [x] **Step 7: Verify generation is idempotent**
 
 Run:
 
@@ -293,7 +293,7 @@ go test ./tests/contracts -run TestGenerationIsIdempotent -count=1
 
 Expected: the test runs the full generation sequence twice and proves the canonical contract, generated routes/types, and OpenAPI bytes are identical.
 
-- [ ] **Step 8: Commit the foundation**
+- [x] **Step 8: Commit the foundation**
 
 ```bash
 git add ecp

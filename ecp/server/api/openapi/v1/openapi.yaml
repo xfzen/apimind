@@ -1,0 +1,60 @@
+components:
+    schemas:
+        Empty:
+            title: Empty
+            type: object
+        HealthResp:
+            properties:
+                status:
+                    type: string
+                version:
+                    type: string
+            required:
+                - status
+                - version
+            title: HealthResp
+            type: object
+        VersionResp:
+            properties:
+                api_version:
+                    type: string
+                version:
+                    type: string
+            required:
+                - version
+                - api_version
+            title: VersionResp
+            type: object
+info:
+    title: ECP HTTP API
+    version: v1
+openapi: 3.0.3
+paths:
+    /api/v1/meta/health:
+        get:
+            operationId: Health
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HealthResp'
+                    description: A successful response.
+            summary: Service health
+            tags:
+                - ecp
+            x-ecp-access: public
+    /api/v1/meta/version:
+        get:
+            operationId: Version
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VersionResp'
+                    description: A successful response.
+            summary: Build and contract version
+            tags:
+                - ecp
+            x-ecp-access: public

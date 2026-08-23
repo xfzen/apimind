@@ -1,0 +1,11 @@
+syntax = "v1"
+
+type HealthResp {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+}
+
+type VersionResp {
+	Version    string `json:"version"`
+	APIVersion string `json:"api_version"`
+}
