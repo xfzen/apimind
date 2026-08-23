@@ -63,6 +63,17 @@ type RevokeProductSessionReq {
 	InstanceID   string `json:"instance_id"`
 	SessionToken string `json:"session_token"`
 }
+type AuthenticateServiceCredentialReq {
+	Credential      string `json:"credential"`
+	ResourceType    string `json:"resource_type"`
+	ResourceID      string `json:"resource_id"`
+	Action          string `json:"action"`
+	ResourceVersion uint64 `json:"resource_version"`
+}
+type AuthenticateServiceCredentialResp {
+	PrincipalID string                    `json:"principal_id"`
+	Decision    AuthorizationDecisionResp `json:"decision"`
+}
 type PolicyVersionReq {
 	InstanceID string `path:"id"`
 }

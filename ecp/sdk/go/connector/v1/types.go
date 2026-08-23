@@ -169,6 +169,17 @@ type AuthorizationDecision struct {
 	IdentitySyncVersion       uint64 `json:"identity_sync_version"`
 	AuthorizedResourceVersion uint64 `json:"authorized_resource_version"`
 }
+type ServiceCredentialAuthorizationRequest struct {
+	Credential      string `json:"credential"`
+	ResourceType    string `json:"resource_type"`
+	ResourceID      string `json:"resource_id"`
+	Action          string `json:"action"`
+	ResourceVersion uint64 `json:"resource_version"`
+}
+type ServiceCredentialAuthorization struct {
+	PrincipalID string                `json:"principal_id"`
+	Decision    AuthorizationDecision `json:"decision"`
+}
 type AuditEvent struct {
 	OperationID  string            `json:"operation_id"`
 	Action       string            `json:"action"`

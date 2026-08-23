@@ -320,6 +320,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: connectorMachine.PollLifecycleChangesHandler(serverCtx),
 				},
 				{
+					// Authenticate a service credential and authorize one product operation
+					Method:  http.MethodPost,
+					Path:    "/connector/service-credentials/authenticate",
+					Handler: connectorMachine.AuthenticateServiceCredentialHandler(serverCtx),
+				},
+				{
 					// Resolve a product session
 					Method:  http.MethodPost,
 					Path:    "/connector/sessions/resolve",

@@ -130,6 +130,11 @@ func (c *Client) BatchAuthorize(ctx context.Context, input []AuthorizationReques
 	err := c.do(ctx, http.MethodPost, "api/v1/access/batch", map[string]any{"requests": input}, &output)
 	return output.Decisions, err
 }
+func (c *Client) AuthenticateServiceCredential(ctx context.Context, input ServiceCredentialAuthorizationRequest) (ServiceCredentialAuthorization, error) {
+	var output ServiceCredentialAuthorization
+	err := c.do(ctx, http.MethodPost, "api/v1/connector/service-credentials/authenticate", input, &output)
+	return output, err
+}
 func (c *Client) IngestAuditEvents(ctx context.Context, input []AuditEvent) error {
 	events := make([]map[string]any, len(input))
 	for index := range input {

@@ -113,6 +113,19 @@ type AuthStartResp struct {
 	ExpiresAt     int64  `json:"expires_at"`
 }
 
+type AuthenticateServiceCredentialReq struct {
+	Credential      string `json:"credential"`
+	ResourceType    string `json:"resource_type"`
+	ResourceID      string `json:"resource_id"`
+	Action          string `json:"action"`
+	ResourceVersion uint64 `json:"resource_version"`
+}
+
+type AuthenticateServiceCredentialResp struct {
+	PrincipalID string                    `json:"principal_id"`
+	Decision    AuthorizationDecisionResp `json:"decision"`
+}
+
 type AuthorizationDecisionResp struct {
 	Allow                     bool   `json:"allow"`
 	Reason                    string `json:"reason"`

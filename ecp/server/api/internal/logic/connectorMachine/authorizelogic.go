@@ -34,7 +34,7 @@ func (l *AuthorizeLogic) Authorize(req *types.AuthorizeReq) (resp *types.Authori
 		return nil, fmt.Errorf("access service is unavailable")
 	}
 	claims, ok := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
-	if !ok || claims.EnterpriseID != req.EnterpriseID || claims.ApplicationInstanceID != req.ApplicationInstanceID {
+	if !ok || !hasScope(claims.Scopes, "access.authorize") || claims.EnterpriseID != req.EnterpriseID || claims.ApplicationInstanceID != req.ApplicationInstanceID {
 		return nil, fmt.Errorf("connector_scope_mismatch")
 	}
 	decision, err := l.svcCtx.Access.Authorize(l.ctx, authorizationRequest(*req))

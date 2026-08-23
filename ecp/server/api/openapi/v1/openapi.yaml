@@ -276,6 +276,38 @@ components:
                 - expires_at
             title: AuthStartResp
             type: object
+        AuthenticateServiceCredentialReq:
+            properties:
+                action:
+                    type: string
+                credential:
+                    type: string
+                resource_id:
+                    type: string
+                resource_type:
+                    type: string
+                resource_version:
+                    format: int64
+                    type: integer
+            required:
+                - credential
+                - resource_type
+                - resource_id
+                - action
+                - resource_version
+            title: AuthenticateServiceCredentialReq
+            type: object
+        AuthenticateServiceCredentialResp:
+            properties:
+                decision:
+                    $ref: '#/components/schemas/AuthorizationDecisionResp'
+                principal_id:
+                    type: string
+            required:
+                - principal_id
+                - decision
+            title: AuthenticateServiceCredentialResp
+            type: object
         AuthorizationDecisionResp:
             properties:
                 allow:
@@ -2085,6 +2117,26 @@ paths:
                                 $ref: '#/components/schemas/LifecyclePollResp'
                     description: A successful response.
             summary: Poll principal lifecycle changes
+            tags:
+                - connectorMachine
+            x-ecp-access: public
+    /api/v1/connector/service-credentials/authenticate:
+        post:
+            operationId: AuthenticateServiceCredential
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AuthenticateServiceCredentialReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AuthenticateServiceCredentialResp'
+                    description: A successful response.
+            summary: Authenticate a service credential and authorize one product operation
             tags:
                 - connectorMachine
             x-ecp-access: public

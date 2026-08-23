@@ -22,6 +22,7 @@ import (
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
 	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
+	machineauthservice "github.com/xfzen/ecp/server/internal/service/machineauth"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
 	policyservice "github.com/xfzen/ecp/server/internal/service/policy"
 	productresourceservice "github.com/xfzen/ecp/server/internal/service/productresource"
@@ -49,6 +50,7 @@ type ServiceContext struct {
 	SecurityConfig   *securityconfigservice.Service
 	Connector        *connectorservice.Service
 	Credential       *credentialservice.Service
+	MachineAuth      *machineauthservice.Service
 	Audit            *auditservice.Service
 	AuditIngestDB    *gorm.DB
 	AuditReadDB      *gorm.DB
@@ -154,6 +156,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 	if ctx.DB != nil {
 		accessStore := persistence.NewAccessStore(ctx.DB)
 		ctx.Access = accessservice.New(accessStore, accessservice.NewCasdoorEngine(ctx.Casdoor), nil, nil)
+		ctx.MachineAuth = machineauthservice.New(ctx.Credential, ctx.Access)
 		if ctx.Casdoor != nil {
 			ctx.Policy = policyservice.New(persistence.NewPolicyStore(ctx.DB), ctx.Casdoor)
 		}

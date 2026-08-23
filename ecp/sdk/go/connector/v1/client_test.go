@@ -84,3 +84,35 @@ func TestProductLoginUsesSnakeCaseWireContractAndUnixTime(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 }
+
+func TestAuthenticateServiceCredentialUsesConnectorChannelAndReturnsSharedDecision(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/connector/service-credentials/authenticate" {
+			t.Fatalf("path = %s", request.URL.Path)
+		}
+		if request.Header.Get("X-ECP-Connector-ID") != "connector-1" || request.Header.Get("Authorization") != "Bearer connector-secret" {
+			t.Fatal("connector credential missing")
+		}
+		var body ServiceCredentialAuthorizationRequest
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Credential != "cred-1.secret" || body.ResourceType != "project" || body.ResourceID != "project-1" || body.Action != "project.read" || body.ResourceVersion != 7 {
+			t.Fatalf("body=%+v", body)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"principal_id":"cred-1","decision":{"allow":true,"reason":"allowed","policy_version":3,"authorized_resource_version":7}}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.WithCredential(ConnectorCredential{ConnectorID: "connector-1", Secret: "connector-secret"}).AuthenticateServiceCredential(context.Background(), ServiceCredentialAuthorizationRequest{Credential: "cred-1.secret", ResourceType: "project", ResourceID: "project-1", Action: "project.read", ResourceVersion: 7})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.PrincipalID != "cred-1" || !result.Decision.Allow || result.Decision.PolicyVersion != 3 || result.Decision.AuthorizedResourceVersion != 7 {
+		t.Fatalf("result=%+v", result)
+	}
+}

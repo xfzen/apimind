@@ -227,6 +227,10 @@ service ecp {
 	@handler BatchAuthorize
 	post /access/batch (BatchAuthorizeReq) returns (BatchAuthorizeResp)
 
+	@doc "Authenticate a service credential and authorize one product operation"
+	@handler AuthenticateServiceCredential
+	post /connector/service-credentials/authenticate (AuthenticateServiceCredentialReq) returns (AuthenticateServiceCredentialResp)
+
 	@doc "Report product Connector health"
 	@handler ConnectorHeartbeat
 	post /connector/heartbeat (ConnectorHeartbeatReq) returns (ConnectorHeartbeatResp)

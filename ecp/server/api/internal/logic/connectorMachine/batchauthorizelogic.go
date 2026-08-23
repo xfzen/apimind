@@ -35,7 +35,7 @@ func (l *BatchAuthorizeLogic) BatchAuthorize(req *types.BatchAuthorizeReq) (resp
 		return nil, fmt.Errorf("access service is unavailable")
 	}
 	claims, ok := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
-	if !ok {
+	if !ok || !hasScope(claims.Scopes, "access.authorize") {
 		return nil, fmt.Errorf("connector_scope_mismatch")
 	}
 	requests := make([]domain.AuthorizationRequest, 0, len(req.Requests))
