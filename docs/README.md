@@ -26,5 +26,6 @@
 ## 产品与技术设计
 
 - [企业产品 Roadmap](superpowers/specs/2026-08-23-enterprise-product-roadmap-spec.md)：企业准入、替换、持续工程和差异化方向；
-- [共享 Enterprise Control Plane](superpowers/specs/2026-08-23-enterprise-control-plane-spec.md)：Casdoor、共享 Admin UI、控制服务、数据边界和 Connector 契约；
+- [企业控制面（ECP）](superpowers/specs/2026-08-23-enterprise-control-plane-spec.md)：`ecp-api`、`ecp-ui`、Casdoor、数据边界和 Connector 契约；
 - [ApiMind Enterprise Connector Profile](superpowers/specs/2026-08-23-apimind-enterprise-connector-profile-spec.md)：ApiMind 资源、角色、兼容和接入要求。
+- [ECP G0 实施计划](superpowers/plans/2026-08-23-ecp-g0-implementation.md)：新建 ECP、接入 Casdoor、建设 `ecp-ui` 并完成 ApiMind 首个 Connector 闭环。
