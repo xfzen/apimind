@@ -325,7 +325,7 @@ git commit -m "feat(ecp): scaffold go-zero api"
 - Produces: `persistence.Open(config DatabaseConfig) (*gorm.DB, error)`, `persistence.WithTx(ctx, db, fn) error`, `migration.Up`, `migration.Down`, `migration.Version`, and the shared `domain.Base` fields.
 - Consumes: typed ECP configuration from Task 1.
 
-- [ ] **Step 1: Write dialect and rollback tests**
+- [x] **Step 1: Write dialect and rollback tests**
 
 ```go
 func TestParseDialectRejectsUnknown(t *testing.T) {
@@ -357,13 +357,13 @@ func TestWithTxRollsBackOnError(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify they fail before persistence exists**
+- [x] **Step 2: Run tests and verify they fail before persistence exists**
 
 Run: `cd ecp/server && go test ./internal/infra/persistence/gorm -count=1`
 
 Expected: FAIL with undefined persistence symbols.
 
-- [ ] **Step 3: Implement the typed database boundary**
+- [x] **Step 3: Implement the typed database boundary**
 
 ```go
 type DatabaseConfig struct {
@@ -384,11 +384,11 @@ const (
 
 Use the exact `versions.lock.yaml`/`go.sum` versions of `gorm.io/driver/postgres`, `gorm.io/driver/mysql`, `gorm.io/gorm`, and `github.com/golang-migrate/migrate/v4` from the official Go module proxy. Package `ecp/server/migrations` owns `embed.go`; its `//go:embed postgres/*.sql mysql/*.sql` is legal because both directories are beneath that package. `internal/migration` imports this exported `fs.FS`. `scripts/migrate.sh` only validates `ECP_DB_DRIVER=postgres|mysql`, requires the offline schema-owner `ECP_MIGRATION_DSN`, selects the matching embedded subdirectory, and invokes `go run ./cmd/migrate`; it must not accept a runtime writer DSN, import a third-party mirror or enable `AutoMigrate`.
 
-- [ ] **Step 4: Add equivalent baseline migration tables in both dialects**
+- [x] **Step 4: Add equivalent baseline migration tables in both dialects**
 
 The first up migration creates only an `ecp_migration_probe` table used by the migration test; the migration library owns its own schema-version table. The matching down migration drops only `ecp_migration_probe`. Use `VARCHAR(36)` IDs, UTC timestamps at microsecond precision, explicit unique constraints, and no JSONB, arrays, partial indexes, or generated columns.
 
-- [ ] **Step 5: Provision and run both migration matrices**
+- [x] **Step 5: Provision and run both migration matrices**
 
 `compose.test.yaml` uses the immutable PostgreSQL/MySQL image digests from `versions.lock.yaml`, isolated test databases/accounts, health checks, ephemeral volumes and no host-wide credentials. `test-db-up.sh` starts the services, waits for both health checks, and writes checkout-local `.run/test-db.env` containing distinct PostgreSQL/MySQL schema-owner migration DSNs. `test-db-down.sh` always removes the project-scoped containers and volumes. CI and local verification source those generated DSNs before migration tests; no test assumes pre-existing environment variables or reuses the migration owner as an online service account.
 
@@ -405,14 +405,14 @@ ECP_DB_DRIVER=postgres ECP_MIGRATION_DSN="$ECP_TEST_POSTGRES_MIGRATION_DSN" ./sc
 ECP_DB_DRIVER=mysql ECP_MIGRATION_DSN="$ECP_TEST_MYSQL_MIGRATION_DSN" ./scripts/migrate.sh up
 ECP_DB_DRIVER=mysql ECP_MIGRATION_DSN="$ECP_TEST_MYSQL_MIGRATION_DSN" ./scripts/migrate.sh down 1
 ECP_DB_DRIVER=mysql ECP_MIGRATION_DSN="$ECP_TEST_MYSQL_MIGRATION_DSN" ./scripts/migrate.sh up
-go test ./internal/infra/persistence/gorm ./internal/migration -count=1
+go test -p 1 ./internal/infra/persistence/gorm ./internal/migration -count=1
 trap - EXIT INT TERM
 ./scripts/test-db-down.sh
 ```
 
 Expected: PostgreSQL and MySQL migration plus rollback tests pass.
 
-- [ ] **Step 6: Commit persistence**
+- [x] **Step 6: Commit persistence**
 
 ```bash
 git add ecp/server

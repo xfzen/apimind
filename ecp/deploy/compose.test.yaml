@@ -1,0 +1,35 @@
+name: ecp-g0-test
+
+services:
+  postgres:
+    image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+    environment:
+      POSTGRES_DB: ecp_test
+      POSTGRES_USER: ecp_migrator
+      POSTGRES_PASSWORD: ecp-migrator-test
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecp_migrator -d ecp_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  mysql:
+    image: mysql:8.4.6@sha256:869218921e61d6c3c89820955d63cca42971f0e3e6c1e2792247bbd944ebc6e9
+    environment:
+      MYSQL_DATABASE: ecp_test
+      MYSQL_USER: ecp_migrator
+      MYSQL_PASSWORD: ecp-migrator-test
+      MYSQL_ROOT_PASSWORD: ecp-root-test
+    ports:
+      - "53306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pecp-root-test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    tmpfs:
+      - /var/lib/mysql

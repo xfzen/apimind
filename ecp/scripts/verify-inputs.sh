@@ -33,6 +33,17 @@ grep -Fq 'google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb20
 grep -Fq 'github.com/zeromicro/go-zero/tools/goctl v1.9.2 h1:SCgx7BlN0Rce3J4R77AWqmp6KWCyBlAZUwlYjBOOn2Y=' "$tools_dir/go.sum"
 grep -Fq 'github.com/zeromicro/goctl-swagger v0.2.0 h1:NHjRV6IUYVS2HQTDsvZdrj2Yt0XV3WXbaQS9BpWuDpI=' "$tools_dir/go.sum"
 
+if [ -f "$ecp_dir/server/go.mod" ]; then
+  for module_spec in \
+    'github.com/zeromicro/go-zero v1.10.2' \
+    'github.com/golang-migrate/migrate/v4 v4.19.1' \
+    'gorm.io/gorm v1.31.2' \
+    'gorm.io/driver/postgres v1.6.2' \
+    'gorm.io/driver/mysql v1.6.0'; do
+    grep -Fq "$module_spec" "$ecp_dir/server/go.mod"
+  done
+fi
+
 if [ "${ECP_VERIFY_LOCAL_IMAGES:-0}" = 1 ]; then
   command -v docker >/dev/null
   for image_key in casdoor postgres mysql; do

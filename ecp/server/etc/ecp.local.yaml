@@ -4,3 +4,5 @@ Port: 18890
 Mode: dev
 Build:
   Version: dev
+Database:
+  Enabled: false

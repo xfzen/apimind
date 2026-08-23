@@ -4,3 +4,10 @@ Port: 18890
 Mode: pro
 Build:
   Version: docker
+Database:
+  Enabled: true
+  Driver: postgres
+  DSN: ${ECP_DATABASE_DSN}
+  MaxOpenConns: 20
+  MaxIdleConns: 5
+  ConnMaxLifetime: 30m
