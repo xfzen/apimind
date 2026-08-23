@@ -1530,7 +1530,7 @@ git commit -m "feat(apimind): integrate ecp connector"
 - Consumes: `ecp.Authorizer` and ApiMind resource/action mapping from Task 13.
 - Produces: one checked inventory mapping each enterprise-capable HTTP route, MCP tool, Mock execution, import/export operation, and background mutation to `application_instance_id + actor + action + resource`; all callers use the same `(Decision, error)` contract.
 
-- [ ] **Step 1: Write the failing authorization-surface inventory test**
+- [x] **Step 1: Write the failing authorization-surface inventory test**
 
 ```go
 func TestEnterpriseAuthorizationInventoryCoversEverySurface(t *testing.T) {
@@ -1550,7 +1550,7 @@ func TestEnterpriseAuthorizationInventoryCoversEverySurface(t *testing.T) {
 
 The discovery fixture enumerates committed go-zero routes from generated metadata, MCP tools from the generated tool manifest, all `server/api/internal/logic/apimind` files that directly access Repository/collection fields, Mock execution entry points, and the explicit import/export/background registry. `authorization_inventory.yaml` maps each surface to actor resolver, action, resource type/ID resolver, read/write class, audit class and owning business service. Public health/version/static routes are allowlisted with a reason; no unclassified route or direct data access is silently skipped.
 
-- [ ] **Step 2: Run the inventory and cross-surface tests and verify failure**
+- [x] **Step 2: Run the inventory and cross-surface tests and verify failure**
 
 Run: `cd server && go test ./internal/ecp ./tests/ecp -run 'AuthorizationInventory|AuthorizationSurfaces' -count=1`
 
