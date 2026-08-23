@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 
@@ -69,8 +70,46 @@ func (s *RoleBindingStore) PutRoleBinding(ctx context.Context, value domain.Role
 	return persisted, err
 }
 
+func (s *RoleBindingStore) GetRoleBinding(ctx context.Context, enterpriseID, instanceID, id string) (domain.RoleBinding, bool, error) {
+	var value domain.RoleBinding
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND application_instance_id = ? AND id = ?", enterpriseID, instanceID, id).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return value, false, nil
+	}
+	return value, err == nil, err
+}
+
+func (s *RoleBindingStore) UpdateRoleBinding(ctx context.Context, value domain.RoleBinding) error {
+	result := s.db.WithContext(ctx).Model(&domain.RoleBinding{}).
+		Where("enterprise_id = ? AND application_instance_id = ? AND id = ? AND version = ?", value.EnterpriseID, value.ApplicationInstanceID, value.ID, value.Version-1).
+		Updates(map[string]any{"status": value.Status, "version": value.Version, "updated_at": value.UpdatedAt})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("role_binding_concurrent_update")
+	}
+	return nil
+}
+
 func (s *RoleBindingStore) ListRoleBindings(ctx context.Context, enterpriseID, instanceID string) ([]domain.RoleBinding, error) {
 	var values []domain.RoleBinding
 	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND application_instance_id = ?", enterpriseID, instanceID).Order("subject_type, subject_id, role_id, resource_type, resource_id, id").Find(&values).Error
+	return values, err
+}
+
+func (s *RoleBindingStore) ListBoundInstanceIDs(ctx context.Context, enterpriseID, groupID string) ([]string, error) {
+	var values []string
+	err := s.db.WithContext(ctx).Model(&domain.RoleBinding{}).
+		Where("enterprise_id = ? AND subject_type = ? AND subject_id = ? AND status = ?", enterpriseID, "group", groupID, "active").
+		Distinct().Order("application_instance_id").Pluck("application_instance_id", &values).Error
+	return values, err
+}
+
+func (s *RoleBindingStore) ListApplicationInstanceIDs(ctx context.Context, enterpriseID, applicationID string) ([]string, error) {
+	var values []string
+	err := s.db.WithContext(ctx).Model(&domain.ApplicationInstance{}).
+		Where("enterprise_id = ? AND application_id = ? AND status = ?", enterpriseID, applicationID, "active").
+		Order("id").Pluck("id", &values).Error
 	return values, err
 }

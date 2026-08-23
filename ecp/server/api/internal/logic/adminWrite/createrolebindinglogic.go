@@ -10,6 +10,8 @@ import (
 	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
+	"github.com/xfzen/ecp/server/internal/domain"
+	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	productresourceservice "github.com/xfzen/ecp/server/internal/service/productresource"
 	rolebindingservice "github.com/xfzen/ecp/server/internal/service/rolebinding"
 
@@ -47,7 +49,12 @@ func (l *CreateRoleBindingLogic) CreateRoleBinding(req *types.RoleBindingReq) (r
 	if err != nil || resource.ResourceType != req.Resource.Type || resource.ExternalID != req.Resource.ID {
 		return nil, fmt.Errorf("role_binding_resource_not_visible")
 	}
-	value, err := l.svcCtx.RoleBindings.Create(l.ctx, rolebindingservice.CreateInput{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, SubjectType: req.SubjectType, SubjectID: req.SubjectID, RoleID: req.Role, ResourceType: req.Resource.Type, ResourceID: req.Resource.ID})
+	var value domain.RoleBinding
+	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "role_binding.create", ResourceType: req.Resource.Type, ResourceID: req.Resource.ID, SafeDiff: map[string]any{"status": "active"}}, func() error {
+		var createErr error
+		value, createErr = l.svcCtx.RoleBindings.Create(l.ctx, rolebindingservice.CreateInput{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, SubjectType: req.SubjectType, SubjectID: req.SubjectID, RoleID: req.Role, ResourceType: req.Resource.Type, ResourceID: req.Resource.ID})
+		return createErr
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -556,6 +556,12 @@ type RevokeSessionReq struct {
 	EnterpriseID string `json:"enterprise_id"`
 }
 
+type RoleBindingIDReq struct {
+	ApplicationInstanceID string `path:"id"`
+	BindingID             string `path:"bindingId"`
+	EnterpriseID          string `json:"enterprise_id"`
+}
+
 type RoleBindingListReq struct {
 	ApplicationInstanceID string `path:"id"`
 	EnterpriseID          string `form:"enterprise_id"`

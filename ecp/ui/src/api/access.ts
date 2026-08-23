@@ -9,3 +9,4 @@ export async function searchResources(instanceId: string, query: string) {
 }
 export async function listRoleBindings(instanceId: string) { return (await apiClient.get<{ items: RoleBinding[] }>(`/application-instances/${encodeURIComponent(instanceId)}/role-bindings`)).data.items }
 export async function createRoleBinding(instanceId: string, binding: Omit<RoleBinding, 'id'>) { return apiClient.post(`/application-instances/${encodeURIComponent(instanceId)}/role-bindings`, binding) }
+export async function revokeRoleBinding(instanceId: string, bindingId: string) { return apiClient.delete(`/application-instances/${encodeURIComponent(instanceId)}/role-bindings/${encodeURIComponent(bindingId)}`, { data: {} }) }

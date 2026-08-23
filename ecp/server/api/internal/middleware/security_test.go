@@ -45,6 +45,22 @@ func TestWriteHeadersRequireIdempotencyAndOperationIDs(t *testing.T) {
 	}
 }
 
+func TestWriteHeadersExposeOperationIDToAuditLogic(t *testing.T) {
+	var observed string
+	handler := NewIdempotencyHeaders().Handle(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		observed, _ = OperationIDFromContext(request.Context())
+		response.WriteHeader(http.StatusNoContent)
+	}))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/identity/block", nil)
+	request.Header.Set("Idempotency-Key", "idem-1")
+	request.Header.Set("Operation-ID", "operation-1")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent || observed != "operation-1" {
+		t.Fatalf("status=%d operation=%q", response.Code, observed)
+	}
+}
+
 func TestGeneratedRoutesKeepWritesOutOfPublicGroups(t *testing.T) {
 	routes, err := os.ReadFile(filepath.Join("..", "handler", "routes.go"))
 	if err != nil {

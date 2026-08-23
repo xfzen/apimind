@@ -30,9 +30,22 @@ type Store interface {
 	CreateConnector(context.Context, domain.Connector) error
 }
 
-type Service struct{ store Store }
+type ManifestProjector interface {
+	ReconcileApplicationManifest(context.Context, string, string) error
+}
+
+type Service struct {
+	store     Store
+	manifests ManifestProjector
+}
 
 func New(store Store) *Service { return &Service{store: store} }
+
+func (s *Service) SetManifestProjector(projector ManifestProjector) {
+	if s != nil {
+		s.manifests = projector
+	}
+}
 
 type DecisionError struct {
 	Reason string
@@ -160,6 +173,11 @@ func (s *Service) PutManifest(ctx context.Context, input PutManifestInput) (doma
 	persisted, err := s.store.PutManifest(ctx, value)
 	if err != nil {
 		return domain.ProductManifest{}, decision("registry_store_error", err)
+	}
+	if s.manifests != nil {
+		if err := s.manifests.ReconcileApplicationManifest(ctx, input.EnterpriseID, input.ApplicationID); err != nil {
+			return domain.ProductManifest{}, decision("manifest_projection_error", err)
+		}
 	}
 	return persisted, nil
 }

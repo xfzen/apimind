@@ -27,9 +27,20 @@ type Store interface {
 	ListDirectMembers(context.Context, string, string) ([]string, error)
 }
 
+type MembershipProjector interface {
+	ReconcileMembershipChange(context.Context, string, string) error
+}
+
 type Service struct {
 	store          Store
 	trustedIssuers map[string]struct{}
+	memberships    MembershipProjector
+}
+
+func (s *Service) SetMembershipProjector(projector MembershipProjector) {
+	if s != nil {
+		s.memberships = projector
+	}
 }
 
 func New(store Store, trustedIssuers []string) *Service {
@@ -155,6 +166,9 @@ func (s *Service) SyncDirectoryGroup(ctx context.Context, input DirectoryGroupIn
 	if err := s.store.ReplaceDirectMembers(ctx, input.EnterpriseID, value.ID, principalIDs); err != nil {
 		return domain.IdentityGroup{}, decision("identity_store_error", err)
 	}
+	if err := s.reconcileMemberships(ctx, input.EnterpriseID, value.ID); err != nil {
+		return domain.IdentityGroup{}, decision("membership_projection_error", err)
+	}
 	return value, nil
 }
 
@@ -177,7 +191,17 @@ func (s *Service) AddDirectGroupMember(ctx context.Context, enterpriseID, groupI
 	if err := s.store.UpdateGroup(ctx, value); err != nil {
 		return decision("identity_store_error", err)
 	}
+	if err := s.reconcileMemberships(ctx, enterpriseID, groupID); err != nil {
+		return decision("membership_projection_error", err)
+	}
 	return nil
+}
+
+func (s *Service) reconcileMemberships(ctx context.Context, enterpriseID, groupID string) error {
+	if s.memberships == nil {
+		return nil
+	}
+	return s.memberships.ReconcileMembershipChange(ctx, enterpriseID, groupID)
 }
 
 func (s *Service) ListDirectGroupMembers(ctx context.Context, enterpriseID, groupID string) ([]string, error) {

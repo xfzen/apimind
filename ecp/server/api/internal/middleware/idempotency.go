@@ -2,12 +2,24 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"strings"
 
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
 )
+
+type operationIDContextKey struct{}
+
+func OperationIDFromContext(ctx context.Context) (string, bool) {
+	value, ok := ctx.Value(operationIDContextKey{}).(string)
+	return value, ok && value != ""
+}
+
+func ContextWithOperationID(ctx context.Context, operationID string) context.Context {
+	return context.WithValue(ctx, operationIDContextKey{}, operationID)
+}
 
 type IdempotencyHeadersMiddleware struct{ service *idempotencyservice.Service }
 
@@ -31,6 +43,7 @@ func (m *IdempotencyHeadersMiddleware) Handle(next http.Handler) http.Handler {
 			deny(response, http.StatusBadRequest, "operation_id_required")
 			return
 		}
+		request = request.WithContext(ContextWithOperationID(request.Context(), operationID))
 		if m == nil || m.service == nil {
 			next.ServeHTTP(response, request)
 			return

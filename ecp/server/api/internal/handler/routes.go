@@ -152,6 +152,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: adminWrite.CreateRoleBindingHandler(serverCtx),
 				},
 				{
+					// Revoke a manifest-constrained role binding
+					Method:  http.MethodDelete,
+					Path:    "/application-instances/:id/role-bindings/:bindingId",
+					Handler: adminWrite.RevokeRoleBindingHandler(serverCtx),
+				},
+				{
 					// Register an application
 					Method:  http.MethodPost,
 					Path:    "/applications",

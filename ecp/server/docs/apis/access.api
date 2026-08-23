@@ -87,6 +87,11 @@ type RoleBindingListReq {
 	ApplicationInstanceID string `path:"id"`
 	EnterpriseID string `form:"enterprise_id"`
 }
+type RoleBindingIDReq {
+	ApplicationInstanceID string `path:"id"`
+	BindingID string `path:"bindingId"`
+	EnterpriseID string `json:"enterprise_id"`
+}
 type RoleBindingResp {
 	ID string `json:"id"`
 	SubjectType string `json:"subject_type"`

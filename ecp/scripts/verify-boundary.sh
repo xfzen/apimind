@@ -8,8 +8,8 @@ cleanup() {
   rm -rf "$tmp_dir"
 }
 trap cleanup EXIT INT TERM
-GOCACHE="$tmp_dir/go-build-cache"
-GOMODCACHE="$tmp_dir/go-mod-cache"
+GOCACHE=${ECP_BOUNDARY_GOCACHE:-$(go env GOCACHE)}
+GOMODCACHE=${ECP_BOUNDARY_GOMODCACHE:-$(go env GOMODCACHE)}
 GOPATH="$tmp_dir/go-path"
 GOPROXY="https://proxy.golang.org"
 GOSUMDB="sum.golang.org"

@@ -7,6 +7,17 @@ import (
 	"github.com/xfzen/ecp/server/internal/domain"
 )
 
+type manifestProjectorFixture struct {
+	enterpriseID, applicationID string
+	calls                       int
+}
+
+func (p *manifestProjectorFixture) ReconcileApplicationManifest(_ context.Context, enterpriseID, applicationID string) error {
+	p.enterpriseID, p.applicationID = enterpriseID, applicationID
+	p.calls++
+	return nil
+}
+
 func TestRegisterInstanceRequiresKnownApplication(t *testing.T) {
 	store := newMemoryStore()
 	svc := New(store)
@@ -47,6 +58,22 @@ func TestDeploymentRejectsSecondEnterprise(t *testing.T) {
 	}
 	_, err = svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-2", Name: "Other"})
 	assertReason(t, err, "single_enterprise_violation")
+}
+
+func TestManifestUpdateTriggersRoleProjection(t *testing.T) {
+	svc := New(newMemoryStore())
+	projector := &manifestProjectorFixture{}
+	svc.SetManifestProjector(projector)
+	ctx := context.Background()
+	_, _ = svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"})
+	_, _ = svc.RegisterApplication(ctx, RegisterApplicationInput{ID: "app-1", EnterpriseID: "ent-1", Key: "apimind", Name: "ApiMind"})
+	body := []byte(`{"schema_version":"connector.manifest/v1","roles":[{"id":"project.viewer","resource_type":"project","actions":["project.read"]}]}`)
+	if _, err := svc.PutManifest(ctx, PutManifestInput{EnterpriseID: "ent-1", ApplicationID: "app-1", APIVersion: "connector.manifest/v1", Body: body}); err != nil {
+		t.Fatal(err)
+	}
+	if projector.calls != 1 || projector.enterpriseID != "ent-1" || projector.applicationID != "app-1" {
+		t.Fatalf("projector=%+v", projector)
+	}
 }
 
 func assertReason(t *testing.T, err error, reason string) {

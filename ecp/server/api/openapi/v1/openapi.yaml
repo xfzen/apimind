@@ -1349,6 +1349,14 @@ components:
                 - enterprise_id
             title: RevokeSessionReq
             type: object
+        RoleBindingIDReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: RoleBindingIDReq
+            type: object
         RoleBindingListReq:
             properties:
                 enterprise_id:
@@ -1730,6 +1738,37 @@ paths:
                                 $ref: '#/components/schemas/RoleBindingResp'
                     description: A successful response.
             summary: Create a manifest-constrained role binding
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/application-instances/{id}/role-bindings/{bindingId}:
+        delete:
+            operationId: RevokeRoleBinding
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: bindingId
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RoleBindingIDReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Empty'
+                    description: A successful response.
+            summary: Revoke a manifest-constrained role binding
             tags:
                 - adminWrite
             x-ecp-access: public

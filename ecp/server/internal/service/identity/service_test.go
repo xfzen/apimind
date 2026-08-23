@@ -14,6 +14,17 @@ type memoryIdentityStore struct {
 	members    map[string][]string
 }
 
+type membershipProjectorFixture struct {
+	enterpriseID, groupID string
+	calls                 int
+}
+
+func (p *membershipProjectorFixture) ReconcileMembershipChange(_ context.Context, enterpriseID, groupID string) error {
+	p.enterpriseID, p.groupID = enterpriseID, groupID
+	p.calls++
+	return nil
+}
+
 func (s *memoryIdentityStore) FindPrincipalByExternal(_ context.Context, enterpriseID, issuer, subject string) (domain.Principal, bool, error) {
 	for _, value := range s.principals {
 		if value.EnterpriseID == enterpriseID && value.Issuer == issuer && value.Subject == subject {
@@ -113,6 +124,23 @@ func TestDirectoryManagedGroupRejectsControlPlaneMutation(t *testing.T) {
 	}
 	err = service.AddDirectGroupMember(context.Background(), "ent-1", group.ID, "principal-2")
 	assertReason(t, err, "directory_group_read_only")
+}
+
+func TestMembershipMutationTriggersRoleProjection(t *testing.T) {
+	store := &memoryIdentityStore{members: make(map[string][]string)}
+	projector := &membershipProjectorFixture{}
+	service := New(store, nil)
+	service.SetMembershipProjector(projector)
+	group, err := service.CreateManagedGroup(context.Background(), ManagedGroupInput{EnterpriseID: "ent-1", Name: "Engineering"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.AddDirectGroupMember(context.Background(), "ent-1", group.ID, "principal-1"); err != nil {
+		t.Fatal(err)
+	}
+	if projector.calls != 1 || projector.enterpriseID != "ent-1" || projector.groupID != group.ID {
+		t.Fatalf("projector=%+v", projector)
+	}
 }
 
 func assertReason(t *testing.T, err error, reason string) {

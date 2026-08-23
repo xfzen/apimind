@@ -162,6 +162,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		if ctx.Casdoor != nil {
 			ctx.Policy = policyservice.New(persistence.NewPolicyStore(ctx.DB), ctx.Casdoor)
 			ctx.RoleBindings = rolebindingservice.New(persistence.NewRoleBindingStore(ctx.DB), ctx.Policy, cfg.Casdoor.Organization)
+			ctx.Identity.SetMembershipProjector(ctx.RoleBindings)
+			ctx.Registry.SetManifestProjector(ctx.RoleBindings)
 		}
 		if len(cfg.Connector.Products) != 0 {
 			products := make([]connectorinfra.ProductConfig, len(cfg.Connector.Products))

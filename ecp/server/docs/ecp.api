@@ -188,6 +188,10 @@ service ecp {
 	@handler CreateRoleBinding
 	post /application-instances/:id/role-bindings (RoleBindingReq) returns (RoleBindingResp)
 
+	@doc "Revoke a manifest-constrained role binding"
+	@handler RevokeRoleBinding
+	delete /application-instances/:id/role-bindings/:bindingId (RoleBindingIDReq) returns (Empty)
+
 	@doc "Create a scoped service credential"
 	@handler CreateCredential
 	post /credentials (CreateCredentialReq) returns (CredentialResp)
