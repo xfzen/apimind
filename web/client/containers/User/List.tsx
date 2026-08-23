@@ -23,9 +23,29 @@ interface UserRow {
   email: string;
   role: string;
   up_time: string | number;
-  key?: number;
 }
-interface UserListPage { list: UserRow[]; count: number }
+interface UserListApiRow {
+  _id?: string | number;
+  id?: string | number;
+  uid: string | number;
+  username: string;
+  email: string;
+  role: string;
+  up_time?: string | number;
+  upTime?: string | number;
+}
+interface UserListPage { list: UserListApiRow[]; count: number }
+
+function normalizeUserRow(item: UserListApiRow): UserRow {
+  return {
+    _id: item._id ?? item.id ?? item.uid,
+    uid: item.uid,
+    username: item.username,
+    email: item.email,
+    role: item.role,
+    up_time: formatTime(Number(item.up_time ?? item.upTime ?? 0))
+  };
+}
 interface UserListProps {
   setBreadcrumb: (data: BreadcrumbItem[]) => unknown;
   curUserRole: string | null;
@@ -77,12 +97,8 @@ class List extends Component<UserListProps, UserListState> {
       let result = res.data;
 
       if (result.errcode === 0 && result.data) {
-        let list = result.data.list;
+        const list = result.data.list.map(normalizeUserRow);
         let total = result.data.count;
-        list.map((item, index) => {
-          item.key = index;
-          item.up_time = formatTime(Number(item.up_time));
-        });
         this.setState({
           data: list,
           total: total,
@@ -93,6 +109,7 @@ class List extends Component<UserListProps, UserListState> {
   }
 
   componentDidMount() {
+    this.props.setBreadcrumb([{ name: '用户管理' }]);
     this.getUserList();
   }
 
@@ -122,25 +139,12 @@ class List extends Component<UserListProps, UserListState> {
       );
   };
 
-  async componentWillMount() {
-    this.props.setBreadcrumb([{ name: '用户管理' }]);
-  }
-
   handleSearch = (value: string) => {
     let params = { q: value };
     if (params.q !== '') {
-      axios.get<ApiResponse<Array<Omit<UserRow, '_id'> & { uid: string | number }>>>('/api/user/search', { params }).then(response => {
-        const userList: UserRow[] = [];
-
+      axios.get<ApiResponse<UserListApiRow[]>>('/api/user/search', { params }).then(response => {
         const data = response.data.data;
-        if (data) {
-          data.forEach(v =>
-            userList.push({
-              ...v,
-              _id: v.uid
-            })
-          );
-        }
+        const userList = data?.map(normalizeUserRow) ?? [];
 
         this.setState({
           data: userList,

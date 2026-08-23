@@ -27,5 +27,10 @@ test('live Go stack authenticates and renders the personal group', async ({ page
   await expect(page).toHaveURL(/\/group(?:\/\d+)?$/);
   await expect(page.getByText('个人空间', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('tab', { name: '项目列表' })).toBeVisible();
+
+  await page.goto('/user/list');
+  const userLink = page.getByRole('link', { name: username, exact: true });
+  await expect(userLink).toHaveAttribute('href', '/user/profile/11');
+  await expect(page.getByRole('cell', { name: /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/ })).toBeVisible();
   guard.assertNoErrors();
 });
