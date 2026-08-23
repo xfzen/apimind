@@ -453,6 +453,35 @@ type ProductLoginExchangeResp struct {
 	ExpiresAt    int64  `json:"expires_at"`
 }
 
+type ProductResourceItem struct {
+	Type     string `json:"type"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	ParentID string `json:"parent_id,optional"`
+	Version  uint64 `json:"version"`
+}
+
+type ProductResourceListResp struct {
+	Resources []ProductResourceItem `json:"resources"`
+}
+
+type ProductResourceReq struct {
+	InstanceID   string `path:"id"`
+	ResourceType string `path:"resourceType"`
+	ResourceID   string `path:"resourceId"`
+}
+
+type ProductResourceResp struct {
+	Resource ProductResourceItem `json:"resource"`
+}
+
+type ProductResourceSearchReq struct {
+	InstanceID   string `path:"id"`
+	ResourceType string `form:"resource_type,optional"`
+	Query        string `form:"query,optional"`
+	Limit        int    `form:"limit,optional"`
+}
+
 type PublishDelegationKeySetReq struct {
 	Algorithm    string `json:"alg"`
 	SigningKeyID string `json:"signing_kid"`

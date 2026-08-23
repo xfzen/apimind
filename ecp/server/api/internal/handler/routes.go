@@ -23,6 +23,24 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.AdminSession},
 			[]rest.Route{
 				{
+					// Search resources visible to the current enterprise administrator
+					Method:  http.MethodGet,
+					Path:    "/application-instances/:id/resources",
+					Handler: adminRead.SearchProductResourcesHandler(serverCtx),
+				},
+				{
+					// Resolve one product resource visible to the current enterprise administrator
+					Method:  http.MethodGet,
+					Path:    "/application-instances/:id/resources/:resourceType/:resourceId",
+					Handler: adminRead.ResolveProductResourceHandler(serverCtx),
+				},
+				{
+					// Get the visible authorization ancestry for one product resource
+					Method:  http.MethodGet,
+					Path:    "/application-instances/:id/resources/:resourceType/:resourceId/ancestry",
+					Handler: adminRead.GetProductResourceAncestryHandler(serverCtx),
+				},
+				{
 					// List registered applications
 					Method:  http.MethodGet,
 					Path:    "/applications",

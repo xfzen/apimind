@@ -130,3 +130,19 @@ func TestAuthorizationIdentityIsLoadedByECPNotTrustedFromConnector(t *testing.T)
 		t.Fatalf("engine request trusted connector identity: %+v", engine.last)
 	}
 }
+
+func TestDelegationStateRequiresFreshIdentityAndInSyncPolicyWithoutResourceDecision(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)}
+	service, engine := baseFixture(clock)
+	state, err := service.DelegationState(context.Background(), "ent-1", "ins-1", "principal-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.PolicyVersion != 1 || state.LifecycleVersion != 1 || state.IdentitySyncVersion != 1 || !state.IdentityFreshnessDeadline.Equal(clock.Now().Add(5*time.Minute)) || engine.calls != 0 {
+		t.Fatalf("state=%+v engine calls=%d", state, engine.calls)
+	}
+	clock.Advance(5*time.Minute + time.Microsecond)
+	if _, err := service.DelegationState(context.Background(), "ent-1", "ins-1", "principal-1"); err == nil {
+		t.Fatal("expected stale identity rejection")
+	}
+}

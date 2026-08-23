@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
+	"github.com/xfzen/ecp/server/internal/service/productresource"
 )
 
 type OutboundCredential struct{ ClientID, Secret, Audience string }
@@ -39,43 +40,65 @@ func NewClient(baseURL string, credential OutboundCredential, httpClient *http.C
 	return &Client{baseURL: parsed, credential: credential, httpClient: httpClient}, nil
 }
 
-type ResourceSearchRequest struct {
-	Delegation          domain.SignedDelegation `json:"delegation"`
-	ResourceType, Query string
-	Limit               int
-}
-type ResourceResult struct {
-	Type, ID, DisplayName, ParentID string
-	Version                         uint64
+type wireResource struct {
+	Type        string `json:"type"`
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+	ParentID    string `json:"parent_id"`
+	Version     uint64 `json:"version"`
 }
 type ResourceSearchResponse struct {
-	Resources []ResourceResult `json:"resources"`
-	Reason    string           `json:"reason"`
+	Resources []wireResource `json:"resources"`
+	Reason    string         `json:"reason"`
 }
 
-func (c *Client) SearchResources(ctx context.Context, request ResourceSearchRequest) ([]ResourceResult, error) {
+func (c *Client) SearchResources(ctx context.Context, delegation domain.SignedDelegation, input productresource.SearchInput) ([]domain.ResourceReference, error) {
 	var response ResourceSearchResponse
-	if err := c.call(ctx, http.MethodPost, "api/v1/ecp/resources/search", request, &response); err != nil {
+	request := map[string]any{"delegation": delegation, "resource_type": input.ResourceType, "query": input.Query, "limit": input.Limit}
+	if err := c.call(ctx, http.MethodPost, "api/enterprise/connector/v1/resources/search", request, &response); err != nil {
 		return nil, err
 	}
 	if response.Reason == "resource_not_visible" {
 		return nil, &StableDenial{Reason: response.Reason}
 	}
-	return response.Resources, nil
+	return resourceReferences(response.Resources), nil
 }
 
-func (c *Client) ResolveResource(ctx context.Context, delegation domain.SignedDelegation, resourceType, id string) (ResourceResult, error) {
+func (c *Client) ResolveResource(ctx context.Context, delegation domain.SignedDelegation, input productresource.ResourceInput) (domain.ResourceReference, error) {
 	var response struct {
-		Resource ResourceResult `json:"resource"`
-		Reason   string         `json:"reason"`
+		Resource wireResource `json:"resource"`
+		Reason   string       `json:"reason"`
 	}
-	if err := c.call(ctx, http.MethodPost, "api/v1/ecp/resources/resolve", map[string]any{"delegation": delegation, "resource_type": resourceType, "resource_id": id}, &response); err != nil {
-		return ResourceResult{}, err
+	if err := c.call(ctx, http.MethodPost, "api/enterprise/connector/v1/resources/resolve", map[string]any{"delegation": delegation, "resource_type": input.ResourceType, "resource_id": input.ResourceID}, &response); err != nil {
+		return domain.ResourceReference{}, err
 	}
 	if response.Reason == "resource_not_visible" || response.Resource.ID == "" {
-		return ResourceResult{}, &StableDenial{Reason: "resource_not_visible"}
+		return domain.ResourceReference{}, &StableDenial{Reason: "resource_not_visible"}
 	}
-	return response.Resource, nil
+	return resourceReference(response.Resource), nil
+}
+
+func (c *Client) GetResourceAncestry(ctx context.Context, delegation domain.SignedDelegation, input productresource.ResourceInput) ([]domain.ResourceReference, error) {
+	var response ResourceSearchResponse
+	if err := c.call(ctx, http.MethodPost, "api/enterprise/connector/v1/resources/ancestry", map[string]any{"delegation": delegation, "resource_type": input.ResourceType, "resource_id": input.ResourceID}, &response); err != nil {
+		return nil, err
+	}
+	if response.Reason == "resource_not_visible" {
+		return nil, &StableDenial{Reason: response.Reason}
+	}
+	return resourceReferences(response.Resources), nil
+}
+
+func resourceReferences(values []wireResource) []domain.ResourceReference {
+	result := make([]domain.ResourceReference, len(values))
+	for index := range values {
+		result[index] = resourceReference(values[index])
+	}
+	return result
+}
+
+func resourceReference(value wireResource) domain.ResourceReference {
+	return domain.ResourceReference{ResourceType: value.Type, ExternalID: value.ID, ParentExternalID: value.ParentID, DisplayName: value.DisplayName, ResourceVersion: value.Version, Visible: true}
 }
 
 func (c *Client) call(ctx context.Context, method, path string, input, output any) error {

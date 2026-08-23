@@ -26,9 +26,13 @@ type Delegation struct {
 	Algorithm                 string    `json:"alg"`
 	Issuer                    string    `json:"iss"`
 	Audience                  string    `json:"aud"`
+	Subject                   string    `json:"sub"`
 	EnterpriseID              string    `json:"enterprise_id"`
 	ApplicationID             string    `json:"application_id"`
 	InstanceID                string    `json:"instance_id"`
+	ResourceType              string    `json:"resource_type,omitempty"`
+	ResourceID                string    `json:"resource_id,omitempty"`
+	Actions                   []string  `json:"actions"`
 	ActorPrincipalID          string    `json:"actor_principal_id"`
 	AdminSessionID            string    `json:"admin_session_id,omitempty"`
 	RequestedAction           string    `json:"requested_action"`

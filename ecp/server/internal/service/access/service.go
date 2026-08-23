@@ -129,6 +129,47 @@ func (s *Service) BatchAuthorize(ctx context.Context, requests []domain.Authoriz
 	}
 	return values, first
 }
+
+func (s *Service) DelegationState(ctx context.Context, enterpriseID, instanceID, principalID string) (domain.DelegationState, error) {
+	if s == nil || s.store == nil || enterpriseID == "" || instanceID == "" || principalID == "" {
+		return domain.DelegationState{}, fmt.Errorf("delegation_boundary_invalid")
+	}
+	exists, err := s.store.BoundaryExists(ctx, enterpriseID, instanceID)
+	if err != nil {
+		return domain.DelegationState{}, err
+	}
+	if !exists {
+		return domain.DelegationState{}, fmt.Errorf("boundary_mismatch")
+	}
+	identity, found, err := s.store.GetAuthorizationIdentity(ctx, enterpriseID, principalID)
+	if err != nil {
+		return domain.DelegationState{}, err
+	}
+	if !found {
+		return domain.DelegationState{}, fmt.Errorf("principal_not_found")
+	}
+	state, err := s.store.GetAccessState(ctx, enterpriseID, principalID, identity.IdentityProvider)
+	if err != nil {
+		return domain.DelegationState{}, err
+	}
+	if state.LifecycleState != domain.LifecycleActive {
+		return domain.DelegationState{}, fmt.Errorf("principal_%s", state.LifecycleState)
+	}
+	if identity.PrincipalKind == "human" && (state.IdentityFreshnessDeadline.IsZero() || !s.clock.Now().Before(state.IdentityFreshnessDeadline)) {
+		return domain.DelegationState{}, fmt.Errorf("identity_state_stale")
+	}
+	projection, found, err := s.store.GetPolicyProjection(ctx, enterpriseID, instanceID)
+	if err != nil {
+		return domain.DelegationState{}, err
+	}
+	if !found || projection.ReconciliationState != "in_sync" {
+		return domain.DelegationState{}, fmt.Errorf("policy_drift")
+	}
+	return domain.DelegationState{
+		PolicyVersion: projection.PolicyVersion, LifecycleVersion: state.LifecycleVersion,
+		IdentitySyncVersion: state.IdentitySyncVersion, IdentityFreshnessDeadline: state.IdentityFreshnessDeadline,
+	}, nil
+}
 func deny(reason string, state domain.AccessState, projection domain.PolicyProjection, configVersion uint64, request domain.AuthorizationRequest) domain.AuthorizationDecision {
 	return domain.AuthorizationDecision{Reason: reason, LifecycleVersion: state.LifecycleVersion, IdentitySyncVersion: state.IdentitySyncVersion, IdentityFreshnessDeadline: state.IdentityFreshnessDeadline, PolicyVersion: projection.PolicyVersion, AuthorizedResourceVersion: request.ResourceVersion, SecurityConfigVersion: configVersion}
 }

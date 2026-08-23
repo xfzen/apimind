@@ -112,6 +112,18 @@ service ecp {
 	@doc "Get the accepted product manifest"
 	@handler GetManifest
 	get /applications/:id/manifest (AdminEntityReq) returns (ManifestDetailResp)
+
+	@doc "Search resources visible to the current enterprise administrator"
+	@handler SearchProductResources
+	get /application-instances/:id/resources (ProductResourceSearchReq) returns (ProductResourceListResp)
+
+	@doc "Resolve one product resource visible to the current enterprise administrator"
+	@handler ResolveProductResource
+	get /application-instances/:id/resources/:resourceType/:resourceId (ProductResourceReq) returns (ProductResourceResp)
+
+	@doc "Get the visible authorization ancestry for one product resource"
+	@handler GetProductResourceAncestry
+	get /application-instances/:id/resources/:resourceType/:resourceId/ancestry (ProductResourceReq) returns (ProductResourceListResp)
 }
 
 @server (

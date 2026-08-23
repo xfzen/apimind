@@ -12,6 +12,7 @@ import (
 	"github.com/xfzen/ecp/server/config"
 	"github.com/xfzen/ecp/server/internal/domain"
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
+	connectorinfra "github.com/xfzen/ecp/server/internal/infra/connector"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
 	adminqueryservice "github.com/xfzen/ecp/server/internal/service/adminquery"
@@ -23,6 +24,7 @@ import (
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
 	policyservice "github.com/xfzen/ecp/server/internal/service/policy"
+	productresourceservice "github.com/xfzen/ecp/server/internal/service/productresource"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
 	securityconfigservice "github.com/xfzen/ecp/server/internal/service/securityconfig"
 	sessionservice "github.com/xfzen/ecp/server/internal/service/session"
@@ -32,25 +34,26 @@ import (
 )
 
 type ServiceContext struct {
-	Config          config.Config
-	DB              *gorm.DB
-	Registry        *registryservice.Service
-	Casdoor         *casdoor.Client
-	OIDCClients     *oidcclientservice.Service
-	Identity        *identityservice.Service
-	Lifecycle       *lifecycleservice.Service
-	Sessions        *sessionservice.Service
-	Idempotency     *idempotencyservice.Service
-	Access          *accessservice.Service
-	AdminQuery      *adminqueryservice.Service
-	Policy          *policyservice.Service
-	SecurityConfig  *securityconfigservice.Service
-	Connector       *connectorservice.Service
-	Credential      *credentialservice.Service
-	Audit           *auditservice.Service
-	AuditIngestDB   *gorm.DB
-	AuditReadDB     *gorm.DB
-	NewOIDCVerifier func(domain.OIDCClient) (sessionservice.OIDCVerifier, error)
+	Config           config.Config
+	DB               *gorm.DB
+	Registry         *registryservice.Service
+	Casdoor          *casdoor.Client
+	OIDCClients      *oidcclientservice.Service
+	Identity         *identityservice.Service
+	Lifecycle        *lifecycleservice.Service
+	Sessions         *sessionservice.Service
+	Idempotency      *idempotencyservice.Service
+	Access           *accessservice.Service
+	AdminQuery       *adminqueryservice.Service
+	Policy           *policyservice.Service
+	SecurityConfig   *securityconfigservice.Service
+	Connector        *connectorservice.Service
+	Credential       *credentialservice.Service
+	Audit            *auditservice.Service
+	AuditIngestDB    *gorm.DB
+	AuditReadDB      *gorm.DB
+	ProductResources *productresourceservice.Service
+	NewOIDCVerifier  func(domain.OIDCClient) (sessionservice.OIDCVerifier, error)
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
@@ -149,9 +152,21 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.Casdoor = client
 	}
 	if ctx.DB != nil {
-		ctx.Access = accessservice.New(persistence.NewAccessStore(ctx.DB), accessservice.NewCasdoorEngine(ctx.Casdoor), nil, nil)
+		accessStore := persistence.NewAccessStore(ctx.DB)
+		ctx.Access = accessservice.New(accessStore, accessservice.NewCasdoorEngine(ctx.Casdoor), nil, nil)
 		if ctx.Casdoor != nil {
 			ctx.Policy = policyservice.New(persistence.NewPolicyStore(ctx.DB), ctx.Casdoor)
+		}
+		if len(cfg.Connector.Products) != 0 {
+			products := make([]connectorinfra.ProductConfig, len(cfg.Connector.Products))
+			for index, product := range cfg.Connector.Products {
+				products[index] = connectorinfra.ProductConfig{InstanceID: product.InstanceID, BaseURL: product.BaseURL, ClientID: product.ClientID, SecretReference: product.SecretReference}
+			}
+			resolver, err := connectorinfra.NewResolver(products, envSecretProvider{}, &http.Client{Timeout: 10 * time.Second})
+			if err != nil {
+				panic(err)
+			}
+			ctx.ProductResources = productresourceservice.New(persistence.NewAdminQueryStore(ctx.DB), ctx.Access, ctx.Connector, resolver)
 		}
 	}
 	return ctx

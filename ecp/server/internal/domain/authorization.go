@@ -32,3 +32,10 @@ type AccessState struct {
 	LifecycleVersion, IdentitySyncVersion uint64
 	IdentityFreshnessDeadline             time.Time
 }
+
+type DelegationState struct {
+	PolicyVersion             uint64
+	LifecycleVersion          uint64
+	IdentitySyncVersion       uint64
+	IdentityFreshnessDeadline time.Time
+}

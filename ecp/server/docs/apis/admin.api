@@ -36,3 +36,27 @@ type ManifestDetailResp {
 	Body string `json:"body"`
 	Version uint64 `json:"version"`
 }
+type ProductResourceSearchReq {
+	InstanceID   string `path:"id"`
+	ResourceType string `form:"resource_type,optional"`
+	Query        string `form:"query,optional"`
+	Limit        int    `form:"limit,optional"`
+}
+type ProductResourceReq {
+	InstanceID   string `path:"id"`
+	ResourceType string `path:"resourceType"`
+	ResourceID   string `path:"resourceId"`
+}
+type ProductResourceItem {
+	Type        string `json:"type"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	ParentID    string `json:"parent_id,optional"`
+	Version     uint64 `json:"version"`
+}
+type ProductResourceListResp {
+	Resources []ProductResourceItem `json:"resources"`
+}
+type ProductResourceResp {
+	Resource ProductResourceItem `json:"resource"`
+}
