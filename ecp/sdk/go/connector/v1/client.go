@@ -86,6 +86,9 @@ func (c *Client) ResolveSession(ctx context.Context, input SessionResolutionRequ
 	err := c.do(ctx, http.MethodPost, "api/v1/connector/sessions/resolve", input, &output)
 	return SessionResolution{PrincipalID: output.PrincipalID, Revoked: output.Revoked, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC(), LifecycleVersion: output.LifecycleVersion}, err
 }
+func (c *Client) RevokeProductSession(ctx context.Context, input SessionRevocationRequest) error {
+	return c.do(ctx, http.MethodPost, "api/v1/connector/sessions/revoke", input, &struct{}{})
+}
 func (c *Client) BeginProductLogin(ctx context.Context, input ProductLoginStartRequest) (ProductLoginStart, error) {
 	var output struct {
 		TransactionID    string `json:"transaction_id"`

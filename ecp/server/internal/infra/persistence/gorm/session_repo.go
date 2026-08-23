@@ -79,6 +79,12 @@ func (s *SessionStore) RevokeSession(ctx context.Context, enterpriseID, id strin
 	result := s.db.WithContext(ctx).Model(&domain.Session{}).Where("enterprise_id = ? AND id = ? AND revoked_at IS NULL", enterpriseID, id).Updates(map[string]any{"revoked_at": revokedAt, "updated_at": revokedAt, "version": gorm.Expr("version + ?", 1)})
 	return result.RowsAffected == 1, result.Error
 }
+func (s *SessionStore) RevokeProductSessionByTokenHash(ctx context.Context, enterpriseID, instanceID, tokenHash string, revokedAt time.Time) (bool, error) {
+	result := s.db.WithContext(ctx).Model(&domain.Session{}).
+		Where("enterprise_id = ? AND application_instance_id = ? AND kind = ? AND token_hash = ? AND revoked_at IS NULL", enterpriseID, instanceID, domain.SessionKindProduct, tokenHash).
+		Updates(map[string]any{"revoked_at": revokedAt, "updated_at": revokedAt, "version": gorm.Expr("version + ?", 1)})
+	return result.RowsAffected == 1, result.Error
+}
 func (s *SessionStore) RevokePrincipalSessions(ctx context.Context, enterpriseID, principalID string, revokedAt time.Time) (int64, error) {
 	result := s.db.WithContext(ctx).Model(&domain.Session{}).Where("enterprise_id = ? AND principal_id = ? AND revoked_at IS NULL", enterpriseID, principalID).Updates(map[string]any{"revoked_at": revokedAt, "updated_at": revokedAt, "version": gorm.Expr("version + ?", 1)})
 	return result.RowsAffected, result.Error

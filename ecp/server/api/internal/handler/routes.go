@@ -308,6 +308,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: connectorMachine.ResolveProductSessionHandler(serverCtx),
 				},
 				{
+					// Revoke a product session by its opaque token
+					Method:  http.MethodPost,
+					Path:    "/connector/sessions/revoke",
+					Handler: connectorMachine.RevokeProductSessionHandler(serverCtx),
+				},
+				{
 					// Get the signed Delegation verification KeySet
 					Method:  http.MethodGet,
 					Path:    "/connector/signing-keys/delegation",

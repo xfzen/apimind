@@ -223,6 +223,10 @@ service ecp {
 	@handler ResolveProductSession
 	post /connector/sessions/resolve (ResolveProductSessionReq) returns (ResolveProductSessionResp)
 
+	@doc "Revoke a product session by its opaque token"
+	@handler RevokeProductSession
+	post /connector/sessions/revoke (RevokeProductSessionReq) returns (Empty)
+
 	@doc "Get the current policy projection version"
 	@handler GetPolicyVersion
 	get /connector/instances/:id/policy-version (PolicyVersionReq) returns (PolicyVersionResp)

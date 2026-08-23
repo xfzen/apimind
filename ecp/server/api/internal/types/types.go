@@ -521,6 +521,11 @@ type ResolveProductSessionResp struct {
 	LifecycleVersion uint64 `json:"lifecycle_version"`
 }
 
+type RevokeProductSessionReq struct {
+	InstanceID   string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
+
 type RevokeSessionReq struct {
 	SessionID    string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`

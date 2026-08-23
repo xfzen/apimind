@@ -35,6 +35,7 @@ type Store interface {
 	GetSessionByTokenHash(context.Context, string) (domain.Session, bool, error)
 	ListSessions(context.Context, string) ([]domain.Session, error)
 	RevokeSession(context.Context, string, string, time.Time) (bool, error)
+	RevokeProductSessionByTokenHash(context.Context, string, string, string, time.Time) (bool, error)
 	RevokePrincipalSessions(context.Context, string, string, time.Time) (int64, error)
 }
 
@@ -272,6 +273,20 @@ func (s *Service) Resolve(ctx context.Context, token, requiredKind string) (doma
 		return domain.Session{}, decision("session_invalid", nil)
 	}
 	return value, nil
+}
+
+func (s *Service) RevokeProductSession(ctx context.Context, enterpriseID, instanceID, token string) error {
+	if s == nil || s.store == nil || enterpriseID == "" || instanceID == "" || token == "" {
+		return decision("session_invalid", nil)
+	}
+	revoked, err := s.store.RevokeProductSessionByTokenHash(ctx, enterpriseID, instanceID, hash(token), s.clock.Now().UTC())
+	if err != nil {
+		return decision("session_store_error", err)
+	}
+	if !revoked {
+		return decision("session_not_found", nil)
+	}
+	return nil
 }
 func (s *Service) List(ctx context.Context, enterpriseID string) ([]domain.Session, error) {
 	return s.store.ListSessions(ctx, enterpriseID)

@@ -59,6 +59,10 @@ type ResolveProductSessionResp {
 	ExpiresAt int64 `json:"expires_at"`
 	LifecycleVersion uint64 `json:"lifecycle_version"`
 }
+type RevokeProductSessionReq {
+	InstanceID   string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
 type PolicyVersionReq {
 	InstanceID string `path:"id"`
 }

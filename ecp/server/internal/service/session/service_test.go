@@ -68,6 +68,17 @@ func (s *memoryStore) RevokeSession(_ context.Context, enterpriseID, id string, 
 	s.sessions[id] = value
 	return true, nil
 }
+func (s *memoryStore) RevokeProductSessionByTokenHash(_ context.Context, enterpriseID, instanceID, tokenHash string, revokedAt time.Time) (bool, error) {
+	for id, value := range s.sessions {
+		if value.EnterpriseID == enterpriseID && value.ApplicationInstanceID == instanceID && value.Kind == ProductSession && value.TokenHash == tokenHash && value.RevokedAt == nil {
+			value.RevokedAt = &revokedAt
+			value.Version++
+			s.sessions[id] = value
+			return true, nil
+		}
+	}
+	return false, nil
+}
 func (s *memoryStore) RevokePrincipalSessions(_ context.Context, enterpriseID, principalID string, revokedAt time.Time) (int64, error) {
 	var count int64
 	for id, value := range s.sessions {
@@ -193,6 +204,27 @@ func TestAdminAndProductSessionScopesAreIsolated(t *testing.T) {
 	if session.Kind != ProductSession || session.ApplicationInstanceID != "ins-1" || session.CookieName == AdminCookieName {
 		t.Fatalf("scope leaked: %+v", session)
 	}
+}
+
+func TestProductSessionRevocationIsBoundToEnterpriseAndInstance(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
+	service := New(&memoryStore{}, clock, time.Hour)
+	transaction, err := service.IssueProductTransaction(context.Background(), ProductTransactionInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "principal-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	productSession, err := service.ExchangeProductTransaction(context.Background(), transaction.Code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.RevokeProductSession(context.Background(), "ent-1", "ins-2", productSession.Token); err == nil {
+		t.Fatal("cross-instance revocation should not find the session")
+	}
+	if err := service.RevokeProductSession(context.Background(), "ent-1", "ins-1", productSession.Token); err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.Resolve(context.Background(), productSession.Token, ProductSession)
+	assertReason(t, err, "session_invalid")
 }
 
 func assertReason(t *testing.T, err error, reason string) {

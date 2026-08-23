@@ -1296,6 +1296,17 @@ components:
                 - lifecycle_version
             title: ResolveProductSessionResp
             type: object
+        RevokeProductSessionReq:
+            properties:
+                instance_id:
+                    type: string
+                session_token:
+                    type: string
+            required:
+                - instance_id
+                - session_token
+            title: RevokeProductSessionReq
+            type: object
         RevokeSessionReq:
             properties:
                 enterprise_id:
@@ -1943,6 +1954,26 @@ paths:
                                 $ref: '#/components/schemas/ResolveProductSessionResp'
                     description: A successful response.
             summary: Resolve a product session
+            tags:
+                - connectorMachine
+            x-ecp-access: public
+    /api/v1/connector/sessions/revoke:
+        post:
+            operationId: RevokeProductSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RevokeProductSessionReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Empty'
+                    description: A successful response.
+            summary: Revoke a product session by its opaque token
             tags:
                 - connectorMachine
             x-ecp-access: public

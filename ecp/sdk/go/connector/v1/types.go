@@ -143,6 +143,10 @@ type SessionResolutionRequest struct {
 	InstanceID   string `json:"instance_id"`
 	SessionToken string `json:"session_token"`
 }
+type SessionRevocationRequest struct {
+	InstanceID   string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
 type SessionResolution struct {
 	PrincipalID      string    `json:"principal_id"`
 	Revoked          bool      `json:"revoked"`
