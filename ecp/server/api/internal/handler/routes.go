@@ -23,6 +23,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.AdminSession},
 			[]rest.Route{
 				{
+					// Query append-only audit events
+					Method:  http.MethodGet,
+					Path:    "/audit/events",
+					Handler: adminRead.QueryAuditHandler(serverCtx),
+				},
+				{
 					// Current admin session
 					Method:  http.MethodGet,
 					Path:    "/auth/session",
@@ -78,6 +84,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPut,
 					Path:    "/applications/:id/manifest",
 					Handler: adminWrite.PutManifestHandler(serverCtx),
+				},
+				{
+					// Create a verifiable audit export manifest
+					Method:  http.MethodPost,
+					Path:    "/audit/export",
+					Handler: adminWrite.ExportAuditHandler(serverCtx),
 				},
 				{
 					// End the current admin session

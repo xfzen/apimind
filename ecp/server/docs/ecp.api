@@ -15,6 +15,7 @@ import "apis/identity.api"
 import "apis/auth.api"
 import "apis/access.api"
 import "apis/credential.api"
+import "apis/audit.api"
 
 @server (
 	group:  metaPublic
@@ -70,6 +71,10 @@ service ecp {
 	@doc "List service credential usage without secret material"
 	@handler ListCredentialUsage
 	get /instances/:id/credentials (CredentialUsageReq) returns (CredentialUsageResp)
+
+	@doc "Query append-only audit events"
+	@handler QueryAudit
+	get /audit/events (AuditQueryReq) returns (AuditQueryResp)
 }
 
 @server (
@@ -137,6 +142,10 @@ service ecp {
 	@doc "Revoke a service credential"
 	@handler RevokeCredential
 	post /credentials/:id/revoke (CredentialIDReq) returns (Empty)
+
+	@doc "Create a verifiable audit export manifest"
+	@handler ExportAudit
+	post /audit/export (AuditExportReq) returns (AuditExportResp)
 }
 
 @server (

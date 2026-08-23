@@ -1061,7 +1061,7 @@ git commit -m "feat(ecp): add service credentials"
 - Runtime pools: `BusinessDB` uses `ecp_tx_writer`; `AuditIngestDB` uses `audit_ingest_writer`; `AuditReadDB` uses `audit_reader`. Each has a distinct DSN/Secret Reference and connection pool. `audit_maintainer` is accepted only by the offline `cmd/audit-maintain` configuration and is absent from online `ServiceContext`.
 - Provisioning: only the offline `ECP_MIGRATION_DSN` schema owner may run the dialect-specific role/bootstrap SQL. The bootstrap consumes separately generated test/deployment secrets, creates or updates the four least-privilege accounts idempotently, applies grants, and never writes a password into migration SQL, logs or Git.
 
-- [ ] **Step 1: Write transaction, privilege, and redaction tests**
+- [x] **Step 1: Write transaction, privilege, and redaction tests**
 
 ```go
 func TestBusinessMutationAndCommittedAuditRollbackTogether(t *testing.T) {
@@ -1079,13 +1079,13 @@ func TestBusinessMutationAndCommittedAuditRollbackTogether(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/audit -count=1`
 
 Expected: FAIL because audit storage does not exist.
 
-- [ ] **Step 3: Implement the three-stage audit flow**
+- [x] **Step 3: Implement the three-stage audit flow**
 
 ```text
 audit_ingest_writer: Intent
@@ -1097,7 +1097,7 @@ Apply a field allowlist before persistence. Secrets, tokens, cookies, private ke
 
 Construct three independent online `*gorm.DB` pools from three separately resolved secrets; never create one privileged pool and simulate separation with Repository methods. Business mutation plus Change-Committed uses the same `BusinessDB` transaction. Intent/Outcome and product ingestion use `AuditIngestDB`; queries use `AuditReadDB`. The offline `audit-maintain` command starts with no HTTP listener, resolves the maintainer secret only for the command lifetime, verifies archive signature/hash/count/sequence before cleanup, then closes its pool. It also exports a versioned audit verifier bundle containing the complete non-secret historical public-key chain required to validate retained archives. Archive signing uses its own Ed25519 purpose/key lineage, and historic public keys remain available for the full retention period.
 
-- [ ] **Step 4: Verify real PostgreSQL and MySQL grants**
+- [x] **Step 4: Verify real PostgreSQL and MySQL grants**
 
 Run:
 
@@ -1116,7 +1116,7 @@ trap - EXIT INT TERM
 
 Expected: each verification uses the role-specific DSNs generated in `.run/test-db.env`; online roles cannot update, delete or truncate `audit_event`, migration ownership is absent from all three online pools, and only the offline `audit_maintainer` can execute the versioned archive path.
 
-- [ ] **Step 5: Regenerate, test, and commit audit**
+- [x] **Step 5: Regenerate, test, and commit audit**
 
 ```bash
 cd ecp/server

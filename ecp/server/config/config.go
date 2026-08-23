@@ -15,6 +15,7 @@ type Config struct {
 	Identity  IdentityConfig  `json:",optional"`
 	Session   SessionConfig   `json:",optional"`
 	Connector ConnectorConfig `json:",optional"`
+	Audit     AuditConfig     `json:",optional"`
 }
 
 type ConnectorConfig struct {

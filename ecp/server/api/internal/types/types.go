@@ -33,6 +33,52 @@ type ApplicationResp struct {
 	Version      uint64 `json:"version"`
 }
 
+type AuditEventResp struct {
+	Sequence              uint64 `json:"sequence"`
+	ID                    string `json:"id"`
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id"`
+	OperationID           string `json:"operation_id"`
+	Stage                 string `json:"stage"`
+	ActorID               string `json:"actor_id"`
+	ActorKind             string `json:"actor_kind"`
+	Action                string `json:"action"`
+	ResourceType          string `json:"resource_type"`
+	ResourceID            string `json:"resource_id"`
+	Outcome               string `json:"outcome"`
+	Reason                string `json:"reason"`
+	SafeDiff              string `json:"safe_diff"`
+	OccurredAt            int64  `json:"occurred_at"`
+}
+
+type AuditExportReq struct {
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id,optional"`
+	SequenceAfter         uint64 `json:"sequence_after,optional"`
+	Limit                 int    `json:"limit,optional"`
+}
+
+type AuditExportResp struct {
+	Version       uint64 `json:"version"`
+	SequenceStart uint64 `json:"sequence_start"`
+	SequenceEnd   uint64 `json:"sequence_end"`
+	EventCount    uint64 `json:"event_count"`
+	CanonicalHash string `json:"canonical_hash"`
+	GeneratedAt   int64  `json:"generated_at"`
+}
+
+type AuditQueryReq struct {
+	EnterpriseID          string `form:"enterprise_id"`
+	ApplicationInstanceID string `form:"application_instance_id,optional"`
+	OperationID           string `form:"operation_id,optional"`
+	SequenceAfter         uint64 `form:"sequence_after,optional"`
+	Limit                 int    `form:"limit,optional"`
+}
+
+type AuditQueryResp struct {
+	Events []AuditEventResp `json:"events"`
+}
+
 type AuthCallbackReq struct {
 	State string `form:"state"`
 	Code  string `form:"code"`

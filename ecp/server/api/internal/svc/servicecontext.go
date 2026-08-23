@@ -13,6 +13,7 @@ import (
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
+	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	connectorservice "github.com/xfzen/ecp/server/internal/service/connector"
 	credentialservice "github.com/xfzen/ecp/server/internal/service/credential"
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
@@ -43,6 +44,9 @@ type ServiceContext struct {
 	SecurityConfig *securityconfigservice.Service
 	Connector      *connectorservice.Service
 	Credential     *credentialservice.Service
+	Audit          *auditservice.Service
+	AuditIngestDB  *gorm.DB
+	AuditReadDB    *gorm.DB
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
@@ -57,8 +61,13 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		cfg.OIDC.AdminAudience = cfg.OIDC.ClientID
 	}
 	ctx := &ServiceContext{Config: cfg}
-	if cfg.Database.Enabled {
-		db, err := persistence.Open(cfg.Database)
+	databaseConfig := cfg.Database
+	if cfg.Audit.Enabled {
+		businessDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.BusinessDSNReference); if err != nil { panic(err) }
+		databaseConfig.Enabled = true; databaseConfig.DSN = string(businessDSN)
+	}
+	if databaseConfig.Enabled {
+		db, err := persistence.Open(databaseConfig)
 		if err != nil {
 			panic(err)
 		}
@@ -80,6 +89,13 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
 		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
 		ctx.Credential = credentialservice.New(persistence.NewCredentialStore(db), credentialservice.Config{})
+		if cfg.Audit.Enabled {
+			ingestDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.IngestDSNReference); if err != nil { panic(err) }; readDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.ReadDSNReference); if err != nil { panic(err) }
+			ingestConfig := databaseConfig; ingestConfig.DSN = string(ingestDSN); readConfig := databaseConfig; readConfig.DSN = string(readDSN)
+			ctx.AuditIngestDB, err = persistence.Open(ingestConfig); if err != nil { panic(err) }; ctx.AuditReadDB, err = persistence.Open(readConfig); if err != nil { panic(err) }
+			connections := persistence.NewAuditConnections(db, ctx.AuditIngestDB, ctx.AuditReadDB); if !connections.Valid() { panic("audit connections must use independent pools") }
+			ctx.Audit = auditservice.New(persistence.NewAuditTransactionStore(connections.BusinessDB), persistence.NewAuditAppendStore(connections.AuditIngestDB), persistence.NewAuditReadStore(connections.AuditReadDB), nil)
+		}
 	}
 	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
 	ctx.CSRF = asRestMiddleware(apiMiddleware.NewCSRF().Handle)
