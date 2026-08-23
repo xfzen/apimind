@@ -63,7 +63,7 @@ func (e *DecisionError) Unwrap() error { return e.Err }
 
 type RegisterEnterpriseInput struct{ ID, Name string }
 type RegisterApplicationInput struct{ ID, EnterpriseID, Key, Name string }
-type RegisterInstanceInput struct{ EnterpriseID, ApplicationID, InstanceKey, Environment, CanonicalURL string }
+type RegisterInstanceInput struct{ ID, EnterpriseID, ApplicationID, InstanceKey, Environment, CanonicalURL string }
 type PutManifestInput struct {
 	EnterpriseID, ApplicationID, APIVersion string
 	Body                                    []byte
@@ -124,7 +124,7 @@ func (s *Service) RegisterInstance(ctx context.Context, input RegisterInstanceIn
 	if !found {
 		return domain.ApplicationInstance{}, decision("application_not_found", nil)
 	}
-	if !validID(input.InstanceKey) || application.EnterpriseID != input.EnterpriseID {
+	if (input.ID != "" && !validID(input.ID)) || !validID(input.InstanceKey) || application.EnterpriseID != input.EnterpriseID {
 		return domain.ApplicationInstance{}, decision("invalid_instance", nil)
 	}
 	canonicalURL, err := validateCanonicalURL(input.CanonicalURL)
@@ -136,7 +136,11 @@ func (s *Service) RegisterInstance(ctx context.Context, input RegisterInstanceIn
 		environment = "production"
 	}
 	now := time.Now().UTC()
-	value := domain.ApplicationInstance{Base: domain.Base{ID: newID("ins"), EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now}, ApplicationID: input.ApplicationID, InstanceKey: input.InstanceKey, Environment: environment, CanonicalURL: canonicalURL, Status: "active", Version: 1}
+	id := input.ID
+	if id == "" {
+		id = newID("ins")
+	}
+	value := domain.ApplicationInstance{Base: domain.Base{ID: id, EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now}, ApplicationID: input.ApplicationID, InstanceKey: input.InstanceKey, Environment: environment, CanonicalURL: canonicalURL, Status: "active", Version: 1}
 	if err := s.store.CreateInstance(ctx, value); err != nil {
 		return domain.ApplicationInstance{}, decision("registry_store_error", err)
 	}

@@ -77,4 +77,3 @@ CREATE TABLE projection_outbox (
   updated_at TIMESTAMPTZ(6) NOT NULL,
   CONSTRAINT uq_projection_operation UNIQUE (enterprise_id, operation_id)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON connector_channels, delegation_nonces, delegation_keysets, delegation_keyset_acks, resource_references, projection_outbox TO ecp_runtime;

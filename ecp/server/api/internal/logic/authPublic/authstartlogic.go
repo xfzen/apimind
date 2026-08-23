@@ -53,7 +53,7 @@ func (l *AuthStartLogic) Begin(req *types.AuthStartReq) (*types.AuthStartResp, s
 	if err := l.svcCtx.OIDCClients.ValidateRedirect(client.RedirectURIs, config.AdminRedirectURI); err != nil {
 		return nil, sessionservice.BeginResult{}, err
 	}
-	result, err := l.svcCtx.Sessions.Begin(l.ctx, sessionservice.BeginInput{EnterpriseID: config.AdminEnterpriseID, OIDCClientID: config.AdminClientRecordID, Kind: sessionservice.AdminSession, RedirectURI: config.AdminRedirectURI})
+	result, err := l.svcCtx.Sessions.Begin(l.ctx, sessionservice.BeginInput{EnterpriseID: config.AdminEnterpriseID, OIDCClientID: config.AdminClientRecordID, ApplicationInstanceID: client.InstanceID, Kind: sessionservice.AdminSession, RedirectURI: config.AdminRedirectURI})
 	if err != nil {
 		return nil, sessionservice.BeginResult{}, err
 	}

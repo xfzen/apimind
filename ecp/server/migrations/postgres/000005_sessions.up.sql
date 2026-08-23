@@ -55,4 +55,3 @@ CREATE TABLE idempotency_records (
   CONSTRAINT uq_idempotency_key UNIQUE (enterprise_id, idempotency_key),
   CONSTRAINT uq_operation_id UNIQUE (enterprise_id, operation_id)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON login_transactions, product_login_transactions, sessions, idempotency_records TO ecp_runtime;

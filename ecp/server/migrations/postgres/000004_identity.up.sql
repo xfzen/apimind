@@ -85,5 +85,3 @@ CREATE TABLE legacy_identity_mappings (
   created_at TIMESTAMPTZ(6) NOT NULL,
   CONSTRAINT uq_legacy_identity UNIQUE (enterprise_id, application_id, legacy_source, legacy_subject)
 );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON principals, identity_groups, direct_group_memberships, principal_lifecycle, identity_sync_states, identity_invitations, legacy_identity_mappings TO ecp_runtime;

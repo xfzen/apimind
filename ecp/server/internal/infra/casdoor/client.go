@@ -13,10 +13,10 @@ import (
 
 func NewClient(cfg Config, secrets SecretProvider, httpClient *http.Client) (*Client, error) {
 	parsed, err := url.Parse(cfg.BaseURL)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && !(cfg.LocalMode && parsed.Scheme == "http" && isLoopback(parsed.Hostname()))) {
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && !(cfg.LocalMode && parsed.Scheme == "http" && isAllowedInsecureHost(parsed.Hostname(), cfg.AllowedInsecureHosts))) {
 		return nil, adapterError("casdoor_endpoint_invalid", 0, err)
 	}
-	if cfg.EnterpriseID == "" || cfg.Organization == "" || cfg.CredentialReference == "" || secrets == nil {
+	if cfg.EnterpriseID == "" || cfg.Organization == "" || cfg.ClientID == "" || cfg.CredentialReference == "" || secrets == nil {
 		return nil, adapterError("casdoor_config_invalid", 0, nil)
 	}
 	if httpClient == nil {
@@ -24,7 +24,7 @@ func NewClient(cfg Config, secrets SecretProvider, httpClient *http.Client) (*Cl
 	}
 	return &Client{
 		baseURL: strings.TrimRight(parsed.String(), "/"), enterpriseID: cfg.EnterpriseID,
-		organization: cfg.Organization, credential: cfg.CredentialReference, secrets: secrets, httpClient: httpClient,
+		organization: cfg.Organization, clientID: cfg.ClientID, credential: cfg.CredentialReference, secrets: secrets, httpClient: httpClient,
 	}, nil
 }
 
@@ -121,7 +121,7 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	if err != nil {
 		return adapterError("casdoor_request_invalid", 0, err)
 	}
-	request.Header.Set("Authorization", "Bearer "+string(credential))
+	request.SetBasicAuth(c.clientID, string(credential))
 	request.Header.Set("Accept", "application/json")
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -161,4 +161,17 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 
 func isLoopback(host string) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func isAllowedInsecureHost(host string, configured []string) bool {
+	if isLoopback(host) {
+		return true
+	}
+	host = strings.ToLower(strings.TrimSpace(host))
+	for _, allowed := range configured {
+		if host != "" && host == strings.ToLower(strings.TrimSpace(allowed)) {
+			return true
+		}
+	}
+	return false
 }

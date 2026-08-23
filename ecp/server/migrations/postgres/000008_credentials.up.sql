@@ -19,4 +19,3 @@ CREATE TABLE service_credentials (
 );
 CREATE INDEX idx_service_credentials_instance ON service_credentials (enterprise_id, application_instance_id);
 CREATE INDEX idx_service_credentials_lineage ON service_credentials (rotation_lineage);
-GRANT SELECT, INSERT, UPDATE, DELETE ON service_credentials TO ecp_runtime;

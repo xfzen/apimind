@@ -22,7 +22,8 @@ services:
     image: casbin/casdoor:3.154.4@sha256:95c7be68fb98daf2ec74a10c9f785af1ef75e8fef6dd4aad455a899e651e87e2
     depends_on:
       postgres: { condition: service_healthy }
-    command: ["/bin/sh", "-c", "sed \"s|__CASDOOR_DB_PASSWORD__|$$(cat /run/secrets/casdoor_db_password)|g\" /conf/app.conf > /tmp/app.conf && exec /server --createDatabase=false --config=/tmp/app.conf"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sed \"s|__CASDOOR_DB_PASSWORD__|$$(cat /run/secrets/casdoor_db_password)|g\" /conf/app.conf > /tmp/app.conf && exec /server --createDatabase=false --config=/tmp/app.conf"]
     environment:
       CASDOOR_DATABASE_USER: casdoor_runtime
     secrets: [casdoor_db_password]
@@ -61,6 +62,17 @@ services:
     secrets: [postgres_ecp_admin_dsn, ecp_db_password]
     restart: "no"
 
+  ecp-registry-bootstrap:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    entrypoint: ["/ecp-bootstrap"]
+    command: ["--driver", "postgres", "--dsn-file", "/run/secrets/ecp_schema_dsn", "--enterprise", "enterprise-local", "--enterprise-name", "Local Enterprise", "--application", "ecp-control", "--instance", "ecp-admin", "--client-record", "oidc-admin", "--client-id", "ecp-admin", "--secret-reference", "file:///run/secrets/casdoor_client_secret", "--redirect-uri", "http://127.0.0.1:4001/api/v1/auth/callback", "--local-mode"]
+    depends_on:
+      ecp-audit-bootstrap: { condition: service_completed_successfully }
+    secrets: [ecp_schema_dsn]
+    restart: "no"
+
   ecp-api:
     build:
       context: ..
@@ -69,7 +81,7 @@ services:
     environment:
       ECP_DATABASE_USER: ecp_tx_writer
     depends_on:
-      ecp-audit-bootstrap: { condition: service_completed_successfully }
+      ecp-registry-bootstrap: { condition: service_completed_successfully }
       casdoor: { condition: service_started }
     secrets:
       - ecp_runtime_dsn

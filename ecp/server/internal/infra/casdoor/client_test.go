@@ -16,16 +16,16 @@ func (s staticSecrets) Get(_ context.Context, reference string) ([]byte, error) 
 }
 
 func TestClientResolvesCredentialWithoutPersistingIt(t *testing.T) {
-	var authorization string
+	var basicUser, basicPassword string
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		authorization = request.Header.Get("Authorization")
+		basicUser, basicPassword, _ = request.BasicAuth()
 		response.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(response, `{"status":"ok","data":{"id":"user-1","name":"alice","isForbidden":false}}`)
 	}))
 	defer server.Close()
 
 	client, err := NewClient(Config{
-		BaseURL: server.URL, EnterpriseID: "ent-1", Organization: "acme", CredentialReference: "secret://casdoor/adapter", LocalMode: true,
+		BaseURL: server.URL, EnterpriseID: "ent-1", Organization: "acme", ClientID: "ecp-m2m", CredentialReference: "secret://casdoor/adapter", LocalMode: true,
 	}, staticSecrets{"secret://casdoor/adapter": []byte("adapter-token")}, server.Client())
 	if err != nil {
 		t.Fatal(err)
@@ -34,8 +34,8 @@ func TestClientResolvesCredentialWithoutPersistingIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if user.ID != "user-1" || authorization != "Bearer adapter-token" {
-		t.Fatalf("user=%+v authorization=%q", user, authorization)
+	if user.ID != "user-1" || basicUser != "ecp-m2m" || basicPassword != "adapter-token" {
+		t.Fatalf("user=%+v basicUser=%q basicPasswordSet=%v", user, basicUser, basicPassword != "")
 	}
 	if strings.Contains(client.String(), "adapter-token") {
 		t.Fatal("client diagnostics exposed adapter credential")
@@ -46,6 +46,24 @@ func TestClientRejectsNonHTTPSOutsideLocalMode(t *testing.T) {
 	_, err := NewClient(Config{BaseURL: "http://casdoor.example.com", EnterpriseID: "ent-1", Organization: "acme", CredentialReference: "secret://casdoor"}, staticSecrets{}, http.DefaultClient)
 	if err == nil {
 		t.Fatal("expected insecure endpoint rejection")
+	}
+}
+
+func TestClientAllowsExplicitComposeHostOnlyInLocalMode(t *testing.T) {
+	base := Config{
+		BaseURL: "http://casdoor:8000", EnterpriseID: "ent-1", Organization: "acme",
+		ClientID: "ecp-m2m", CredentialReference: "secret://casdoor", AllowedInsecureHosts: []string{"casdoor"},
+	}
+	if _, err := NewClient(base, staticSecrets{}, http.DefaultClient); err == nil {
+		t.Fatal("expected insecure endpoint rejection outside local mode")
+	}
+	base.LocalMode = true
+	if _, err := NewClient(base, staticSecrets{}, http.DefaultClient); err != nil {
+		t.Fatalf("explicit local Compose host was rejected: %v", err)
+	}
+	base.AllowedInsecureHosts = nil
+	if _, err := NewClient(base, staticSecrets{}, http.DefaultClient); err == nil {
+		t.Fatal("expected unlisted Compose host rejection")
 	}
 }
 
@@ -66,7 +84,7 @@ func TestEnforceUsesExplicitPermissionIDAndTuple(t *testing.T) {
 		_, _ = io.WriteString(response, `{"status":"ok","data":[true]}`)
 	}))
 	defer server.Close()
-	client, err := NewClient(Config{BaseURL: server.URL, EnterpriseID: "ent-1", Organization: "acme", CredentialReference: "secret://casdoor", LocalMode: true}, staticSecrets{"secret://casdoor": []byte("token")}, server.Client())
+	client, err := NewClient(Config{BaseURL: server.URL, EnterpriseID: "ent-1", Organization: "acme", ClientID: "ecp-m2m", CredentialReference: "secret://casdoor", LocalMode: true}, staticSecrets{"secret://casdoor": []byte("token")}, server.Client())
 	if err != nil {
 		t.Fatal(err)
 	}

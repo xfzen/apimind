@@ -152,8 +152,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 	if cfg.Casdoor.Enabled {
 		client, err := casdoor.NewClient(casdoor.Config{
 			BaseURL: cfg.Casdoor.BaseURL, EnterpriseID: cfg.Casdoor.EnterpriseID,
-			Organization: cfg.Casdoor.Organization, CredentialReference: cfg.Casdoor.CredentialReference,
-			LocalMode: cfg.Casdoor.LocalMode,
+			Organization: cfg.Casdoor.Organization, ClientID: cfg.Casdoor.ClientID, CredentialReference: cfg.Casdoor.CredentialReference,
+			LocalMode: cfg.Casdoor.LocalMode, AllowedInsecureHosts: cfg.Casdoor.AllowedInsecureHosts,
 		}, envSecretProvider{}, http.DefaultClient)
 		if err != nil {
 			panic(err)

@@ -67,6 +67,19 @@ func TestProductCannotReadClientSecret(t *testing.T) {
 	}
 }
 
+func TestRegisterAcceptsStableBootstrapRecordID(t *testing.T) {
+	record, err := New(&memoryStore{}, false).Register(context.Background(), RegisterInput{
+		ID: "oidc-admin", EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceID: "ins-1", ClientID: "client-1",
+		SecretReference: "secret://oidc/client-1", RedirectURIs: []string{"https://api.example.com/callback"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.ID != "oidc-admin" {
+		t.Fatalf("record ID = %q, want stable bootstrap ID", record.ID)
+	}
+}
+
 func TestLocalhostRedirectRequiresLocalMode(t *testing.T) {
 	input := RegisterInput{
 		EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceID: "ins-1", ClientID: "client-1",

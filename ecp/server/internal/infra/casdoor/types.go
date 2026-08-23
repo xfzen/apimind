@@ -10,11 +10,13 @@ type SecretProvider interface {
 }
 
 type Config struct {
-	BaseURL             string
-	EnterpriseID        string
-	Organization        string
-	CredentialReference string
-	LocalMode           bool
+	BaseURL              string
+	EnterpriseID         string
+	Organization         string
+	ClientID             string
+	CredentialReference  string
+	LocalMode            bool
+	AllowedInsecureHosts []string
 }
 
 type User struct {
@@ -41,6 +43,7 @@ type Client struct {
 	baseURL      string
 	enterpriseID string
 	organization string
+	clientID     string
 	credential   string
 	secrets      SecretProvider
 	httpClient   *http.Client

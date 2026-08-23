@@ -13,8 +13,10 @@ Casdoor:
   BaseURL: http://casdoor:8000
   EnterpriseID: enterprise-local
   Organization: built-in
+  ClientID: ecp-admin
   CredentialReference: file:///run/secrets/casdoor_client_secret
   LocalMode: true
+  AllowedInsecureHosts: [casdoor]
 OIDC:
   LocalMode: true
   AdminEnterpriseID: enterprise-local

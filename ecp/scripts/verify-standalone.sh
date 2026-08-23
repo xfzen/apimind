@@ -21,7 +21,7 @@ export GOCACHE="${ECP_STANDALONE_GOCACHE:-$(go env GOCACHE)}"
 (cd sdk/go && GOWORK=off GOTOOLCHAIN=go1.25.12 go test ./... && GOWORK=off GOTOOLCHAIN=go1.25.12 go vet ./...)
 (cd ui && npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org && npm run typecheck && npm test && npm run build)
 mkdir -p server/dist
-(cd server && CGO_ENABLED=0 GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-api ./api && CGO_ENABLED=0 GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-migrate ./cmd/migrate && CGO_ENABLED=0 GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-audit-bootstrap ./cmd/audit-bootstrap && CGO_ENABLED=0 GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-ui-server ./cmd/ui-server)
+(cd server && CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-api ./api && CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-migrate ./cmd/migrate && CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-audit-bootstrap ./cmd/audit-bootstrap && CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-bootstrap ./cmd/bootstrap && CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-ui-server ./cmd/ui-server)
 docker compose --env-file deploy/.env.example -f deploy/compose.yaml config >/dev/null
 
 if [ "${ECP_VERIFY_DATABASES:-1}" = 1 ]; then

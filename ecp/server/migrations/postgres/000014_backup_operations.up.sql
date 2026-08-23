@@ -14,4 +14,3 @@ CREATE TABLE backup_operations (
 );
 
 CREATE INDEX idx_backup_status ON backup_operations (enterprise_id, started_at DESC);
-GRANT SELECT, INSERT, UPDATE ON backup_operations TO ecp_runtime;

@@ -36,12 +36,14 @@ type ProductConnectorConfig struct {
 }
 
 type CasdoorConfig struct {
-	Enabled             bool   `json:",default=false"`
-	BaseURL             string `json:",optional"`
-	EnterpriseID        string `json:",optional"`
-	Organization        string `json:",optional"`
-	CredentialReference string `json:",optional"`
-	LocalMode           bool   `json:",default=false"`
+	Enabled              bool     `json:",default=false"`
+	BaseURL              string   `json:",optional"`
+	EnterpriseID         string   `json:",optional"`
+	Organization         string   `json:",optional"`
+	ClientID             string   `json:",optional"`
+	CredentialReference  string   `json:",optional"`
+	LocalMode            bool     `json:",default=false"`
+	AllowedInsecureHosts []string `json:",optional"`
 }
 
 type OIDCConfig struct {

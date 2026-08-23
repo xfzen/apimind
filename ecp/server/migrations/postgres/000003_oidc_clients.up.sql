@@ -14,5 +14,3 @@ CREATE TABLE oidc_clients (
   CONSTRAINT uq_oidc_clients_enterprise_client UNIQUE (enterprise_id, client_id),
   CONSTRAINT uq_oidc_clients_enterprise_instance UNIQUE (enterprise_id, instance_id)
 );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON oidc_clients TO ecp_runtime;

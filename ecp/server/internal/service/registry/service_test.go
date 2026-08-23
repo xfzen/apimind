@@ -30,6 +30,21 @@ func TestRegisterInstanceRequiresKnownApplication(t *testing.T) {
 	assertReason(t, err, "application_not_found")
 }
 
+func TestRegisterInstanceAcceptsStableBootstrapID(t *testing.T) {
+	store := newMemoryStore()
+	service := New(store)
+	ctx := context.Background()
+	_, _ = service.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"})
+	_, _ = service.RegisterApplication(ctx, RegisterApplicationInput{ID: "app-1", EnterpriseID: "ent-1", Key: "admin", Name: "Admin"})
+	instance, err := service.RegisterInstance(ctx, RegisterInstanceInput{ID: "ins-admin", EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceKey: "admin", Environment: "local", CanonicalURL: "https://admin.local"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if instance.ID != "ins-admin" {
+		t.Fatalf("instance ID = %q, want stable bootstrap ID", instance.ID)
+	}
+}
+
 func TestConnectorCannotCrossInstance(t *testing.T) {
 	store := newMemoryStore()
 	svc := New(store)

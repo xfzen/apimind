@@ -17,4 +17,3 @@ CREATE TABLE role_bindings (
   CONSTRAINT uq_role_binding UNIQUE (enterprise_id, application_instance_id, subject_type, subject_id, role_id, resource_type, resource_id)
 );
 CREATE INDEX idx_role_binding_instance ON role_bindings (enterprise_id, application_instance_id, status);
-GRANT SELECT, INSERT, UPDATE, DELETE ON role_bindings TO ecp_runtime;

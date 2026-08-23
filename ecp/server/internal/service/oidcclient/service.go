@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,8 +30,8 @@ type Service struct {
 func New(store Store, localMode bool) *Service { return &Service{store: store, localMode: localMode} }
 
 type RegisterInput struct {
-	EnterpriseID, ApplicationID, InstanceID, ClientID, SecretReference string
-	RedirectURIs                                                       []string
+	ID, EnterpriseID, ApplicationID, InstanceID, ClientID, SecretReference string
+	RedirectURIs                                                           []string
 }
 
 type DecisionError struct {
@@ -52,7 +53,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (domain.OID
 	if s == nil || s.store == nil {
 		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)
 	}
-	if input.EnterpriseID == "" || input.ApplicationID == "" || input.InstanceID == "" || input.ClientID == "" || !validSecretReference(input.SecretReference) || len(input.RedirectURIs) == 0 {
+	if (input.ID != "" && !recordIDPattern.MatchString(input.ID)) || input.EnterpriseID == "" || input.ApplicationID == "" || input.InstanceID == "" || input.ClientID == "" || !validSecretReference(input.SecretReference) || len(input.RedirectURIs) == 0 {
 		return domain.OIDCClient{}, decision("oidc_client_invalid", nil)
 	}
 	belongs, err := s.store.InstanceBelongsTo(ctx, input.EnterpriseID, input.ApplicationID, input.InstanceID)
@@ -75,8 +76,12 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (domain.OID
 		}
 	}
 	now := time.Now().UTC()
+	id := input.ID
+	if id == "" {
+		id = newID("odc")
+	}
 	value := domain.OIDCClient{
-		Base:          domain.Base{ID: newID("odc"), EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now},
+		Base:          domain.Base{ID: id, EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now},
 		ApplicationID: input.ApplicationID, InstanceID: input.InstanceID, ClientID: input.ClientID,
 		SecretReference: input.SecretReference, RedirectURIs: redirects, Status: "active", Version: 1,
 	}
@@ -190,6 +195,8 @@ func validSecretReference(value string) bool {
 	parsed, err := url.Parse(value)
 	return err == nil && parsed.Scheme != "" && parsed.Scheme != "http" && parsed.Scheme != "https" && !strings.ContainsAny(value, "\r\n")
 }
+
+var recordIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,35}$`)
 
 func isLoopback(host string) bool { return host == "localhost" || host == "127.0.0.1" || host == "::1" }
 

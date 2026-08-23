@@ -3,9 +3,10 @@
 This is the supported low-threshold, single-enterprise G0 deployment. It runs the pinned Casdoor and PostgreSQL images, keeps `casdoor_db` and `ecp_db` under separate runtime accounts, and exposes only ECP UI `127.0.0.1:4001`, ECP API `127.0.0.1:18890`, and Casdoor `127.0.0.1:4002`.
 
 1. Copy `.env.example` to `.env` and replace every example secret file with a mode-`0600` file outside source control.
-2. Configure the Casdoor Organization/Application, change the built-in administrator password immediately, and replace the OIDC and signing-key examples. Example placeholders intentionally fail cryptographic startup/use; they are not fallback keys.
-3. Build locked artifacts with `cd ../server && ./scripts/verify.sh`, then build the UI with `cd ../ui && npm ci && npm run build`.
-4. Run `../server/scripts/preflight.sh` and `docker compose --env-file .env -f compose.yaml up -d --build --remove-orphans`.
+2. Configure a confidential Casdoor Application before first login. The local profile expects Client ID `ecp-admin`, the secret in `casdoor-client.example` (replace it outside source control), Organization `built-in`, Authorization Code grant, and the exact Redirect URI `http://127.0.0.1:4001/api/v1/auth/callback`. Grant that client only the management API permissions ECP needs. Change the built-in administrator password immediately. The same Client ID/Secret pair is used for Casdoor M2M API authentication; it is never treated as a Bearer token.
+3. Replace the signing-key examples. Example placeholders intentionally fail cryptographic startup/use; they are not fallback keys. On startup, `ecp-registry-bootstrap` idempotently creates only the ECP control-plane registry and OIDC record through domain services; it does not create or mutate the Casdoor Application.
+4. Build locked artifacts with `cd ../server && ./scripts/verify.sh`, then build the UI with `cd ../ui && npm ci && npm run build`.
+5. Run `../server/scripts/preflight.sh` and `docker compose --env-file .env -f compose.yaml up -d --build --remove-orphans`.
 
 The local stack terminates no production TLS. Put a supported TLS reverse proxy in front of the ECP UI/API and Casdoor for production. Do not expose PostgreSQL. Do not reuse the Casdoor account or database for ECP runtime access.
 

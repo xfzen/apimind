@@ -3,6 +3,7 @@
 server/dist/
 ui/dist/
 ui/node_modules/
+ui/test-results/
 coverage/
 *.local.secret
 .env

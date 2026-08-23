@@ -24,4 +24,3 @@ CREATE TABLE security_configs (
   updated_at TIMESTAMPTZ(6) NOT NULL,
   CONSTRAINT uq_security_config_instance UNIQUE (enterprise_id, application_instance_id)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON policy_projections, security_configs TO ecp_runtime;

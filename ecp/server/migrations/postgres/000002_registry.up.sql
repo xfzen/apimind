@@ -60,5 +60,3 @@ CREATE TABLE connectors (
   updated_at TIMESTAMPTZ(6) NOT NULL,
   CONSTRAINT uq_connectors_enterprise_instance_key UNIQUE (enterprise_id, instance_id, connector_key)
 );
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON enterprises, applications, application_instances, product_manifests, connectors TO ecp_runtime;
