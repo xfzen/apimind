@@ -44,7 +44,11 @@ func (l *IngestConnectorAuditLogic) IngestConnectorAudit(req *types.IngestConnec
 	}
 	events := make([]auditservice.ProductEvent, 0, len(req.Events))
 	for _, event := range req.Events {
-		events = append(events, auditservice.ProductEvent{OperationID: event.OperationID, ActorID: claims.ConnectorID, ActorKind: "service", Action: event.Action, ResourceType: event.ResourceType, ResourceID: event.ResourceID, Outcome: event.Outcome, OccurredAt: time.Unix(event.OccurredAt, 0).UTC()})
+		safeDiff := make(map[string]any, len(event.SafeDiff))
+		for key, value := range event.SafeDiff {
+			safeDiff[key] = value
+		}
+		events = append(events, auditservice.ProductEvent{OperationID: event.OperationID, ActorID: claims.ConnectorID, ActorKind: "service", Action: event.Action, ResourceType: event.ResourceType, ResourceID: event.ResourceID, Outcome: event.Outcome, SafeDiff: safeDiff, OccurredAt: time.Unix(event.OccurredAt, 0).UTC()})
 	}
 	if err := l.svcCtx.Audit.Ingest(l.ctx, auditservice.IngestRequest{EnterpriseID: claims.EnterpriseID, ApplicationInstanceID: claims.ApplicationInstanceID, AuthenticatedInstanceID: claims.ApplicationInstanceID, Events: events}); err != nil {
 		return nil, err

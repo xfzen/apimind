@@ -105,6 +105,7 @@ type ConnectorAuditEvent {
 	ResourceID string `json:"resource_id"`
 	Outcome string `json:"outcome"`
 	OccurredAt int64 `json:"occurred_at"`
+	SafeDiff map[string]string `json:"safe_diff,optional"`
 }
 type IngestConnectorAuditReq {
 	Events []ConnectorAuditEvent `json:"events"`

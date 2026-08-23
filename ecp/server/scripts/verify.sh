@@ -11,3 +11,6 @@ GOWORK=off GOTOOLCHAIN=go1.25.12 go test ./...
 GOWORK=off GOTOOLCHAIN=go1.25.12 go vet ./...
 mkdir -p dist
 GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-api ./api
+GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-migrate ./cmd/migrate
+GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-audit-bootstrap ./cmd/audit-bootstrap
+GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-ui-server ./cmd/ui-server

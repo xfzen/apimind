@@ -16,11 +16,11 @@ func main() {
 		fail("usage: audit-bootstrap bootstrap")
 	}
 	driver := os.Getenv("ECP_DB_DRIVER")
-	dsn := os.Getenv("ECP_MIGRATION_DSN")
+	dsn := envOrFile("ECP_MIGRATION_DSN")
 	if dsn == "" {
 		fail("ECP_MIGRATION_DSN is required")
 	}
-	passwords := map[string]string{"ecp_schema_owner": os.Getenv("ECP_SCHEMA_OWNER_PASSWORD"), "ecp_tx_writer": os.Getenv("ECP_TX_WRITER_PASSWORD"), "audit_ingest_writer": os.Getenv("ECP_AUDIT_INGEST_PASSWORD"), "audit_reader": os.Getenv("ECP_AUDIT_READER_PASSWORD"), "audit_maintainer": os.Getenv("ECP_AUDIT_MAINTAINER_PASSWORD")}
+	passwords := map[string]string{"ecp_schema_owner": envOrFile("ECP_SCHEMA_OWNER_PASSWORD"), "ecp_tx_writer": envOrFile("ECP_TX_WRITER_PASSWORD"), "audit_ingest_writer": envOrFile("ECP_AUDIT_INGEST_PASSWORD"), "audit_reader": envOrFile("ECP_AUDIT_READER_PASSWORD"), "audit_maintainer": envOrFile("ECP_AUDIT_MAINTAINER_PASSWORD")}
 	for role, password := range passwords {
 		if password == "" {
 			fail(role + " password is required")
@@ -49,6 +49,21 @@ func main() {
 	if err != nil {
 		fail(err.Error())
 	}
+}
+
+func envOrFile(name string) string {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		return value
+	}
+	path := strings.TrimSpace(os.Getenv(name + "_FILE"))
+	if path == "" {
+		return ""
+	}
+	value, err := os.ReadFile(path)
+	if err != nil {
+		fail(name + " file: " + err.Error())
+	}
+	return strings.TrimSpace(string(value))
 }
 
 func bootstrapPostgres(ctx context.Context, db *sql.DB, passwords map[string]string) error {

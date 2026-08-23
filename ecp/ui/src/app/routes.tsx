@@ -13,6 +13,7 @@ import { GroupList } from '../groups/GroupList'
 import { GroupDetail } from '../groups/GroupDetail'
 import { IdentitySourceList } from '../identity-sources/IdentitySourceList'
 import { Health } from '../operations/Health'
+import { BackupStatus } from '../operations/BackupStatus'
 import { PolicyDrift } from '../security/PolicyDrift'
 import { SecurityPolicy } from '../security/SecurityPolicy'
 import { UserList } from '../users/UserList'
@@ -47,7 +48,7 @@ export function AppRoutes() {
         <Typography.Title level={4} className="m-0">企业控制台</Typography.Title>
         <div className="flex items-center gap-3"><Typography.Text>{session?.principal_id}</Typography.Text><Button icon={<LogoutOutlined />} onClick={() => void logout()}>退出</Button></div>
       </Layout.Header>
-      <Layout.Content className="p-6"><Routes><Route path="/" element={<Navigate to="/overview" replace />} /><Route path="/overview" element={<Overview />} /><Route path="/users" element={<UserList />} /><Route path="/users/:userId" element={<UserRoute />} /><Route path="/groups" element={<GroupList />} /><Route path="/groups/:groupId" element={<GroupRoute />} /><Route path="/identity-sources" element={<IdentitySourceList />} /><Route path="/applications" element={<ApplicationList />} /><Route path="/applications/:instanceId" element={<InstanceRoute />} /><Route path="/applications/:instanceId/access" element={<AccessRoute />} /><Route path="/applications/:instanceId/security" element={<SecurityPage />} /><Route path="/applications/:instanceId/credentials" element={<CredentialPage />} /><Route path="/security" element={<SelectInstancePrompt />} /><Route path="/credentials" element={<SelectInstancePrompt />} /><Route path="/audit" element={<AuditPage />} /><Route path="/operations" element={<Health />} /><Route path="*" element={<Navigate to="/overview" replace />} /></Routes></Layout.Content>
+      <Layout.Content className="p-6"><Routes><Route path="/" element={<Navigate to="/overview" replace />} /><Route path="/overview" element={<Overview />} /><Route path="/users" element={<UserList />} /><Route path="/users/:userId" element={<UserRoute />} /><Route path="/groups" element={<GroupList />} /><Route path="/groups/:groupId" element={<GroupRoute />} /><Route path="/identity-sources" element={<IdentitySourceList />} /><Route path="/applications" element={<ApplicationList />} /><Route path="/applications/:instanceId" element={<InstanceRoute />} /><Route path="/applications/:instanceId/access" element={<AccessRoute />} /><Route path="/applications/:instanceId/security" element={<SecurityPage />} /><Route path="/applications/:instanceId/credentials" element={<CredentialPage />} /><Route path="/security" element={<SelectInstancePrompt />} /><Route path="/credentials" element={<SelectInstancePrompt />} /><Route path="/audit" element={<AuditPage />} /><Route path="/operations" element={<OperationsPage />} /><Route path="*" element={<Navigate to="/overview" replace />} /></Routes></Layout.Content>
     </Layout>
   </Layout>
 }
@@ -61,3 +62,4 @@ function SecurityPage() { const { instanceId = '' } = useParams(); return <div c
 function CredentialPage() { const { instanceId = '' } = useParams(); return <ServiceAccountList instanceId={instanceId} /> }
 function SelectInstancePrompt() { return <Result status="info" title="请先选择应用实例" subTitle="安全策略和凭据始终绑定具体产品实例。" extra={<Button href="/applications">选择实例</Button>} /> }
 function AuditPage() { return <div className="grid gap-6"><div className="flex justify-end"><AuditExport /></div><AuditList /></div> }
+function OperationsPage() { return <div className="grid gap-6"><Health /><BackupStatus /></div> }

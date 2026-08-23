@@ -107,6 +107,19 @@ func (c *Client) ApplyCompatibilityProjection(ctx context.Context, delegation do
 	return nil
 }
 
+func (c *Client) FlushProductAudit(ctx context.Context, delegation domain.SignedDelegation) error {
+	var response struct {
+		Flushed bool `json:"flushed"`
+	}
+	if err := c.call(ctx, http.MethodPost, "api/enterprise/connector/v1/audit/flush", map[string]any{"delegation": delegation}, &response); err != nil {
+		return err
+	}
+	if !response.Flushed {
+		return fmt.Errorf("product audit flush not acknowledged")
+	}
+	return nil
+}
+
 func resourceReferences(values []wireResource) []domain.ResourceReference {
 	result := make([]domain.ResourceReference, len(values))
 	for index := range values {

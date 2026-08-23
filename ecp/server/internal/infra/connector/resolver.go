@@ -6,11 +6,27 @@ import (
 	"net/http"
 
 	"github.com/xfzen/ecp/server/internal/domain"
+	operationservice "github.com/xfzen/ecp/server/internal/service/operation"
 	"github.com/xfzen/ecp/server/internal/service/productresource"
 )
 
 type ProductConfig struct {
 	InstanceID, BaseURL, ClientID, SecretReference string
+}
+
+func (r *Resolver) ResolveOffboardingClient(ctx context.Context, instance domain.ApplicationInstance) (operationservice.AuditFlushClient, error) {
+	if instance.Status != "offboarding" {
+		return nil, fmt.Errorf("product connector instance unavailable")
+	}
+	config, found := r.products[instance.ID]
+	if !found {
+		return nil, fmt.Errorf("product connector instance unavailable")
+	}
+	secret, err := r.secrets.Get(ctx, config.SecretReference)
+	if err != nil || len(secret) == 0 {
+		return nil, fmt.Errorf("product connector credential unavailable")
+	}
+	return NewClient(config.BaseURL, OutboundCredential{ClientID: config.ClientID, Secret: string(secret), Audience: instance.ID}, r.httpClient)
 }
 
 type SecretProvider interface {

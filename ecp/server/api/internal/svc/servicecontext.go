@@ -24,6 +24,7 @@ import (
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
 	machineauthservice "github.com/xfzen/ecp/server/internal/service/machineauth"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
+	operationservice "github.com/xfzen/ecp/server/internal/service/operation"
 	policyservice "github.com/xfzen/ecp/server/internal/service/policy"
 	productresourceservice "github.com/xfzen/ecp/server/internal/service/productresource"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
@@ -57,6 +58,7 @@ type ServiceContext struct {
 	AuditIngestDB    *gorm.DB
 	AuditReadDB      *gorm.DB
 	ProductResources *productresourceservice.Service
+	Operations       *operationservice.Service
 	NewOIDCVerifier  func(domain.OIDCClient) (sessionservice.OIDCVerifier, error)
 
 	AdminSession       rest.Middleware
@@ -110,6 +112,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
 		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
 		ctx.Credential = credentialservice.New(persistence.NewCredentialStore(db), credentialservice.Config{})
+		operationStore := persistence.NewOperationStore(db)
+		ctx.Operations = operationservice.New(operationStore, ctx.Audit, operationStore, nil)
 		if cfg.Audit.Enabled {
 			ingestDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.IngestDSNReference)
 			if err != nil {
@@ -136,6 +140,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 				panic("audit connections must use independent pools")
 			}
 			ctx.Audit = auditservice.New(persistence.NewAuditTransactionStore(connections.BusinessDB), persistence.NewAuditAppendStore(connections.AuditIngestDB), persistence.NewAuditReadStore(connections.AuditReadDB), nil)
+			ctx.Operations = operationservice.New(operationStore, ctx.Audit, operationStore, nil)
 		}
 	}
 	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
@@ -175,6 +180,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 				panic(err)
 			}
 			ctx.ProductResources = productresourceservice.New(persistence.NewAdminQueryStore(ctx.DB), ctx.Access, ctx.Connector, resolver)
+			operationStore := persistence.NewOperationStore(ctx.DB)
+			ctx.Operations = operationservice.New(operationStore, ctx.Audit, operationStore, operationservice.NewProductAuditFlusher(persistence.NewAdminQueryStore(ctx.DB), ctx.Connector, resolver))
 		}
 	}
 	return ctx
@@ -225,6 +232,13 @@ func (r identityPrincipalResolver) ResolvePrincipal(ctx context.Context, enterpr
 
 func (envSecretProvider) Get(_ context.Context, reference string) ([]byte, error) {
 	const prefix = "env://"
+	if strings.HasPrefix(reference, "file://") {
+		value, err := os.ReadFile(strings.TrimPrefix(reference, "file://"))
+		if err != nil || len(strings.TrimSpace(string(value))) == 0 {
+			return nil, fmt.Errorf("secret reference unavailable")
+		}
+		return []byte(strings.TrimSpace(string(value))), nil
+	}
 	if !strings.HasPrefix(reference, prefix) {
 		return nil, fmt.Errorf("unsupported secret reference")
 	}

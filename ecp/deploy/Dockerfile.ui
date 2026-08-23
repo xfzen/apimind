@@ -1,0 +1,4 @@
+FROM scratch
+COPY server/dist/ecp-ui-server /ecp-ui-server
+COPY ui/dist /ui
+ENTRYPOINT ["/ecp-ui-server", "-listen", ":4001", "-dir", "/ui", "-api", "http://ecp-api:18890"]

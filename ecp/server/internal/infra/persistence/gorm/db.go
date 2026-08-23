@@ -3,6 +3,8 @@ package persistence
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/xfzen/ecp/server/config"
 
@@ -15,6 +17,13 @@ func Open(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	dialect, err := ParseDialect(cfg.Driver)
 	if err != nil {
 		return nil, err
+	}
+	if cfg.DSN == "" && cfg.DSNFile != "" {
+		value, readErr := os.ReadFile(cfg.DSNFile)
+		if readErr != nil {
+			return nil, fmt.Errorf("read database DSN file: %w", readErr)
+		}
+		cfg.DSN = strings.TrimSpace(string(value))
 	}
 	if cfg.DSN == "" {
 		return nil, fmt.Errorf("database DSN is required")

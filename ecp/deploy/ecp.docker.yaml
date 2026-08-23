@@ -1,0 +1,43 @@
+Name: ecp-api
+Host: 0.0.0.0
+Port: 18890
+Mode: pro
+Build:
+  Version: 0.1.0
+Database:
+  Enabled: true
+  Driver: postgres
+  DSNFile: /run/secrets/ecp_runtime_dsn
+Casdoor:
+  Enabled: true
+  BaseURL: http://casdoor:8000
+  EnterpriseID: enterprise-local
+  Organization: built-in
+  CredentialReference: file:///run/secrets/casdoor_client_secret
+  LocalMode: true
+OIDC:
+  LocalMode: true
+  AdminEnterpriseID: enterprise-local
+  AdminClientRecordID: oidc-admin
+  AdminRedirectURI: http://127.0.0.1:4001/api/v1/auth/callback
+  AdminAudience: ecp-admin
+  Issuer: http://127.0.0.1:4002
+  AuthorizationEndpoint: http://127.0.0.1:4002/login/oauth/authorize
+  ClientID: ecp-admin
+  SecretReference: file:///run/secrets/casdoor_client_secret
+Identity:
+  TrustedIssuers: [http://127.0.0.1:4002]
+  FreshnessTTL: 5m
+Session:
+  TTL: 8h
+Connector:
+  Issuer: ecp
+  RootPublicKeyReference: file:///run/secrets/delegation_root_public_key
+  SigningPrivateKeyReference: file:///run/secrets/delegation_signing_private_key
+  ActiveSigningKeyID: local-signing-key
+  Products: []
+Audit:
+  Enabled: true
+  BusinessDSNReference: file:///run/secrets/ecp_runtime_dsn
+  IngestDSNReference: file:///run/secrets/ecp_audit_ingest_dsn
+  ReadDSNReference: file:///run/secrets/ecp_audit_read_dsn

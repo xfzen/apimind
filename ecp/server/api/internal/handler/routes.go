@@ -136,6 +136,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/instances/:id/security",
 					Handler: adminRead.GetSecurityConfigHandler(serverCtx),
 				},
+				{
+					// Get the latest coordinated backup verification status
+					Method:  http.MethodGet,
+					Path:    "/operations/backup/status",
+					Handler: adminRead.GetBackupStatusHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
@@ -145,6 +151,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.AdminSession, serverCtx.CSRF, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
 			[]rest.Route{
+				{
+					// Create a portable instance metadata export
+					Method:  http.MethodPost,
+					Path:    "/application-instances/:id/export",
+					Handler: adminWrite.ExportInstanceHandler(serverCtx),
+				},
+				{
+					// Safely offboard one product instance without deleting product data
+					Method:  http.MethodPost,
+					Path:    "/application-instances/:id/offboard",
+					Handler: adminWrite.OffboardInstanceHandler(serverCtx),
+				},
 				{
 					// Create a manifest-constrained role binding
 					Method:  http.MethodPost,

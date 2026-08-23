@@ -376,6 +376,37 @@ components:
                 - resource_version
             title: AuthorizeReq
             type: object
+        BackupStatusReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: BackupStatusReq
+            type: object
+        BackupStatusResp:
+            properties:
+                backup_id:
+                    type: string
+                completed_at:
+                    format: int64
+                    type: integer
+                failure_reason:
+                    type: string
+                manifest_hash:
+                    type: string
+                started_at:
+                    format: int64
+                    type: integer
+                state:
+                    type: string
+                verified_at:
+                    format: int64
+                    type: integer
+            required:
+                - state
+            title: BackupStatusResp
+            type: object
         BatchAuthorizeReq:
             properties:
                 requests:
@@ -419,6 +450,8 @@ components:
                     type: string
                 resource_type:
                     type: string
+                safe_diff:
+                    type: object
             required:
                 - operation_id
                 - action
@@ -782,6 +815,14 @@ components:
                 - instances
             title: InstanceListResp
             type: object
+        InstanceOperationReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: InstanceOperationReq
+            type: object
         InstanceResp:
             properties:
                 application_id:
@@ -934,6 +975,38 @@ components:
                 - version
             title: ManifestResp
             type: object
+        OffboardResp:
+            properties:
+                audit_flushed:
+                    format: boolean
+                    type: boolean
+                connector_disabled:
+                    format: boolean
+                    type: boolean
+                credentials_revoked:
+                    format: boolean
+                    type: boolean
+                export:
+                    $ref: '#/components/schemas/PortableExportResp'
+                export_verified:
+                    format: boolean
+                    type: boolean
+                final_lifecycle_version:
+                    format: int64
+                    type: integer
+                sessions_revoked:
+                    format: boolean
+                    type: boolean
+            required:
+                - export_verified
+                - sessions_revoked
+                - credentials_revoked
+                - audit_flushed
+                - connector_disabled
+                - final_lifecycle_version
+                - export
+            title: OffboardResp
+            type: object
         PolicyItem:
             properties:
                 name:
@@ -1005,6 +1078,25 @@ components:
                 - state
                 - canonical_hash
             title: PolicyVersionResp
+            type: object
+        PortableExportResp:
+            properties:
+                canonical_hash:
+                    type: string
+                generated_at:
+                    format: int64
+                    type: integer
+                payload:
+                    type: string
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - version
+                - generated_at
+                - canonical_hash
+                - payload
+            title: PortableExportResp
             type: object
         PrincipalListResp:
             properties:
@@ -1658,6 +1750,58 @@ paths:
             summary: Authorize a batch of product operations
             tags:
                 - connectorMachine
+            x-ecp-access: public
+    /api/v1/application-instances/{id}/export:
+        post:
+            operationId: ExportInstance
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/InstanceOperationReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PortableExportResp'
+                    description: A successful response.
+            summary: Create a portable instance metadata export
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/application-instances/{id}/offboard:
+        post:
+            operationId: OffboardInstance
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/InstanceOperationReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OffboardResp'
+                    description: A successful response.
+            summary: Safely offboard one product instance without deleting product data
+            tags:
+                - adminWrite
             x-ecp-access: public
     /api/v1/application-instances/{id}/resources:
         get:
@@ -2927,6 +3071,26 @@ paths:
             summary: Build and contract version
             tags:
                 - metaPublic
+            x-ecp-access: public
+    /api/v1/operations/backup/status:
+        get:
+            operationId: GetBackupStatus
+            parameters:
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BackupStatusResp'
+                    description: A successful response.
+            summary: Get the latest coordinated backup verification status
+            tags:
+                - adminRead
             x-ecp-access: public
     /api/v1/operator/signing-keys/delegation:
         post:

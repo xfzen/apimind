@@ -148,6 +148,20 @@ type AuthorizeReq struct {
 	ResourceVersion       uint64   `json:"resource_version"`
 }
 
+type BackupStatusReq struct {
+	EnterpriseID string `form:"enterprise_id"`
+}
+
+type BackupStatusResp struct {
+	State         string `json:"state"`
+	BackupID      string `json:"backup_id,optional"`
+	ManifestHash  string `json:"manifest_hash,optional"`
+	FailureReason string `json:"failure_reason,optional"`
+	StartedAt     int64  `json:"started_at,optional"`
+	CompletedAt   int64  `json:"completed_at,optional"`
+	VerifiedAt    int64  `json:"verified_at,optional"`
+}
+
 type BatchAuthorizeReq struct {
 	Requests []AuthorizeReq `json:"requests"`
 }
@@ -162,12 +176,13 @@ type BlockPrincipalReq struct {
 }
 
 type ConnectorAuditEvent struct {
-	OperationID  string `json:"operation_id"`
-	Action       string `json:"action"`
-	ResourceType string `json:"resource_type"`
-	ResourceID   string `json:"resource_id"`
-	Outcome      string `json:"outcome"`
-	OccurredAt   int64  `json:"occurred_at"`
+	OperationID  string            `json:"operation_id"`
+	Action       string            `json:"action"`
+	ResourceType string            `json:"resource_type"`
+	ResourceID   string            `json:"resource_id"`
+	Outcome      string            `json:"outcome"`
+	OccurredAt   int64             `json:"occurred_at"`
+	SafeDiff     map[string]string `json:"safe_diff,optional"`
 }
 
 type ConnectorHeartbeatReq struct {
@@ -313,6 +328,11 @@ type InstanceListResp struct {
 	Instances []InstanceResp `json:"instances"`
 }
 
+type InstanceOperationReq struct {
+	EnterpriseID string `json:"enterprise_id"`
+	InstanceID   string `path:"id"`
+}
+
 type InstanceResp struct {
 	ID            string `json:"id"`
 	EnterpriseID  string `json:"enterprise_id"`
@@ -374,6 +394,16 @@ type ManifestResp struct {
 	Version       uint64 `json:"version"`
 }
 
+type OffboardResp struct {
+	ExportVerified        bool               `json:"export_verified"`
+	SessionsRevoked       bool               `json:"sessions_revoked"`
+	CredentialsRevoked    bool               `json:"credentials_revoked"`
+	AuditFlushed          bool               `json:"audit_flushed"`
+	ConnectorDisabled     bool               `json:"connector_disabled"`
+	FinalLifecycleVersion uint64             `json:"final_lifecycle_version"`
+	Export                PortableExportResp `json:"export"`
+}
+
 type PolicyItem struct {
 	Owner string `json:"owner"`
 	Name  string `json:"name"`
@@ -403,6 +433,13 @@ type PolicyVersionResp struct {
 	Version       uint64 `json:"version"`
 	State         string `json:"state"`
 	CanonicalHash string `json:"canonical_hash"`
+}
+
+type PortableExportResp struct {
+	Version       uint64 `json:"version"`
+	GeneratedAt   int64  `json:"generated_at"`
+	CanonicalHash string `json:"canonical_hash"`
+	Payload       string `json:"payload"`
 }
 
 type PrincipalListResp struct {

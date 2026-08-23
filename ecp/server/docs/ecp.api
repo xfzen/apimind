@@ -69,6 +69,10 @@ service ecp {
 	@handler GetSecurityConfig
 	get /instances/:id/security (SecurityConfigReq) returns (SecurityConfigResp)
 
+	@doc "Get the latest coordinated backup verification status"
+	@handler GetBackupStatus
+	get /operations/backup/status (BackupStatusReq) returns (BackupStatusResp)
+
 	@doc "List service credential usage without secret material"
 	@handler ListCredentialUsage
 	get /instances/:id/credentials (CredentialUsageReq) returns (CredentialUsageResp)
@@ -211,6 +215,14 @@ service ecp {
 	@doc "Create a verifiable audit export manifest"
 	@handler ExportAudit
 	post /audit/export (AuditExportReq) returns (AuditExportResp)
+
+	@doc "Create a portable instance metadata export"
+	@handler ExportInstance
+	post /application-instances/:id/export (InstanceOperationReq) returns (PortableExportResp)
+
+	@doc "Safely offboard one product instance without deleting product data"
+	@handler OffboardInstance
+	post /application-instances/:id/offboard (InstanceOperationReq) returns (OffboardResp)
 }
 
 @server (

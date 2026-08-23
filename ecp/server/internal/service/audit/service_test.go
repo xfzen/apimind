@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -9,9 +10,24 @@ import (
 	"github.com/xfzen/ecp/server/internal/domain"
 )
 
-type memoryWriter struct{ events []domain.AuditEvent }
+type memoryWriter struct {
+	events []domain.AuditEvent
+	ids    map[string]struct{}
+}
 
 func (w *memoryWriter) Append(_ context.Context, value domain.AuditEvent) error {
+	w.events = append(w.events, value)
+	return nil
+}
+
+func (w *memoryWriter) AppendOnce(_ context.Context, value domain.AuditEvent) error {
+	if w.ids == nil {
+		w.ids = make(map[string]struct{})
+	}
+	if _, found := w.ids[value.ID]; found {
+		return nil
+	}
+	w.ids[value.ID] = struct{}{}
 	w.events = append(w.events, value)
 	return nil
 }
@@ -19,6 +35,21 @@ func (w *memoryWriter) Append(_ context.Context, value domain.AuditEvent) error 
 type fixedClock struct{ now time.Time }
 
 func (c fixedClock) Now() time.Time { return c.now }
+
+type pagedReader struct{ events []domain.AuditEvent }
+
+func (r pagedReader) Query(_ context.Context, query Query) ([]domain.AuditEvent, error) {
+	var values []domain.AuditEvent
+	for _, value := range r.events {
+		if value.Sequence > query.SequenceAfter {
+			values = append(values, value)
+			if len(values) == query.Limit {
+				break
+			}
+		}
+	}
+	return values, nil
+}
 
 func TestIntentAndOutcomeUseAppendOnlyStages(t *testing.T) {
 	writer := &memoryWriter{}
@@ -58,11 +89,33 @@ func TestProductIngestRejectsUnsafeDiffAndWrongInstance(t *testing.T) {
 	if reason(err) != "audit_instance_mismatch" {
 		t.Fatalf("reason=%q", reason(err))
 	}
-	err = service.Ingest(context.Background(), IngestRequest{EnterpriseID: "enterprise-1", ApplicationInstanceID: "instance-a", AuthenticatedInstanceID: "instance-a", Events: []ProductEvent{{OperationID: "op", Action: "project.read", SafeDiff: map[string]any{"token": "raw"}}}})
+	event := ProductEvent{OperationID: "op", Action: "project.read", ResourceType: "project", ResourceID: "project-1", SafeDiff: map[string]any{"token": "raw"}}
+	err = service.Ingest(context.Background(), IngestRequest{EnterpriseID: "enterprise-1", ApplicationInstanceID: "instance-a", AuthenticatedInstanceID: "instance-a", Events: []ProductEvent{event}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(writer.events) != 1 || strings.Contains(string(writer.events[0].SafeDiff), "raw") {
 		t.Fatalf("unsafe event = %+v", writer.events)
+	}
+	if err := service.Ingest(context.Background(), IngestRequest{EnterpriseID: "enterprise-1", ApplicationInstanceID: "instance-a", AuthenticatedInstanceID: "instance-a", Events: []ProductEvent{event}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(writer.events) != 1 {
+		t.Fatalf("retry duplicated product audit event: %+v", writer.events)
+	}
+}
+
+func TestExportManifestCoversEveryAuditPage(t *testing.T) {
+	events := make([]domain.AuditEvent, 1001)
+	for index := range events {
+		events[index] = domain.AuditEvent{Sequence: uint64(index + 1), ID: fmt.Sprintf("audit-%04d", index+1)}
+	}
+	service := New(nil, nil, pagedReader{events: events}, fixedClock{now: time.Unix(10, 0).UTC()})
+	manifest, err := service.ExportManifest(context.Background(), Query{EnterpriseID: "enterprise-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.SequenceStart != 1 || manifest.SequenceEnd != 1001 || manifest.EventCount != 1001 || manifest.CanonicalHash == "" {
+		t.Fatalf("incomplete export manifest: %+v", manifest)
 	}
 }

@@ -1,3 +1,33 @@
 syntax = "v1"
 
 type Empty {}
+
+type BackupStatusReq { EnterpriseID string `form:"enterprise_id"` }
+type BackupStatusResp {
+	State string `json:"state"`
+	BackupID string `json:"backup_id,optional"`
+	ManifestHash string `json:"manifest_hash,optional"`
+	FailureReason string `json:"failure_reason,optional"`
+	StartedAt int64 `json:"started_at,optional"`
+	CompletedAt int64 `json:"completed_at,optional"`
+	VerifiedAt int64 `json:"verified_at,optional"`
+}
+type InstanceOperationReq {
+	EnterpriseID string `json:"enterprise_id"`
+	InstanceID string `path:"id"`
+}
+type PortableExportResp {
+	Version uint64 `json:"version"`
+	GeneratedAt int64 `json:"generated_at"`
+	CanonicalHash string `json:"canonical_hash"`
+	Payload string `json:"payload"`
+}
+type OffboardResp {
+	ExportVerified bool `json:"export_verified"`
+	SessionsRevoked bool `json:"sessions_revoked"`
+	CredentialsRevoked bool `json:"credentials_revoked"`
+	AuditFlushed bool `json:"audit_flushed"`
+	ConnectorDisabled bool `json:"connector_disabled"`
+	FinalLifecycleVersion uint64 `json:"final_lifecycle_version"`
+	Export PortableExportResp `json:"export"`
+}

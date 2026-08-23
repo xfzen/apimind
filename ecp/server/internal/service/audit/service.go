@@ -19,6 +19,9 @@ import (
 type AppendWriter interface {
 	Append(context.Context, domain.AuditEvent) error
 }
+type IdempotentAppendWriter interface {
+	AppendOnce(context.Context, domain.AuditEvent) error
+}
 type TransactionalWriter interface {
 	Commit(context.Context, domain.AuditEvent, func(*gorm.DB) error) error
 }
@@ -112,9 +115,25 @@ func (s *Service) Query(ctx context.Context, query Query) ([]domain.AuditEvent, 
 	return s.reader.Query(ctx, query)
 }
 func (s *Service) ExportManifest(ctx context.Context, query Query) (ExportManifest, error) {
-	events, err := s.Query(ctx, query)
-	if err != nil {
-		return ExportManifest{}, err
+	if s == nil || s.reader == nil {
+		return ExportManifest{}, decision("audit_reader_unavailable", nil)
+	}
+	query.Limit = 500
+	var events []domain.AuditEvent
+	for {
+		page, err := s.reader.Query(ctx, query)
+		if err != nil {
+			return ExportManifest{}, err
+		}
+		events = append(events, page...)
+		if len(page) < query.Limit {
+			break
+		}
+		next := page[len(page)-1].Sequence
+		if next <= query.SequenceAfter {
+			return ExportManifest{}, decision("audit_export_sequence_invalid", nil)
+		}
+		query.SequenceAfter = next
 	}
 	if len(events) == 0 {
 		return ExportManifest{Version: 1, GeneratedAt: s.clock.Now().UTC()}, nil
@@ -134,23 +153,37 @@ func (s *Service) Ingest(ctx context.Context, request IngestRequest) error {
 		return decision("audit_instance_mismatch", nil)
 	}
 	for _, input := range request.Events {
+		if input.OperationID == "" || input.Action == "" || input.ResourceType == "" || input.ResourceID == "" {
+			return decision("audit_event_invalid", nil)
+		}
 		occurred := input.OccurredAt
 		if occurred.IsZero() {
 			occurred = s.clock.Now().UTC()
 		}
-		value := domain.AuditEvent{ID: randomID(), EnterpriseID: request.EnterpriseID, ApplicationInstanceID: request.ApplicationInstanceID, OperationID: input.OperationID, Stage: domain.AuditStageProduct, ActorID: input.ActorID, ActorKind: input.ActorKind, Action: input.Action, ResourceType: input.ResourceType, ResourceID: input.ResourceID, Outcome: input.Outcome, Reason: input.Reason, SafeDiff: CanonicalJSON(SanitizeDiff(input.SafeDiff)), OccurredAt: occurred, CreatedAt: s.clock.Now().UTC()}
-		if err := s.ingest.Append(ctx, value); err != nil {
+		value := domain.AuditEvent{ID: productEventID(request.EnterpriseID, request.ApplicationInstanceID, input.OperationID), EnterpriseID: request.EnterpriseID, ApplicationInstanceID: request.ApplicationInstanceID, OperationID: input.OperationID, Stage: domain.AuditStageProduct, ActorID: input.ActorID, ActorKind: input.ActorKind, Action: input.Action, ResourceType: input.ResourceType, ResourceID: input.ResourceID, Outcome: input.Outcome, Reason: input.Reason, SafeDiff: CanonicalJSON(SanitizeDiff(input.SafeDiff)), OccurredAt: occurred, CreatedAt: s.clock.Now().UTC()}
+		var err error
+		if writer, ok := s.ingest.(IdempotentAppendWriter); ok {
+			err = writer.AppendOnce(ctx, value)
+		} else {
+			err = s.ingest.Append(ctx, value)
+		}
+		if err != nil {
 			return decision("audit_store_error", err)
 		}
 	}
 	return nil
+}
+
+func productEventID(enterpriseID, instanceID, operationID string) string {
+	hash := sha256.Sum256([]byte(enterpriseID + "\x00" + instanceID + "\x00" + operationID))
+	return "aud_" + hex.EncodeToString(hash[:16])
 }
 func (s *Service) event(operation Operation, stage, outcome, reason string) domain.AuditEvent {
 	now := s.clock.Now().UTC()
 	return domain.AuditEvent{ID: randomID(), EnterpriseID: operation.EnterpriseID, ApplicationInstanceID: operation.ApplicationInstanceID, OperationID: operation.ID, Stage: stage, ActorID: operation.ActorID, ActorKind: operation.ActorKind, Action: operation.Action, ResourceType: operation.ResourceType, ResourceID: operation.ResourceID, Outcome: outcome, Reason: reason, SafeDiff: CanonicalJSON(SanitizeDiff(operation.SafeDiff)), OccurredAt: now, CreatedAt: now}
 }
 
-var allowedDiffFields = map[string]struct{}{"status": {}, "state": {}, "name": {}, "display_name": {}, "version": {}, "policy_version": {}, "lifecycle_version": {}, "identity_sync_version": {}, "resource_version": {}, "previous_status": {}, "new_status": {}, "scope_count": {}, "expires_at": {}, "reason": {}}
+var allowedDiffFields = map[string]struct{}{"status": {}, "state": {}, "name": {}, "display_name": {}, "version": {}, "policy_version": {}, "lifecycle_version": {}, "identity_sync_version": {}, "resource_version": {}, "previous_status": {}, "new_status": {}, "target_status": {}, "scope_count": {}, "expires_at": {}, "reason": {}, "format_version": {}, "retention": {}}
 
 func SanitizeDiff(input map[string]any) map[string]any {
 	result := make(map[string]any)

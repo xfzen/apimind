@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/xfzen/ecp/server/internal/migration"
 )
@@ -12,7 +13,15 @@ import (
 func main() {
 	driver := flag.String("driver", "", "database driver: postgres or mysql")
 	dsn := flag.String("dsn", "", "schema-owner migration DSN")
+	dsnFile := flag.String("dsn-file", "", "file containing schema-owner migration DSN")
 	flag.Parse()
+	if *dsn == "" && *dsnFile != "" {
+		value, err := os.ReadFile(*dsnFile)
+		if err != nil {
+			fatalf("read DSN file: %v", err)
+		}
+		*dsn = strings.TrimSpace(string(value))
+	}
 	if *driver == "" || *dsn == "" || flag.NArg() < 1 {
 		fatalf("usage: migrate -driver DRIVER -dsn DSN up|down|version [steps]")
 	}

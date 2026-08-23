@@ -1,0 +1,123 @@
+name: ecp-local
+
+services:
+  postgres:
+    image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+      CASDOOR_DB_PASSWORD_FILE: /run/secrets/casdoor_db_password
+      ECP_DB_PASSWORD_FILE: /run/secrets/ecp_db_password
+    secrets: [postgres_admin_password, casdoor_db_password, ecp_db_password]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  casdoor:
+    image: casbin/casdoor:3.154.4@sha256:95c7be68fb98daf2ec74a10c9f785af1ef75e8fef6dd4aad455a899e651e87e2
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["/bin/sh", "-c", "sed \"s|__CASDOOR_DB_PASSWORD__|$$(cat /run/secrets/casdoor_db_password)|g\" /conf/app.conf > /tmp/app.conf && exec /server --createDatabase=false --config=/tmp/app.conf"]
+    environment:
+      CASDOOR_DATABASE_USER: casdoor_runtime
+    secrets: [casdoor_db_password]
+    volumes:
+      - ./casdoor/app.conf:/conf/app.conf:ro
+    ports:
+      - "127.0.0.1:4002:8000"
+
+  ecp-migrate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    entrypoint: ["/ecp-migrate"]
+    command: ["--driver", "postgres", "--dsn-file", "/run/secrets/ecp_schema_dsn", "up"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    secrets: [ecp_schema_dsn]
+    restart: "no"
+
+  ecp-audit-bootstrap:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    entrypoint: ["/ecp-audit-bootstrap"]
+    command: ["bootstrap"]
+    environment:
+      ECP_DB_DRIVER: postgres
+      ECP_MIGRATION_DSN_FILE: /run/secrets/postgres_ecp_admin_dsn
+      ECP_SCHEMA_OWNER_PASSWORD_FILE: /run/secrets/ecp_db_password
+      ECP_TX_WRITER_PASSWORD_FILE: /run/secrets/ecp_db_password
+      ECP_AUDIT_INGEST_PASSWORD_FILE: /run/secrets/ecp_db_password
+      ECP_AUDIT_READER_PASSWORD_FILE: /run/secrets/ecp_db_password
+      ECP_AUDIT_MAINTAINER_PASSWORD_FILE: /run/secrets/ecp_db_password
+    depends_on:
+      ecp-migrate: { condition: service_completed_successfully }
+    secrets: [postgres_ecp_admin_dsn, ecp_db_password]
+    restart: "no"
+
+  ecp-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    command: ["-f", "/etc/ecp/ecp.yaml"]
+    environment:
+      ECP_DATABASE_USER: ecp_tx_writer
+    depends_on:
+      ecp-audit-bootstrap: { condition: service_completed_successfully }
+      casdoor: { condition: service_started }
+    secrets:
+      - ecp_runtime_dsn
+      - ecp_audit_ingest_dsn
+      - ecp_audit_read_dsn
+      - casdoor_client_secret
+      - delegation_root_public_key
+      - delegation_signing_private_key
+      - product_callback_secret
+    volumes:
+      - ./ecp.docker.yaml:/etc/ecp/ecp.yaml:ro
+    ports:
+      - "127.0.0.1:18890:18890"
+
+  ecp-ui:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ui
+    depends_on:
+      ecp-api: { condition: service_started }
+    ports:
+      - "127.0.0.1:4001:4001"
+
+volumes:
+  postgres-data:
+
+secrets:
+  postgres_admin_password:
+    file: "${POSTGRES_ADMIN_PASSWORD_FILE:-./secrets/postgres-admin.example}"
+  casdoor_db_password:
+    file: "${CASDOOR_DB_PASSWORD_FILE:-./secrets/casdoor-db.example}"
+  ecp_db_password:
+    file: "${ECP_DB_PASSWORD_FILE:-./secrets/ecp-db.example}"
+  ecp_schema_dsn:
+    file: "${ECP_SCHEMA_DSN_FILE:-./secrets/ecp-schema-dsn.example}"
+  ecp_runtime_dsn:
+    file: "${ECP_RUNTIME_DSN_FILE:-./secrets/ecp-runtime-dsn.example}"
+  ecp_audit_ingest_dsn:
+    file: "${ECP_AUDIT_INGEST_DSN_FILE:-./secrets/ecp-audit-ingest-dsn.example}"
+  ecp_audit_read_dsn:
+    file: "${ECP_AUDIT_READ_DSN_FILE:-./secrets/ecp-audit-read-dsn.example}"
+  casdoor_client_secret:
+    file: "${CASDOOR_CLIENT_SECRET_FILE:-./secrets/casdoor-client.example}"
+  delegation_root_public_key:
+    file: "${DELEGATION_ROOT_PUBLIC_KEY_FILE:-./secrets/delegation-root-public.example}"
+  delegation_signing_private_key:
+    file: "${DELEGATION_SIGNING_PRIVATE_KEY_FILE:-./secrets/delegation-signing-private.example}"
+  product_callback_secret:
+    file: "${PRODUCT_CALLBACK_SECRET_FILE:-./secrets/product-callback.example}"
+  postgres_ecp_admin_dsn:
+    file: "${POSTGRES_ECP_ADMIN_DSN_FILE:-./secrets/postgres-ecp-admin-dsn.example}"

@@ -6,6 +6,7 @@ import (
 	"github.com/xfzen/ecp/server/internal/domain"
 	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type AuditAppendStore struct{ db *gorm.DB }
@@ -13,6 +14,9 @@ type AuditAppendStore struct{ db *gorm.DB }
 func NewAuditAppendStore(db *gorm.DB) *AuditAppendStore { return &AuditAppendStore{db: db} }
 func (s *AuditAppendStore) Append(ctx context.Context, value domain.AuditEvent) error {
 	return s.db.WithContext(ctx).Create(&value).Error
+}
+func (s *AuditAppendStore) AppendOnce(ctx context.Context, value domain.AuditEvent) error {
+	return s.db.WithContext(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoNothing: true}).Create(&value).Error
 }
 
 type AuditTransactionStore struct{ db *gorm.DB }

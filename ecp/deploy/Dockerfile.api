@@ -1,0 +1,5 @@
+FROM scratch
+COPY server/dist/ecp-api /ecp-api
+COPY server/dist/ecp-migrate /ecp-migrate
+COPY server/dist/ecp-audit-bootstrap /ecp-audit-bootstrap
+ENTRYPOINT ["/ecp-api"]
