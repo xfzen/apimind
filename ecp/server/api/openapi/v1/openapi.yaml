@@ -112,6 +112,107 @@ components:
                 - expires_at
             title: AuthStartResp
             type: object
+        AuthorizationDecisionResp:
+            properties:
+                allow:
+                    format: boolean
+                    type: boolean
+                authorized_resource_version:
+                    format: int64
+                    type: integer
+                identity_freshness_deadline:
+                    format: int64
+                    type: integer
+                identity_sync_version:
+                    format: int64
+                    type: integer
+                lifecycle_version:
+                    format: int64
+                    type: integer
+                policy_version:
+                    format: int64
+                    type: integer
+                reason:
+                    type: string
+                security_config_version:
+                    format: int64
+                    type: integer
+            required:
+                - allow
+                - reason
+                - lifecycle_version
+                - identity_sync_version
+                - identity_freshness_deadline
+                - policy_version
+                - authorized_resource_version
+                - security_config_version
+            title: AuthorizationDecisionResp
+            type: object
+        AuthorizeReq:
+            properties:
+                action:
+                    type: string
+                application_instance_id:
+                    type: string
+                direct_group_ids:
+                    items:
+                        type: string
+                    type: array
+                direct_group_version:
+                    format: int64
+                    type: integer
+                enterprise_id:
+                    type: string
+                identity_provider:
+                    type: string
+                policy_id:
+                    type: string
+                policy_subject:
+                    type: string
+                principal_id:
+                    type: string
+                principal_kind:
+                    type: string
+                resource_id:
+                    type: string
+                resource_version:
+                    format: int64
+                    type: integer
+            required:
+                - enterprise_id
+                - application_instance_id
+                - principal_id
+                - principal_kind
+                - identity_provider
+                - policy_subject
+                - direct_group_ids
+                - direct_group_version
+                - policy_id
+                - action
+                - resource_id
+                - resource_version
+            title: AuthorizeReq
+            type: object
+        BatchAuthorizeReq:
+            properties:
+                requests:
+                    items:
+                        $ref: '#/components/schemas/AuthorizeReq'
+                    type: array
+            required:
+                - requests
+            title: BatchAuthorizeReq
+            type: object
+        BatchAuthorizeResp:
+            properties:
+                decisions:
+                    items:
+                        $ref: '#/components/schemas/AuthorizationDecisionResp'
+                    type: array
+            required:
+                - decisions
+            title: BatchAuthorizeResp
+            type: object
         BlockPrincipalReq:
             properties:
                 enterprise_id:
@@ -297,6 +398,57 @@ components:
                 - version
             title: ManifestResp
             type: object
+        PolicyItem:
+            properties:
+                name:
+                    type: string
+                owner:
+                    type: string
+                ptype:
+                    type: string
+                v0:
+                    type: string
+                v1:
+                    type: string
+                v2:
+                    type: string
+                v3:
+                    type: string
+                v4:
+                    type: string
+                v5:
+                    type: string
+            required:
+                - owner
+                - name
+                - ptype
+                - v0
+                - v1
+                - v2
+            title: PolicyItem
+            type: object
+        PolicyProjectionResp:
+            properties:
+                application_instance_id:
+                    type: string
+                manifest_version:
+                    format: int64
+                    type: integer
+                normalized_hash:
+                    type: string
+                policy_version:
+                    format: int64
+                    type: integer
+                reconciliation_state:
+                    type: string
+            required:
+                - application_instance_id
+                - normalized_hash
+                - manifest_version
+                - policy_version
+                - reconciliation_state
+            title: PolicyProjectionResp
+            type: object
         PrincipalResp:
             properties:
                 display_name:
@@ -363,6 +515,43 @@ components:
                 - api_version
                 - body
             title: PutManifestReq
+            type: object
+        PutSecurityConfigReq:
+            properties:
+                enterprise_id:
+                    type: string
+                export_enabled:
+                    format: boolean
+                    type: boolean
+                public_sharing:
+                    format: boolean
+                    type: boolean
+                secret_export:
+                    format: boolean
+                    type: boolean
+            required:
+                - enterprise_id
+                - public_sharing
+                - export_enabled
+                - secret_export
+            title: PutSecurityConfigReq
+            type: object
+        ReconcilePoliciesReq:
+            properties:
+                enterprise_id:
+                    type: string
+                manifest_version:
+                    format: int64
+                    type: integer
+                policies:
+                    items:
+                        $ref: '#/components/schemas/PolicyItem'
+                    type: array
+            required:
+                - enterprise_id
+                - manifest_version
+                - policies
+            title: ReconcilePoliciesReq
             type: object
         RegisterApplicationReq:
             properties:
@@ -432,6 +621,41 @@ components:
             required:
                 - enterprise_id
             title: RevokeSessionReq
+            type: object
+        SecurityConfigReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: SecurityConfigReq
+            type: object
+        SecurityConfigResp:
+            properties:
+                application_instance_id:
+                    type: string
+                enterprise_id:
+                    type: string
+                export_enabled:
+                    format: boolean
+                    type: boolean
+                public_sharing:
+                    format: boolean
+                    type: boolean
+                secret_export:
+                    format: boolean
+                    type: boolean
+                version:
+                    format: int64
+                    type: integer
+            required:
+                - enterprise_id
+                - application_instance_id
+                - public_sharing
+                - export_enabled
+                - secret_export
+                - version
+            title: SecurityConfigResp
             type: object
         SessionListReq:
             properties:
@@ -513,6 +737,46 @@ info:
     version: v1
 openapi: 3.0.3
 paths:
+    /api/v1/access/authorize:
+        post:
+            operationId: Authorize
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AuthorizeReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AuthorizationDecisionResp'
+                    description: A successful response.
+            summary: Authorize one product operation
+            tags:
+                - connectorMachine
+            x-ecp-access: public
+    /api/v1/access/batch:
+        post:
+            operationId: BatchAuthorize
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchAuthorizeReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchAuthorizeResp'
+                    description: A successful response.
+            summary: Authorize a batch of product operations
+            tags:
+                - connectorMachine
+            x-ecp-access: public
     /api/v1/applications:
         post:
             operationId: RegisterApplication
@@ -903,6 +1167,82 @@ paths:
                                 $ref: '#/components/schemas/LifecycleResp'
                     description: A successful response.
             summary: Block a principal locally
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/instances/{id}/policies/reconcile:
+        post:
+            operationId: ReconcilePolicies
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ReconcilePoliciesReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PolicyProjectionResp'
+                    description: A successful response.
+            summary: Reconcile projected Casdoor policies
+            tags:
+                - adminWrite
+            x-ecp-access: public
+    /api/v1/instances/{id}/security:
+        get:
+            operationId: GetSecurityConfig
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SecurityConfigResp'
+                    description: A successful response.
+            summary: Get instance security controls
+            tags:
+                - adminRead
+            x-ecp-access: public
+        put:
+            operationId: PutSecurityConfig
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PutSecurityConfigReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SecurityConfigResp'
+                    description: A successful response.
+            summary: Put instance security controls
             tags:
                 - adminWrite
             x-ecp-access: public

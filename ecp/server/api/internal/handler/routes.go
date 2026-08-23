@@ -39,6 +39,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/identity/groups/:id/members",
 					Handler: adminRead.ListDirectGroupMembersHandler(serverCtx),
 				},
+				{
+					// Get instance security controls
+					Method:  http.MethodGet,
+					Path:    "/instances/:id/security",
+					Handler: adminRead.GetSecurityConfigHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
@@ -108,6 +114,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/identity/principals/:id/block",
 					Handler: adminWrite.BlockPrincipalHandler(serverCtx),
 				},
+				{
+					// Reconcile projected Casdoor policies
+					Method:  http.MethodPost,
+					Path:    "/instances/:id/policies/reconcile",
+					Handler: adminWrite.ReconcilePoliciesHandler(serverCtx),
+				},
+				{
+					// Put instance security controls
+					Method:  http.MethodPut,
+					Path:    "/instances/:id/security",
+					Handler: adminWrite.PutSecurityConfigHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
@@ -138,6 +156,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.ConnectorMachine, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
 			[]rest.Route{
+				{
+					// Authorize one product operation
+					Method:  http.MethodPost,
+					Path:    "/access/authorize",
+					Handler: connectorMachine.AuthorizeHandler(serverCtx),
+				},
+				{
+					// Authorize a batch of product operations
+					Method:  http.MethodPost,
+					Path:    "/access/batch",
+					Handler: connectorMachine.BatchAuthorizeHandler(serverCtx),
+				},
 				{
 					// Exchange a one-time product login transaction
 					Method:  http.MethodPost,

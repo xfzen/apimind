@@ -13,6 +13,7 @@ import "apis/application.api"
 import "apis/connector.api"
 import "apis/identity.api"
 import "apis/auth.api"
+import "apis/access.api"
 
 @server (
 	group:  metaPublic
@@ -60,6 +61,10 @@ service ecp {
 	@doc "List direct group members"
 	@handler ListDirectGroupMembers
 	get /identity/groups/:id/members (ListGroupMembersReq) returns (GroupMembersResp)
+
+	@doc "Get instance security controls"
+	@handler GetSecurityConfig
+	get /instances/:id/security (SecurityConfigReq) returns (SecurityConfigResp)
 }
 
 @server (
@@ -107,6 +112,14 @@ service ecp {
 	@doc "Add one direct member to an ECP-managed group"
 	@handler AddDirectGroupMember
 	post /identity/groups/:id/members (AddGroupMemberReq) returns (Empty)
+
+	@doc "Put instance security controls"
+	@handler PutSecurityConfig
+	put /instances/:id/security (PutSecurityConfigReq) returns (SecurityConfigResp)
+
+	@doc "Reconcile projected Casdoor policies"
+	@handler ReconcilePolicies
+	post /instances/:id/policies/reconcile (ReconcilePoliciesReq) returns (PolicyProjectionResp)
 }
 
 @server (
@@ -122,4 +135,12 @@ service ecp {
 	@doc "Exchange a one-time product login transaction"
 	@handler ExchangeProductLogin
 	post /connector/auth/exchange (ProductLoginExchangeReq) returns (ProductLoginExchangeResp)
+
+	@doc "Authorize one product operation"
+	@handler Authorize
+	post /access/authorize (AuthorizeReq) returns (AuthorizationDecisionResp)
+
+	@doc "Authorize a batch of product operations"
+	@handler BatchAuthorize
+	post /access/batch (BatchAuthorizeReq) returns (BatchAuthorizeResp)
 }

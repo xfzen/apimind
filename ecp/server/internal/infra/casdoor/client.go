@@ -72,6 +72,34 @@ func (c *Client) DeletePolicies(ctx context.Context, policies []Policy) error {
 	return c.do(ctx, http.MethodPost, "/api/remove-policies", nil, policies, nil)
 }
 
+func (c *Client) Enforce(ctx context.Context, permissionID string, request []string) (bool, error) {
+	var response struct {
+		Data []bool `json:"data"`
+	}
+	err := c.do(ctx, http.MethodPost, "/api/enforce", url.Values{"permissionId": []string{permissionID}}, request, &response)
+	if err != nil {
+		return false, err
+	}
+	if len(response.Data) != 1 {
+		return false, adapterError("casdoor_response_invalid", http.StatusOK, nil)
+	}
+	return response.Data[0], nil
+}
+
+func (c *Client) BatchEnforce(ctx context.Context, permissionID string, requests [][]string) ([]bool, error) {
+	var response struct {
+		Data [][]bool `json:"data"`
+	}
+	err := c.do(ctx, http.MethodPost, "/api/batch-enforce", url.Values{"permissionId": []string{permissionID}}, requests, &response)
+	if err != nil {
+		return nil, err
+	}
+	if len(response.Data) != 1 {
+		return nil, adapterError("casdoor_response_invalid", http.StatusOK, nil)
+	}
+	return response.Data[0], nil
+}
+
 func (c *Client) do(ctx context.Context, method, path string, query url.Values, body any, target any) error {
 	credential, err := c.secrets.Get(ctx, c.credential)
 	if err != nil || len(credential) == 0 {

@@ -785,7 +785,7 @@ git commit -m "feat(ecp): add oidc product sessions"
 - Decision returns `reason`, `lifecycle_version`, `identity_sync_version`, `identity_freshness_deadline`, `policy_version`, and `authorized_resource_version`.
 - Cache keys bind enterprise, application instance, principal, direct-group version, action, resource ID/version, lifecycle version, identity-sync version, policy version, and security-config version; a cached human Allow never outlives the identity freshness deadline.
 
-- [ ] **Step 1: Write ordering and drift tests**
+- [x] **Step 1: Write ordering and drift tests**
 
 ```go
 func TestBlockedPrincipalOverridesCasbinAllow(t *testing.T) {
@@ -836,13 +836,13 @@ func TestCachedHumanAllowCannotOutliveIdentityFreshness(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run access tests and verify failure**
+- [x] **Step 2: Run access tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/service/access ./internal/service/policy ./internal/service/securityconfig -count=1`
 
 Expected: FAIL because authorization services do not exist.
 
-- [ ] **Step 3: Implement the fixed decision sequence**
+- [x] **Step 3: Implement the fixed decision sequence**
 
 ```text
 Boundary → Principal/Session → Access State/Freshness → Revocation
@@ -851,17 +851,17 @@ Boundary → Principal/Session → Access State/Freshness → Revocation
 
 Do not add a second grant store. `policy_projection` stores only Casdoor policy IDs, normalized hash, manifest version, policy version, and reconciliation state. Cache lookup occurs only after boundary, principal/session, access-state/freshness, revocation, and policy-drift checks; any version mismatch is a miss. Neither reads nor background work may extend an Allow TTL locally.
 
-- [ ] **Step 4: Implement write-read-canonicalize and drift repair**
+- [x] **Step 4: Implement write-read-canonicalize and drift repair**
 
 Every policy mutation performs audited intent, Casdoor mutation, read-back, canonical hash verification, version advance, and cache invalidation. Drift repair requires reauthentication and creates a new policy version.
 
-- [ ] **Step 5: Regenerate access routes and run tests**
+- [x] **Step 5: Regenerate access routes and run tests**
 
 Run: `cd ecp/server && ./scripts/gencontracts.sh && go test ./internal/service/access ./internal/service/policy ./internal/service/securityconfig ./tests/contracts -count=1`
 
 Expected: ordering, group inheritance, restricted resources, drift, cache expiry, and batch isolation tests pass.
 
-- [ ] **Step 6: Commit authorization**
+- [x] **Step 6: Commit authorization**
 
 ```bash
 git add ecp/server

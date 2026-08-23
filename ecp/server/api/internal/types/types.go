@@ -49,6 +49,40 @@ type AuthStartResp struct {
 	ExpiresAt     int64  `json:"expires_at"`
 }
 
+type AuthorizationDecisionResp struct {
+	Allow                     bool   `json:"allow"`
+	Reason                    string `json:"reason"`
+	LifecycleVersion          uint64 `json:"lifecycle_version"`
+	IdentitySyncVersion       uint64 `json:"identity_sync_version"`
+	IdentityFreshnessDeadline int64  `json:"identity_freshness_deadline"`
+	PolicyVersion             uint64 `json:"policy_version"`
+	AuthorizedResourceVersion uint64 `json:"authorized_resource_version"`
+	SecurityConfigVersion     uint64 `json:"security_config_version"`
+}
+
+type AuthorizeReq struct {
+	EnterpriseID          string   `json:"enterprise_id"`
+	ApplicationInstanceID string   `json:"application_instance_id"`
+	PrincipalID           string   `json:"principal_id"`
+	PrincipalKind         string   `json:"principal_kind"`
+	IdentityProvider      string   `json:"identity_provider"`
+	PolicySubject         string   `json:"policy_subject"`
+	DirectGroupIDs        []string `json:"direct_group_ids"`
+	DirectGroupVersion    uint64   `json:"direct_group_version"`
+	PolicyID              string   `json:"policy_id"`
+	Action                string   `json:"action"`
+	ResourceID            string   `json:"resource_id"`
+	ResourceVersion       uint64   `json:"resource_version"`
+}
+
+type BatchAuthorizeReq struct {
+	Requests []AuthorizeReq `json:"requests"`
+}
+
+type BatchAuthorizeResp struct {
+	Decisions []AuthorizationDecisionResp `json:"decisions"`
+}
+
 type BlockPrincipalReq struct {
 	PrincipalID  string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
@@ -127,6 +161,26 @@ type ManifestResp struct {
 	Version       uint64 `json:"version"`
 }
 
+type PolicyItem struct {
+	Owner string `json:"owner"`
+	Name  string `json:"name"`
+	PType string `json:"ptype"`
+	V0    string `json:"v0"`
+	V1    string `json:"v1"`
+	V2    string `json:"v2"`
+	V3    string `json:"v3,optional"`
+	V4    string `json:"v4,optional"`
+	V5    string `json:"v5,optional"`
+}
+
+type PolicyProjectionResp struct {
+	ApplicationInstanceID string `json:"application_instance_id"`
+	NormalizedHash        string `json:"normalized_hash"`
+	ManifestVersion       uint64 `json:"manifest_version"`
+	PolicyVersion         uint64 `json:"policy_version"`
+	ReconciliationState   string `json:"reconciliation_state"`
+}
+
 type PrincipalResp struct {
 	ID              string `json:"id"`
 	EnterpriseID    string `json:"enterprise_id"`
@@ -153,6 +207,21 @@ type PutManifestReq struct {
 	EnterpriseID  string `json:"enterprise_id"`
 	APIVersion    string `json:"api_version"`
 	Body          string `json:"body"`
+}
+
+type PutSecurityConfigReq struct {
+	ApplicationInstanceID string `path:"id"`
+	EnterpriseID          string `json:"enterprise_id"`
+	PublicSharing         bool   `json:"public_sharing"`
+	ExportEnabled         bool   `json:"export_enabled"`
+	SecretExport          bool   `json:"secret_export"`
+}
+
+type ReconcilePoliciesReq struct {
+	ApplicationInstanceID string       `path:"id"`
+	EnterpriseID          string       `json:"enterprise_id"`
+	ManifestVersion       uint64       `json:"manifest_version"`
+	Policies              []PolicyItem `json:"policies"`
 }
 
 type RegisterApplicationReq struct {
@@ -185,6 +254,20 @@ type RegisterInstanceReq struct {
 type RevokeSessionReq struct {
 	SessionID    string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
+}
+
+type SecurityConfigReq struct {
+	EnterpriseID          string `form:"enterprise_id"`
+	ApplicationInstanceID string `path:"id"`
+}
+
+type SecurityConfigResp struct {
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id"`
+	PublicSharing         bool   `json:"public_sharing"`
+	ExportEnabled         bool   `json:"export_enabled"`
+	SecretExport          bool   `json:"secret_export"`
+	Version               uint64 `json:"version"`
 }
 
 type SessionListReq struct {

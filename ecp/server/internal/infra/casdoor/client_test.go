@@ -55,3 +55,23 @@ func TestOIDCVerifierRejectsNonHTTPSIssuerOutsideLocalMode(t *testing.T) {
 		t.Fatal("expected insecure issuer rejection")
 	}
 }
+
+func TestEnforceUsesExplicitPermissionIDAndTuple(t *testing.T) {
+	var permissionID, body string
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		permissionID = request.URL.Query().Get("permissionId")
+		payload, _ := io.ReadAll(request.Body)
+		body = string(payload)
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(response, `{"status":"ok","data":[true]}`)
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, EnterpriseID: "ent-1", Organization: "acme", CredentialReference: "secret://casdoor", LocalMode: true}, staticSecrets{"secret://casdoor": []byte("token")}, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	allowed, err := client.Enforce(context.Background(), "acme/workspace-read", []string{"acme/alice", "workspace:1", "read"})
+	if err != nil || !allowed || permissionID != "acme/workspace-read" || body != `["acme/alice","workspace:1","read"]` {
+		t.Fatalf("allowed=%v permission=%q body=%q err=%v", allowed, permissionID, body, err)
+	}
+}

@@ -12,11 +12,14 @@ import (
 	"github.com/xfzen/ecp/server/config"
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
+	accessservice "github.com/xfzen/ecp/server/internal/service/access"
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
 	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
+	policyservice "github.com/xfzen/ecp/server/internal/service/policy"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
+	securityconfigservice "github.com/xfzen/ecp/server/internal/service/securityconfig"
 	sessionservice "github.com/xfzen/ecp/server/internal/service/session"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -24,15 +27,18 @@ import (
 )
 
 type ServiceContext struct {
-	Config      config.Config
-	DB          *gorm.DB
-	Registry    *registryservice.Service
-	Casdoor     *casdoor.Client
-	OIDCClients *oidcclientservice.Service
-	Identity    *identityservice.Service
-	Lifecycle   *lifecycleservice.Service
-	Sessions    *sessionservice.Service
-	Idempotency *idempotencyservice.Service
+	Config         config.Config
+	DB             *gorm.DB
+	Registry       *registryservice.Service
+	Casdoor        *casdoor.Client
+	OIDCClients    *oidcclientservice.Service
+	Identity       *identityservice.Service
+	Lifecycle      *lifecycleservice.Service
+	Sessions       *sessionservice.Service
+	Idempotency    *idempotencyservice.Service
+	Access         *accessservice.Service
+	Policy         *policyservice.Service
+	SecurityConfig *securityconfigservice.Service
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
@@ -66,6 +72,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		}
 		ctx.Sessions = sessionservice.NewWithSecurity(persistence.NewSessionStore(db), nil, cfg.Session.TTL, verifier, identityPrincipalResolver{service: ctx.Identity})
 		ctx.Idempotency = idempotencyservice.New(persistence.NewIdempotencyStore(db))
+		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
 	}
 	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
 	ctx.CSRF = asRestMiddleware(apiMiddleware.NewCSRF().Handle)
@@ -82,6 +89,12 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 			panic(err)
 		}
 		ctx.Casdoor = client
+	}
+	if ctx.DB != nil {
+		ctx.Access = accessservice.New(persistence.NewAccessStore(ctx.DB), accessservice.NewCasdoorEngine(ctx.Casdoor), nil, nil)
+		if ctx.Casdoor != nil {
+			ctx.Policy = policyservice.New(persistence.NewPolicyStore(ctx.DB), ctx.Casdoor)
+		}
 	}
 	return ctx
 }

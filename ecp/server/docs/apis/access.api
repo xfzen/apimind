@@ -1,0 +1,71 @@
+syntax = "v1"
+
+type AuthorizeReq {
+	EnterpriseID          string   `json:"enterprise_id"`
+	ApplicationInstanceID string   `json:"application_instance_id"`
+	PrincipalID           string   `json:"principal_id"`
+	PrincipalKind         string   `json:"principal_kind"`
+	IdentityProvider      string   `json:"identity_provider"`
+	PolicySubject         string   `json:"policy_subject"`
+	DirectGroupIDs        []string `json:"direct_group_ids"`
+	DirectGroupVersion    uint64   `json:"direct_group_version"`
+	PolicyID              string   `json:"policy_id"`
+	Action                string   `json:"action"`
+	ResourceID            string   `json:"resource_id"`
+	ResourceVersion       uint64   `json:"resource_version"`
+}
+type AuthorizationDecisionResp {
+	Allow                     bool   `json:"allow"`
+	Reason                    string `json:"reason"`
+	LifecycleVersion          uint64 `json:"lifecycle_version"`
+	IdentitySyncVersion       uint64 `json:"identity_sync_version"`
+	IdentityFreshnessDeadline int64  `json:"identity_freshness_deadline"`
+	PolicyVersion             uint64 `json:"policy_version"`
+	AuthorizedResourceVersion uint64 `json:"authorized_resource_version"`
+	SecurityConfigVersion     uint64 `json:"security_config_version"`
+}
+type BatchAuthorizeReq { Requests []AuthorizeReq `json:"requests"` }
+type BatchAuthorizeResp { Decisions []AuthorizationDecisionResp `json:"decisions"` }
+type SecurityConfigReq {
+	EnterpriseID          string `form:"enterprise_id"`
+	ApplicationInstanceID string `path:"id"`
+}
+type PutSecurityConfigReq {
+	ApplicationInstanceID string `path:"id"`
+	EnterpriseID          string `json:"enterprise_id"`
+	PublicSharing         bool   `json:"public_sharing"`
+	ExportEnabled         bool   `json:"export_enabled"`
+	SecretExport          bool   `json:"secret_export"`
+}
+type SecurityConfigResp {
+	EnterpriseID          string `json:"enterprise_id"`
+	ApplicationInstanceID string `json:"application_instance_id"`
+	PublicSharing         bool   `json:"public_sharing"`
+	ExportEnabled         bool   `json:"export_enabled"`
+	SecretExport          bool   `json:"secret_export"`
+	Version               uint64 `json:"version"`
+}
+type PolicyItem {
+	Owner string `json:"owner"`
+	Name  string `json:"name"`
+	PType string `json:"ptype"`
+	V0    string `json:"v0"`
+	V1    string `json:"v1"`
+	V2    string `json:"v2"`
+	V3    string `json:"v3,optional"`
+	V4    string `json:"v4,optional"`
+	V5    string `json:"v5,optional"`
+}
+type ReconcilePoliciesReq {
+	ApplicationInstanceID string       `path:"id"`
+	EnterpriseID          string       `json:"enterprise_id"`
+	ManifestVersion       uint64       `json:"manifest_version"`
+	Policies              []PolicyItem `json:"policies"`
+}
+type PolicyProjectionResp {
+	ApplicationInstanceID string `json:"application_instance_id"`
+	NormalizedHash        string `json:"normalized_hash"`
+	ManifestVersion       uint64 `json:"manifest_version"`
+	PolicyVersion         uint64 `json:"policy_version"`
+	ReconciliationState   string `json:"reconciliation_state"`
+}
