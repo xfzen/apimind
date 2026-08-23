@@ -12,6 +12,13 @@ export const actionTypes = {
 } as const;
 
 export interface DocsState { list: UnknownRecord[]; current: UnknownRecord | null }
+export interface WorkspaceDocsProject {
+  _id: number;
+  name: string;
+  group_id: number;
+  desc: string;
+  kind: 'docs';
+}
 type DocsResolvedAction = ResolvedPromiseAction<ApiResponse<UnknownRecord[] | UnknownRecord>> & {
   type: (typeof actionTypes)[keyof typeof actionTypes];
 };
@@ -44,7 +51,7 @@ export function fetchDocs(workspaceId: string | number, projectId: string | numb
   return getAction<UnknownRecord[]>(actionTypes.FETCH_DOCS, '/api/docs/list', { workspace_id: workspaceId, project_id: projectId });
 }
 export function ensureWorkspaceDocsProject(workspaceId: string | number) {
-  return getAction<UnknownRecord>(actionTypes.WORKSPACE_DOCS_PROJECT, '/api/docs/workspace_project', { workspace_id: workspaceId });
+  return getAction<WorkspaceDocsProject>(actionTypes.WORKSPACE_DOCS_PROJECT, '/api/docs/workspace_project', { workspace_id: workspaceId });
 }
 export function fetchDoc(id: string | number) {
   return getAction<UnknownRecord>(actionTypes.FETCH_DOC, '/api/docs/get', { id });
