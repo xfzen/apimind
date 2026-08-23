@@ -8,7 +8,7 @@ if (!baseURL) {
 
 export default defineConfig({
   testDir: './tests/browser',
-  testMatch: ['live-auth.spec.ts'],
+  testMatch: ['live-*.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,

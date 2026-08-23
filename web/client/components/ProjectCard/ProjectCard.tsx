@@ -165,7 +165,7 @@ class ProjectCard extends Component<ProjectCardProps> {
     return (
       <div className="card-container">
         <Card
-          bordered={false}
+          variant="borderless"
           className="m-card"
           onClick={() =>
             this.props.history.push('/project/' + (projectData.projectid || projectData._id))

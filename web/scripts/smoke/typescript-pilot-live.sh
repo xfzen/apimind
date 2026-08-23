@@ -143,4 +143,4 @@ export APIMIND_LIVE_BASE_URL="http://127.0.0.1:${web_port}"
 export PLAYWRIGHT_CDP_ENDPOINT="http://127.0.0.1:${cdp_port}"
 
 cd "$repo_dir/web"
-npx playwright test --config playwright.live.config.ts tests/browser/live-auth.spec.ts
+npx playwright test --config playwright.live.config.ts
