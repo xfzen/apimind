@@ -1,0 +1,13 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+:root {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+
+html, body, #root {
+  min-height: 100%;
+  margin: 0;
+}

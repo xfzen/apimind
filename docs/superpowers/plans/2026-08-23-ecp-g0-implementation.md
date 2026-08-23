@@ -1156,7 +1156,7 @@ git commit -m "feat(ecp): add append-only audit"
 - Consumes: `ecp-api` `/api/v1/auth/*` and `/api/v1/meta/*` routes.
 - Produces: browser session bootstrap, callback completion, logout, expired-session handling, and an authenticated application shell.
 
-- [ ] **Step 1: Create the test harness, then write failing same-origin, session, and style-boundary tests**
+- [x] **Step 1: Create the test harness, then write failing same-origin, session, and style-boundary tests**
 
 Create `package.json`, the TypeScript/Vitest configuration, and the locked dependency set before application source files. Use the exact versions frozen by Gate 0 for Node/npm, React/ReactDOM 18.3.1, React Router declarative mode, Ant Design 6.4.3, `@ant-design/icons` 6.2.3, TypeScript 5.9.3, Vite, Axios, Tailwind CSS 4 and `@tailwindcss/vite`; do not use `^`, `~`, `latest` or workspace-external resolution in direct dependency declarations. Resolve all packages from the official npm registry and commit the resolved `package-lock.json`; React, ReactDOM, React Router, Ant Design, icons, and Axios are runtime dependencies, while Tailwind and build/test tools are development dependencies. Define scripts as `typecheck: tsc --noEmit`, `test:unit: vitest run`, `test:boundary: node --test tests/*.test.mjs`, `test: npm run test:unit && npm run test:boundary`, `test:e2e: playwright test`, and `build: vite build`. `verify-inputs.sh` rejects drift from `versions.lock.yaml`.
 
@@ -1219,17 +1219,17 @@ test('keeps Ant Design and Tailwind responsibilities separate', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `cd ecp/ui && npm test`
 
 Expected: FAIL because the UI scaffold does not exist.
 
-- [ ] **Step 3: Create the minimal Vite TypeScript application scaffold**
+- [x] **Step 3: Create the minimal Vite TypeScript application scaffold**
 
 Create `index.html`, `src/main.tsx`, strict `tsconfig.json`, Vitest/jsdom setup, and Playwright configuration. `main.tsx` wraps `App` with React Router's declarative `BrowserRouter`; `src/app/routes.tsx` owns the static ECP route table. Do not adopt React Router framework mode, SSR, route plugins, YApi plugin loading, Redux compatibility, or legacy router code.
 
-- [ ] **Step 4: Configure Vite, Ant Design theme ownership, and Tailwind without Preflight**
+- [x] **Step 4: Configure Vite, Ant Design theme ownership, and Tailwind without Preflight**
 
 Register the official Tailwind Vite plugin in `vite.config.ts`:
 
@@ -1290,15 +1290,15 @@ Use Ant Design for controls, forms, navigation, tables, overlays, and feedback. 
 
 Configure `@tailwindcss/vite` in `vite.config.ts`. To disable Preflight without disabling Tailwind itself, `src/styles/index.css` imports `tailwindcss/theme.css` and `tailwindcss/utilities.css` explicitly and does not import the aggregate `tailwindcss` entry or `preflight.css`. The boundary test includes positive assertions for both imports, the Vite plugin and actual controlled layout utilities.
 
-- [ ] **Step 5: Implement the same-origin admin session shell**
+- [x] **Step 5: Implement the same-origin admin session shell**
 
 `src/api/client.ts` creates one Axios client with `baseURL: '/api/v1'`, `withCredentials: true`, no configurable remote origin, and a request interceptor that adds the current session-bound CSRF token only to writes. `AuthProvider` loads `/auth/session`, keeps only the returned principal/session summary and CSRF token in memory, clears them on `401`, and never reads Casdoor tokens. `LoginButton` navigates to `/api/v1/auth/start`; callback completion and logout both use ECP same-origin endpoints. `RequireSession` renders the authenticated shell, an Ant Design loading state, or the login result without exposing raw server errors.
 
-- [ ] **Step 6: Enforce the browser API boundary**
+- [x] **Step 6: Enforce the browser API boundary**
 
 The boundary test scans `src/**/*.{ts,tsx}` and fails on absolute remote business URLs, direct Casdoor management API paths, or Connector URLs. OIDC navigation may only start from `/api/v1/auth/start`.
 
-- [ ] **Step 7: Run typecheck, tests, and build**
+- [x] **Step 7: Run typecheck, tests, and build**
 
 Run:
 
@@ -1313,7 +1313,7 @@ cd ../..
 
 Expected: PASS, `dist/` contains the SPA, and SDK/server/UI pass from an ECP-only temporary copy.
 
-- [ ] **Step 8: Commit the UI foundation**
+- [x] **Step 8: Commit the UI foundation**
 
 ```bash
 git add ecp/ui

@@ -46,6 +46,34 @@ if [ -f "$ecp_dir/server/go.mod" ]; then
   done
 fi
 
+if [ -f "$ecp_dir/ui/package.json" ]; then
+  ui_package="$ecp_dir/ui/package.json"
+  ui_lock="$ecp_dir/ui/package-lock.json"
+  test -f "$ui_lock"
+  test "$(jq -r '.engines.node' "$ui_package")" = "$(jq -r '.toolchains.node.version' "$lock_file")"
+  test "$(jq -r '.packageManager' "$ui_package")" = "npm@$(jq -r '.toolchains.node.npm_version' "$lock_file")"
+  jq -e --slurpfile inputs "$lock_file" '
+    . as $package
+    | $inputs[0].npm_packages
+    | to_entries
+    | all(.[]; (($package.dependencies[.key] // $package.devDependencies[.key]) == .value.version))
+  ' "$ui_package" >/dev/null
+  jq -e --slurpfile inputs "$lock_file" '
+    . as $package_lock
+    | $inputs[0].npm_packages
+    | to_entries
+    | all(.[];
+        ($package_lock.packages[("node_modules/" + .key)].version == .value.version)
+        and ($package_lock.packages[("node_modules/" + .key)].integrity == .value.integrity))
+  ' "$ui_lock" >/dev/null
+  jq -e --slurpfile package "$ui_package" '
+    .lockfileVersion == 3
+    and .packages[""].dependencies == $package[0].dependencies
+    and .packages[""].devDependencies == $package[0].devDependencies
+    and .packages[""].engines == $package[0].engines
+  ' "$ui_lock" >/dev/null
+fi
+
 if [ "${ECP_VERIFY_LOCAL_IMAGES:-0}" = 1 ]; then
   command -v docker >/dev/null
   for image_key in casdoor postgres mysql; do

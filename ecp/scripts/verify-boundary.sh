@@ -3,9 +3,16 @@ set -eu
 
 ecp_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/ecp-boundary.XXXXXX")
-trap 'rm -rf "$tmp_dir"' EXIT INT TERM
+cleanup() {
+  chmod -R u+w "$tmp_dir" 2>/dev/null || true
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT INT TERM
 GOCACHE="$tmp_dir/go-build-cache"
-export GOCACHE
+GOMODCACHE="$tmp_dir/go-mod-cache"
+GOPROXY="https://proxy.golang.org"
+GOSUMDB="sum.golang.org"
+export GOCACHE GOMODCACHE GOPROXY GOSUMDB
 mkdir -p "$tmp_dir/ecp"
 rsync -a \
   --exclude '/.artifacts/' \
@@ -30,6 +37,9 @@ cd "$tmp_dir/ecp"
 
 if [ -f ui/package.json ]; then
   test -f ui/package-lock.json
+  npm_config_cache="$tmp_dir/npm-cache"
+  npm_config_registry="https://registry.npmjs.org/"
+  export npm_config_cache npm_config_registry
   (cd ui && npm ci --ignore-scripts --no-audit --no-fund && npm run typecheck && npm test && npm run build)
 fi
 
