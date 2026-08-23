@@ -40,7 +40,7 @@ func TestRegistryPersistsOnBothDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			manifest := []byte(`{"schema_version":"connector.manifest/v1","product":"apimind"}`)
+			manifest := []byte(`{"schema_version":"connector.manifest/v1","product":"apimind","roles":[{"id":"project.viewer","resource_type":"project","actions":["project.read"]}]}`)
 			if _, err := svc.PutManifest(ctx, registry.PutManifestInput{EnterpriseID: "ent-1", ApplicationID: "app-1", APIVersion: "connector.manifest/v1", Body: manifest}); err != nil {
 				t.Fatal(err)
 			}

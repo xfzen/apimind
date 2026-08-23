@@ -42,7 +42,7 @@ func New(store Store, engine Engine, cache *Cache, clock Clock) *Service {
 }
 
 func (s *Service) Authorize(ctx context.Context, request domain.AuthorizationRequest) (domain.AuthorizationDecision, error) {
-	if s == nil || s.store == nil || request.EnterpriseID == "" || request.ApplicationInstanceID == "" || request.PrincipalID == "" || request.Action == "" {
+	if s == nil || s.store == nil || request.EnterpriseID == "" || request.ApplicationInstanceID == "" || request.PrincipalID == "" || request.Action == "" || request.ResourceType == "" || request.ResourceID == "" {
 		return domain.AuthorizationDecision{}, fmt.Errorf("authorization_boundary_invalid")
 	}
 	exists, err := s.store.BoundaryExists(ctx, request.EnterpriseID, request.ApplicationInstanceID)

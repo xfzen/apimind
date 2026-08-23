@@ -143,6 +143,7 @@ type AuthorizeReq struct {
 	DirectGroupIDs        []string `json:"direct_group_ids"`
 	DirectGroupVersion    uint64   `json:"direct_group_version"`
 	Action                string   `json:"action"`
+	ResourceType          string   `json:"resource_type"`
 	ResourceID            string   `json:"resource_id"`
 	ResourceVersion       uint64   `json:"resource_version"`
 }
@@ -553,6 +554,38 @@ type RevokeProductSessionReq struct {
 type RevokeSessionReq struct {
 	SessionID    string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
+}
+
+type RoleBindingListReq struct {
+	ApplicationInstanceID string `path:"id"`
+	EnterpriseID          string `form:"enterprise_id"`
+}
+
+type RoleBindingListResp struct {
+	Items []RoleBindingResp `json:"items"`
+}
+
+type RoleBindingReq struct {
+	ApplicationInstanceID string              `path:"id"`
+	EnterpriseID          string              `json:"enterprise_id"`
+	SubjectType           string              `json:"subject_type"`
+	SubjectID             string              `json:"subject_id"`
+	Role                  string              `json:"role"`
+	Resource              RoleBindingResource `json:"resource"`
+}
+
+type RoleBindingResource struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+}
+
+type RoleBindingResp struct {
+	ID          string              `json:"id"`
+	SubjectType string              `json:"subject_type"`
+	SubjectID   string              `json:"subject_id"`
+	Role        string              `json:"role"`
+	Resource    RoleBindingResource `json:"resource"`
+	Status      string              `json:"status"`
 }
 
 type RotateCredentialReq struct {

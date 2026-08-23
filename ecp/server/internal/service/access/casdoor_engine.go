@@ -21,8 +21,10 @@ func (e *CasdoorEngine) Authorize(ctx context.Context, request domain.Authorizat
 	if subject == "" {
 		subject = request.PrincipalID
 	}
-	if request.PermissionID == "" || request.ResourceID == "" {
+	if request.PermissionID == "" || request.ResourceType == "" || request.ResourceID == "" {
 		return false, fmt.Errorf("policy_binding_missing")
 	}
-	return e.client.Enforce(ctx, request.PermissionID, []string{subject, request.ResourceID, request.Action})
+	return e.client.Enforce(ctx, request.PermissionID, []string{subject, PolicyResource(request.ResourceType, request.ResourceID), request.Action})
 }
+
+func PolicyResource(resourceType, resourceID string) string { return resourceType + ":" + resourceID }

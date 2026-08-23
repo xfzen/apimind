@@ -356,6 +356,8 @@ components:
                     type: string
                 resource_id:
                     type: string
+                resource_type:
+                    type: string
                 resource_version:
                     format: int64
                     type: integer
@@ -369,6 +371,7 @@ components:
                 - direct_group_ids
                 - direct_group_version
                 - action
+                - resource_type
                 - resource_id
                 - resource_version
             title: AuthorizeReq
@@ -1346,6 +1349,78 @@ components:
                 - enterprise_id
             title: RevokeSessionReq
             type: object
+        RoleBindingListReq:
+            properties:
+                enterprise_id:
+                    type: string
+            required:
+                - enterprise_id
+            title: RoleBindingListReq
+            type: object
+        RoleBindingListResp:
+            properties:
+                items:
+                    items:
+                        $ref: '#/components/schemas/RoleBindingResp'
+                    type: array
+            required:
+                - items
+            title: RoleBindingListResp
+            type: object
+        RoleBindingReq:
+            properties:
+                enterprise_id:
+                    type: string
+                resource:
+                    $ref: '#/components/schemas/RoleBindingResource'
+                role:
+                    type: string
+                subject_id:
+                    type: string
+                subject_type:
+                    type: string
+            required:
+                - enterprise_id
+                - subject_type
+                - subject_id
+                - role
+                - resource
+            title: RoleBindingReq
+            type: object
+        RoleBindingResource:
+            properties:
+                id:
+                    type: string
+                type:
+                    type: string
+            required:
+                - type
+                - id
+            title: RoleBindingResource
+            type: object
+        RoleBindingResp:
+            properties:
+                id:
+                    type: string
+                resource:
+                    $ref: '#/components/schemas/RoleBindingResource'
+                role:
+                    type: string
+                status:
+                    type: string
+                subject_id:
+                    type: string
+                subject_type:
+                    type: string
+            required:
+                - id
+                - subject_type
+                - subject_id
+                - role
+                - resource
+                - status
+            title: RoleBindingResp
+            type: object
         RotateCredentialReq:
             properties:
                 lifetime_seconds:
@@ -1607,6 +1682,56 @@ paths:
             summary: Get the visible authorization ancestry for one product resource
             tags:
                 - adminRead
+            x-ecp-access: public
+    /api/v1/application-instances/{id}/role-bindings:
+        get:
+            operationId: ListRoleBindings
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: enterprise_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RoleBindingListResp'
+                    description: A successful response.
+            summary: List role bindings for one application instance
+            tags:
+                - adminRead
+            x-ecp-access: public
+        post:
+            operationId: CreateRoleBinding
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RoleBindingReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RoleBindingResp'
+                    description: A successful response.
+            summary: Create a manifest-constrained role binding
+            tags:
+                - adminWrite
             x-ecp-access: public
     /api/v1/applications:
         get:

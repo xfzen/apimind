@@ -55,7 +55,7 @@ func (s *Service) AuthenticateAndAuthorize(ctx context.Context, boundary Boundar
 	}
 	decision, err := s.access.Authorize(ctx, domain.AuthorizationRequest{
 		EnterpriseID: boundary.EnterpriseID, ApplicationInstanceID: boundary.ApplicationInstanceID,
-		PrincipalID: principal.CredentialID, Action: request.Action, ResourceID: request.ResourceID, ResourceVersion: request.ResourceVersion,
+		PrincipalID: principal.CredentialID, Action: request.Action, ResourceType: request.ResourceType, ResourceID: request.ResourceID, ResourceVersion: request.ResourceVersion,
 	})
 	if err != nil {
 		return Result{}, err

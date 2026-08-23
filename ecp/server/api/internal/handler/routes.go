@@ -41,6 +41,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: adminRead.GetProductResourceAncestryHandler(serverCtx),
 				},
 				{
+					// List role bindings for one application instance
+					Method:  http.MethodGet,
+					Path:    "/application-instances/:id/role-bindings",
+					Handler: adminRead.ListRoleBindingsHandler(serverCtx),
+				},
+				{
 					// List registered applications
 					Method:  http.MethodGet,
 					Path:    "/applications",
@@ -139,6 +145,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.AdminSession, serverCtx.CSRF, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
 			[]rest.Route{
+				{
+					// Create a manifest-constrained role binding
+					Method:  http.MethodPost,
+					Path:    "/application-instances/:id/role-bindings",
+					Handler: adminWrite.CreateRoleBindingHandler(serverCtx),
+				},
 				{
 					// Register an application
 					Method:  http.MethodPost,

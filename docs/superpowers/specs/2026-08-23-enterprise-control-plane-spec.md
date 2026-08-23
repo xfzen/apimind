@@ -338,8 +338,12 @@ resourceTypes:
   - interface
 
 roles:
-  workspace: [owner, admin, member, guest]
-  project: [admin, editor, viewer]
+  - id: workspace.owner
+    resource_type: workspace
+    actions: [workspace.read, workspace.manage, workspace.member.manage]
+  - id: project.viewer
+    resource_type: project
+    actions: [project.read, interface.read, document.read]
 
 actions:
   - workspace.manage
@@ -356,7 +360,7 @@ capabilities:
 
 约束：
 
-- 产品、资源、角色和动作使用稳定机器标识，不使用展示名称；
+- 产品、资源、角色和动作使用稳定机器标识，不使用展示名称；每个可绑定角色必须显式声明唯一 `id`、适用 `resource_type` 和固定 `actions`，ECP 不根据角色名称猜测权限；
 - 动作使用产品命名空间，避免跨产品冲突；
 - Manifest 只能声明固定模型，不能嵌入任意策略代码；
 - Manifest 升级必须声明兼容范围和废弃项；

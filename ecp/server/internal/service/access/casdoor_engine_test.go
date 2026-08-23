@@ -23,12 +23,12 @@ func TestCasdoorEngineUsesPermissionResourceBinding(t *testing.T) {
 	engine := NewCasdoorEngine(client)
 	allowed, err := engine.Authorize(context.Background(), domain.AuthorizationRequest{
 		PrincipalID: "principal-1", PolicySubject: "acme/alice", PermissionID: "acme/apimind-ins-1",
-		ResourceID: "project-1", Action: "project.read",
+		ResourceType: "project", ResourceID: "project-1", Action: "project.read",
 	})
 	if err != nil || !allowed {
 		t.Fatalf("allowed=%v err=%v", allowed, err)
 	}
-	if client.permissionID != "acme/apimind-ins-1" || len(client.request) != 3 || client.request[0] != "acme/alice" || client.request[1] != "project-1" || client.request[2] != "project.read" {
+	if client.permissionID != "acme/apimind-ins-1" || len(client.request) != 3 || client.request[0] != "acme/alice" || client.request[1] != "project:project-1" || client.request[2] != "project.read" {
 		t.Fatalf("permission=%q request=%v", client.permissionID, client.request)
 	}
 }

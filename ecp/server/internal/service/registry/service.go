@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
+	manifestcontract "github.com/xfzen/ecp/server/internal/manifest"
 )
 
 var machineIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
@@ -147,6 +148,11 @@ func (s *Service) PutManifest(ctx context.Context, input PutManifestInput) (doma
 	}
 	if schema, _ := body["schema_version"].(string); schema != input.APIVersion {
 		return domain.ProductManifest{}, decision("manifest_version_mismatch", nil)
+	}
+	if input.APIVersion == "connector.manifest/v1" {
+		if _, err := manifestcontract.Parse(input.Body); err != nil {
+			return domain.ProductManifest{}, decision("manifest_invalid", err)
+		}
 	}
 	hash := sha256.Sum256(input.Body)
 	now := time.Now().UTC()

@@ -52,7 +52,7 @@ func TestAuthorizationStatePersistsOnBothDialects(t *testing.T) {
 				}
 				clock := &fakeClock{now: now}
 				service := New(persistence.NewAccessStore(tx), &fakeEngine{allow: true}, nil, clock)
-				decision, err := service.Authorize(context.Background(), domain.AuthorizationRequest{EnterpriseID: "ent-access", ApplicationInstanceID: "ins-access", PrincipalID: "pri-access", PrincipalKind: "human", IdentityProvider: "casdoor", Action: "project.read", ResourceID: "project-1", ResourceVersion: 1})
+				decision, err := service.Authorize(context.Background(), domain.AuthorizationRequest{EnterpriseID: "ent-access", ApplicationInstanceID: "ins-access", PrincipalID: "pri-access", PrincipalKind: "human", IdentityProvider: "casdoor", Action: "project.read", ResourceType: "project", ResourceID: "project-1", ResourceVersion: 1})
 				if err != nil || !decision.Allow {
 					t.Fatalf("decision=%+v err=%v", decision, err)
 				}

@@ -48,41 +48,59 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 	prefix := "ecp:" + input.ApplicationInstanceID + ":"
 	desired := normalize(input.Policies, prefix)
 	desiredHash := canonicalHash(desired)
-	existing, err := s.adapter.ReadPolicies(ctx)
-	if err != nil {
-		return domain.PolicyProjection{}, err
-	}
-	scoped := filter(existing, prefix)
-	if len(scoped) > 0 {
-		if err := s.adapter.DeletePolicies(ctx, scoped); err != nil {
-			return domain.PolicyProjection{}, err
-		}
-	}
-	if len(desired) > 0 {
-		if err := s.adapter.WritePolicies(ctx, desired); err != nil {
-			return domain.PolicyProjection{}, err
-		}
-	}
-	readback, err := s.adapter.ReadPolicies(ctx)
-	if err != nil {
-		return domain.PolicyProjection{}, err
-	}
-	actual := filter(readback, prefix)
-	actualHash := canonicalHash(actual)
 	value, found, err := s.store.Get(ctx, input.EnterpriseID, input.ApplicationInstanceID)
 	if err != nil {
 		return domain.PolicyProjection{}, err
 	}
 	now := time.Now().UTC()
 	if !found {
-		value = domain.PolicyProjection{Base: domain.Base{ID: newID(), EnterpriseID: input.EnterpriseID, CreatedAt: now}, ApplicationInstanceID: input.ApplicationInstanceID}
+		value = domain.PolicyProjection{Base: domain.Base{ID: newID(), EnterpriseID: input.EnterpriseID, CreatedAt: now}, ApplicationInstanceID: input.ApplicationInstanceID, CasdoorPolicyIDs: []string{}}
 	}
 	value.ManifestVersion = input.ManifestVersion
 	value.PolicyVersion++
-	value.NormalizedHash = actualHash
+	value.NormalizedHash = desiredHash
 	value.CasdoorPermissionID = input.CasdoorPermissionID
-	value.CasdoorPolicyIDs = policyIDs(actual)
 	value.UpdatedAt = now
+	value.ReconciliationState = "reconciling"
+	value.LastError = ""
+	value, err = s.store.Put(ctx, value)
+	if err != nil {
+		return domain.PolicyProjection{}, err
+	}
+	fail := func(cause error) (domain.PolicyProjection, error) {
+		value.ReconciliationState = "drifted"
+		value.LastError = cause.Error()
+		value.UpdatedAt = time.Now().UTC()
+		persisted, persistErr := s.store.Put(ctx, value)
+		if persistErr != nil {
+			return domain.PolicyProjection{}, fmt.Errorf("%w: persist drift state: %v", cause, persistErr)
+		}
+		return persisted, cause
+	}
+	existing, err := s.adapter.ReadPolicies(ctx)
+	if err != nil {
+		return fail(err)
+	}
+	scoped := filter(existing, prefix)
+	if len(scoped) > 0 {
+		if err := s.adapter.DeletePolicies(ctx, scoped); err != nil {
+			return fail(err)
+		}
+	}
+	if len(desired) > 0 {
+		if err := s.adapter.WritePolicies(ctx, desired); err != nil {
+			return fail(err)
+		}
+	}
+	readback, err := s.adapter.ReadPolicies(ctx)
+	if err != nil {
+		return fail(err)
+	}
+	actual := filter(readback, prefix)
+	actualHash := canonicalHash(actual)
+	value.NormalizedHash = actualHash
+	value.CasdoorPolicyIDs = policyIDs(actual)
+	value.UpdatedAt = time.Now().UTC()
 	value.ReconciliationState = "in_sync"
 	value.LastError = ""
 	if actualHash != desiredHash {

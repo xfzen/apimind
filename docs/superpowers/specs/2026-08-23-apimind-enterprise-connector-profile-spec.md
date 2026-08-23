@@ -156,9 +156,18 @@ accessRoots:
   - project
 
 roles:
-  instance: [instance_admin, security_auditor]
-  workspace: [owner, admin, member, guest]
-  project: [admin, editor, viewer]
+  - id: instance.instance_admin
+    resource_type: instance
+    actions: [instance.manage, audit.read, audit.export]
+  - id: workspace.owner
+    resource_type: workspace
+    actions: [workspace.read, workspace.manage, workspace.member.manage]
+  - id: project.editor
+    resource_type: project
+    actions: [project.read, project.write, interface.read, interface.write, document.read, document.write]
+  - id: project.viewer
+    resource_type: project
+    actions: [project.read, interface.read, document.read]
 
 projectAccessModes: [workspace, restricted]
 

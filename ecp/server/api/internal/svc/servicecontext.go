@@ -27,6 +27,7 @@ import (
 	policyservice "github.com/xfzen/ecp/server/internal/service/policy"
 	productresourceservice "github.com/xfzen/ecp/server/internal/service/productresource"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
+	rolebindingservice "github.com/xfzen/ecp/server/internal/service/rolebinding"
 	securityconfigservice "github.com/xfzen/ecp/server/internal/service/securityconfig"
 	sessionservice "github.com/xfzen/ecp/server/internal/service/session"
 
@@ -47,6 +48,7 @@ type ServiceContext struct {
 	Access           *accessservice.Service
 	AdminQuery       *adminqueryservice.Service
 	Policy           *policyservice.Service
+	RoleBindings     *rolebindingservice.Service
 	SecurityConfig   *securityconfigservice.Service
 	Connector        *connectorservice.Service
 	Credential       *credentialservice.Service
@@ -159,6 +161,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.MachineAuth = machineauthservice.New(ctx.Credential, ctx.Access)
 		if ctx.Casdoor != nil {
 			ctx.Policy = policyservice.New(persistence.NewPolicyStore(ctx.DB), ctx.Casdoor)
+			ctx.RoleBindings = rolebindingservice.New(persistence.NewRoleBindingStore(ctx.DB), ctx.Policy, cfg.Casdoor.Organization)
 		}
 		if len(cfg.Connector.Products) != 0 {
 			products := make([]connectorinfra.ProductConfig, len(cfg.Connector.Products))

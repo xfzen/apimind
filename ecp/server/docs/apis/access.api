@@ -10,6 +10,7 @@ type AuthorizeReq {
 	DirectGroupIDs        []string `json:"direct_group_ids"`
 	DirectGroupVersion    uint64   `json:"direct_group_version"`
 	Action                string   `json:"action"`
+	ResourceType          string   `json:"resource_type"`
 	ResourceID            string   `json:"resource_id"`
 	ResourceVersion       uint64   `json:"resource_version"`
 }
@@ -70,3 +71,28 @@ type PolicyProjectionResp {
 	PolicyVersion         uint64 `json:"policy_version"`
 	ReconciliationState   string `json:"reconciliation_state"`
 }
+type RoleBindingResource {
+	Type string `json:"type"`
+	ID string `json:"id"`
+}
+type RoleBindingReq {
+	ApplicationInstanceID string `path:"id"`
+	EnterpriseID string `json:"enterprise_id"`
+	SubjectType string `json:"subject_type"`
+	SubjectID string `json:"subject_id"`
+	Role string `json:"role"`
+	Resource RoleBindingResource `json:"resource"`
+}
+type RoleBindingListReq {
+	ApplicationInstanceID string `path:"id"`
+	EnterpriseID string `form:"enterprise_id"`
+}
+type RoleBindingResp {
+	ID string `json:"id"`
+	SubjectType string `json:"subject_type"`
+	SubjectID string `json:"subject_id"`
+	Role string `json:"role"`
+	Resource RoleBindingResource `json:"resource"`
+	Status string `json:"status"`
+}
+type RoleBindingListResp { Items []RoleBindingResp `json:"items"` }

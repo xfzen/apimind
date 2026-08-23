@@ -2,20 +2,39 @@ package policy
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 )
 
-type fakeAdapter struct{ policies []casdoor.Policy }
+type fakeAdapter struct {
+	policies []casdoor.Policy
+	writeErr error
+}
 
 func (a *fakeAdapter) ReadPolicies(context.Context) ([]casdoor.Policy, error) {
 	return append([]casdoor.Policy(nil), a.policies...), nil
 }
 func (a *fakeAdapter) WritePolicies(_ context.Context, values []casdoor.Policy) error {
+	if a.writeErr != nil {
+		return a.writeErr
+	}
 	a.policies = append([]casdoor.Policy(nil), values...)
 	return nil
+}
+
+func TestReconcileMarksProjectionDriftedBeforeReturningMutationFailure(t *testing.T) {
+	adapter, store := &fakeAdapter{writeErr: errors.New("casdoor unavailable")}, &memoryStore{}
+	service := New(store, adapter)
+	_, err := service.Reconcile(context.Background(), ReconcileInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", CasdoorPermissionID: "acme/apimind-ins-1", ManifestVersion: 2, Policies: []casdoor.Policy{{Owner: "acme", Name: "read", PType: "p", V0: "principal-1", V1: "project:1", V2: "project.read"}}})
+	if err == nil {
+		t.Fatal("expected mutation failure")
+	}
+	if store.value.ReconciliationState != "drifted" || store.value.PolicyVersion != 1 {
+		t.Fatalf("projection=%+v", store.value)
+	}
 }
 func (a *fakeAdapter) DeletePolicies(_ context.Context, _ []casdoor.Policy) error {
 	a.policies = nil

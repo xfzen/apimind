@@ -2,7 +2,7 @@ import { apiClient } from './client'
 
 export type Resource = { id: string; name: string; type: string }
 export type ResourceSearch = { reason?: 'resource_not_visible'; resources: Resource[] }
-export type RoleBinding = { id: string; principal_id: string; role: string; resource?: Resource }
+export type RoleBinding = { id: string; subject_type: 'principal' | 'group'; subject_id: string; role: string; resource: Resource; status?: string }
 
 export async function searchResources(instanceId: string, query: string) {
   return (await apiClient.get<ResourceSearch>(`/application-instances/${encodeURIComponent(instanceId)}/resources`, { params: { query } })).data

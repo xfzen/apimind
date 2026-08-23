@@ -7,7 +7,7 @@ type AuthorizationRequest struct {
 	PolicySubject                                                                     string
 	DirectGroupIDs                                                                    []string
 	DirectGroupVersion                                                                uint64
-	Action, ResourceID, PermissionID                                                  string
+	Action, ResourceType, ResourceID, PermissionID                                    string
 	ResourceVersion                                                                   uint64
 	SessionRevoked                                                                    bool
 }

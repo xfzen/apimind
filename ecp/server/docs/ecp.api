@@ -124,6 +124,10 @@ service ecp {
 	@doc "Get the visible authorization ancestry for one product resource"
 	@handler GetProductResourceAncestry
 	get /application-instances/:id/resources/:resourceType/:resourceId/ancestry (ProductResourceReq) returns (ProductResourceListResp)
+
+	@doc "List role bindings for one application instance"
+	@handler ListRoleBindings
+	get /application-instances/:id/role-bindings (RoleBindingListReq) returns (RoleBindingListResp)
 }
 
 @server (
@@ -179,6 +183,10 @@ service ecp {
 	@doc "Reconcile projected Casdoor policies"
 	@handler ReconcilePolicies
 	post /instances/:id/policies/reconcile (ReconcilePoliciesReq) returns (PolicyProjectionResp)
+
+	@doc "Create a manifest-constrained role binding"
+	@handler CreateRoleBinding
+	post /application-instances/:id/role-bindings (RoleBindingReq) returns (RoleBindingResp)
 
 	@doc "Create a scoped service credential"
 	@handler CreateCredential

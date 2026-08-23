@@ -59,7 +59,7 @@ func baseFixture(clock *fakeClock) (*Service, *fakeEngine) {
 }
 
 func requestFor(action string) domain.AuthorizationRequest {
-	return domain.AuthorizationRequest{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "principal-1", PrincipalKind: "human", IdentityProvider: "casdoor", Action: action, ResourceID: "project-1", ResourceVersion: 1, DirectGroupVersion: 1}
+	return domain.AuthorizationRequest{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "principal-1", PrincipalKind: "human", IdentityProvider: "casdoor", Action: action, ResourceType: "project", ResourceID: "project-1", ResourceVersion: 1, DirectGroupVersion: 1}
 }
 
 func TestBlockedPrincipalOverridesPolicyAllow(t *testing.T) {
@@ -84,7 +84,7 @@ func TestRevokedServiceCredentialOverridesPolicyAllow(t *testing.T) {
 	store.identity = domain.AuthorizationIdentity{PrincipalKind: "service", IdentityProvider: "service_credential", PolicySubject: "cred-1"}
 	store.state.LifecycleState = "blocked"
 	service.store = store
-	decision, err := service.Authorize(context.Background(), domain.AuthorizationRequest{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "cred-1", Action: "project.read", ResourceID: "project-1", ResourceVersion: 1})
+	decision, err := service.Authorize(context.Background(), domain.AuthorizationRequest{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", PrincipalID: "cred-1", Action: "project.read", ResourceType: "project", ResourceID: "project-1", ResourceVersion: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
