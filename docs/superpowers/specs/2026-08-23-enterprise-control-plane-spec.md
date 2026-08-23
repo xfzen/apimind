@@ -205,9 +205,9 @@ ECP 优先使用 OIDC/OAuth 标准协议；必须使用 Casdoor 管理 API 的�
 - 维护旧系统兼容投影；
 - 暴露产品健康和版本信息。
 
-### 6.5 独立仓库、Go module 与契约生成
+### 6.5 独立边界、Go module 与契约生成
 
-ECP 作为当前仓库中的独立顶层目录建设，但其内部从一开始就是可单独提交、发布和迁出的仓库边界。目录和生成链路参照现有 ApiMind Server，不复制 YApi 兼容特例：
+ECP 作为当前单仓中的独立顶层目录建设，本阶段不拆为独立仓库，也不单独提交或发布；其内部仍保持可独立构建、部署和未来迁出的工程边界。目录和生成链路参照现有 ApiMind Server，不复制 YApi 兼容特例：
 
 ```text
 ecp/
@@ -243,8 +243,8 @@ ecp/
 
 - `ecp/server` 与 `ecp/sdk/go` 是两个独立 Go module；服务端只能依赖公开 SDK，SDK 不得导入服务端 `internal`、配置、持久化或业务实现；
 - Connector 的版本化 wire types、错误码、签名/验签和 typed client 位于 `github.com/xfzen/ecp/sdk/go/connector/v1`。产品只能依赖该 SDK module 和 ECP HTTP API，不能通过相对路径或父仓库私有包集成；
-- 当前 ApiMind 根 `go.work` 可以临时 `use ./ecp/server`、`./ecp/sdk/go` 和 `./server` 以完成本地联调，但 `go.mod` 不提交本地 `replace`；拆仓后由已发布的 SDK 版本替代 workspace 解析，import path 保持不变；
-- ApiMind 首次依赖 SDK 前，规范仓库 `github.com/xfzen/ecp` 必须存在并发布 `sdk/go/v0.1.0` 形式的子模块 tag；必须在 `GOWORK=off` 的干净临时 module 中通过下载、checksum、编译和测试。仅有本地 workspace 解析不算可发布契约；若规范仓库或 tag 尚未建立，产品集成 Gate 必须停止；
+- 当前 ApiMind 根 `go.work` 固定 `use ./ecp/server`、`./ecp/sdk/go` 和 `./server` 完成单仓构建与联调；ApiMind `go.mod` 使用 `github.com/xfzen/ecp/sdk/go v0.0.0` 作为未发布工作区依赖标记，禁止提交本地 `replace`，生产构建和测试必须从仓库根工作区执行；
+- SDK 的稳定 module/import path 从本阶段开始生效，但本阶段不要求创建规范远程仓库、tag 或 module checksum。未来决定拆仓时，必须先发布 `sdk/go/v0.1.0`（或当时确认的首个正式版本），在 `GOWORK=off` 的干净临时 module 中通过官方 Go Proxy 的下载、checksum、编译和测试，再把 ApiMind 的 `v0.0.0` 升级为已发布版本并移除根工作区 ECP `use` 项；
 - ECP 拆仓验收必须在只复制 `ecp/` 的干净目录中完成服务、SDK、UI、Compose、生成和测试，任何对父仓库 `server/`、`web/`、`deploy/` 或脚本的依赖都视为失败；
 - `ecp/server/docs/ecp.api` 是唯一 goctl HTTP 契约入口，导入 `docs/apis/*.api` 的分域类型；
 - `scripts/genapi.sh` 使用 `goctl api go -api docs/ecp.api -dir api`，并像 ApiMind 一样规范化契约文件尾部、删除不归生成器所有的 `api/etc` 与 `api/internal/config`；
@@ -893,7 +893,7 @@ ECP 达到 G0 必须同时满足：
 17. `ecp-api` 和 Casdoor 故障符合默认拒绝与受限缓存策略；身份同步超过 5 分钟后，人类及 Group 相关访问以 `identity_state_stale` 拒绝，旧 Allow 不得续期，恢复前完成增量或全量对账；
 18. 产品接入不需要复制 `ecp-api` 或 `ecp-ui` 代码；
 19. JIT通过非可信Issuer、未验证邮箱、未映射Group和跨Provider同邮箱冲突测试，均不能自动获得业务资源权限；
-20. 只复制 `ecp/` 到干净目录后，server、SDK、UI、契约生成、双数据库测试和 Compose 仍可独立通过；`sdk/go/v0.1.0` 可在 `GOWORK=off` 的干净 module 中从规范仓库解析并通过 checksum/编译/测试；ApiMind 移除根工作区 ECP `use` 项后无需修改 import path；
+20. 只复制 `ecp/` 到干净目录后，server、SDK、UI、契约生成、双数据库测试和 Compose 仍可独立通过；当前单仓中 ApiMind 通过根 `go.work` 消费 SDK 且没有本地 `replace`；未来拆仓前，正式 SDK 版本必须在 `GOWORK=off` 的干净 module 中从规范仓库解析并通过 checksum/编译/测试，ApiMind 移除根工作区 ECP `use` 项后无需修改 import path；
 21. Ed25519 Delegation 与审计归档密钥完成初始 fingerprint pin、KeySet 单调版本、Connector acknowledgement、离线降级、轮换、紧急撤销、未知 `kid`、重放、历史归档验签和带外泄露恢复测试。
 
 ## 18. Gate 0：实施前验证与输入冻结

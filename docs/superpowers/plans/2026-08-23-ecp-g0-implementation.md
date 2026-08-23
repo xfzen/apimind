@@ -15,7 +15,7 @@
 - `ecp-api`, `ecp-ui`, `casdoor_db`, `ecp_db`, and every product database remain separate deployment and data boundaries.
 - `ecp/` must build and test after being copied alone to a clean directory. ECP code cannot import or execute files from the parent ApiMind `server/`, `web/`, `deploy/`, or `Makefile`.
 - `ecp/server` uses module `github.com/xfzen/ecp/server`; `ecp/sdk/go` uses module `github.com/xfzen/ecp/sdk/go`. The SDK owns Connector v1 wire types, error codes, canonical signing/verification, and typed clients; it imports no ECP server internals.
-- The ApiMind root `go.work` is a local integration convenience only. Committed `go.mod` files use released module versions and never contain local `replace` directives.
+- The ApiMind root `go.work` is the canonical monorepo integration boundary for this phase. ApiMind records the unpublished workspace SDK as `github.com/xfzen/ecp/sdk/go v0.0.0`; committed modules never contain local `replace` directives. A released SDK version becomes mandatory only before a future repository split.
 - G0 is one ECP deployment per enterprise; all ECP rows still carry `enterprise_id`.
 - `ecp-api` is a single go-zero REST service in G0; do not introduce zRPC, Kafka, a microfrontend runtime, or a second authorization engine.
 - `ecp/server/docs/ecp.api` is the only goctl HTTP entry; `docs/apis/*.api` contains imported domain types.
@@ -255,7 +255,7 @@ rm -rf api/internal/config
 
 `bootstrap-tools.sh` verifies `versions.lock.yaml`, then builds the exact goctl and goctl-swagger versions from `ecp/tools/go.mod` into `.artifacts/toolchain/bin`; it never downloads a prebuilt binary from an unofficial source or uses the ambient PATH. Create `gencontracts.sh` with the same ordering as ApiMind: run `genapi.sh`, generate Swagger input into a temporary directory with checkout-local pinned `goctl-swagger v0.2.0`, then run `go run ./cmd/contractgen openapi <temporary-swagger-json>` to write normalized `api/openapi/v1/openapi.yaml`. Run that complete sequence twice in `tests/contracts/generation_test.go` and require byte-identical output. `ecp/.gitignore` ignores `.artifacts/`, `.run/`, service/UI `dist/`, coverage and local secrets, but not lock files.
 
-Before generating the service contract, create the SDK module and a minimal versioned Connector v1 package. `ecp/go.work` uses only `./server`, `./sdk/go`, and `./tools`; it must remain valid after `ecp/` is copied outside ApiMind. The SDK cannot import the server. The server must not add an unreleased `github.com/xfzen/ecp/sdk/go v0.1.0` requirement merely to exercise the workspace: Task 8 publishes the SDK first, and only then may the server or ApiMind add the released version. Local `replace` directives remain forbidden.
+Before generating the service contract, create the SDK module and a minimal versioned Connector v1 package. `ecp/go.work` uses only `./server`, `./sdk/go`, and `./tools`; it must remain valid after `ecp/` is copied outside ApiMind. The SDK cannot import the server. ECP Server does not require its own SDK merely to exercise the workspace. ApiMind records the local workspace SDK as `github.com/xfzen/ecp/sdk/go v0.0.0` in Task 13; local `replace` directives remain forbidden.
 
 `verify-boundary.sh` is incremental: it copies only `ecp/` into a clean temporary directory, rejects imports or script paths into the parent repository, and tests every ECP component that exists at the current task. It tests `tools`, `sdk/go`, and `server` as isolated modules with `GOWORK=off`; do not run `go work sync`, because merging generator and runtime build lists leaks tool-only transitive versions into the service graph. Task 1 requires SDK/server/tooling to pass; Task 11 adds UI checks. It does not claim deployment completeness. Task 16 adds `verify-standalone.sh`, which requires every final component including Compose and dual-dialect operations.
 
@@ -975,9 +975,9 @@ git add ecp/server ecp/sdk/go
 git commit -m "feat(ecp): add connector contract"
 ```
 
-- [ ] **Step 7: Publish the first independently consumable SDK before ApiMind integration**
+- [x] **Step 7: Validate the monorepo-consumable SDK boundary before ApiMind integration**
 
-Task 13 is blocked until the canonical `github.com/xfzen/ecp` repository exists and contains this exact ECP source commit. Publishing or pushing is an external action and requires explicit user authorization during execution. Create annotated submodule tag `sdk/go/v0.1.0`, publish it from that canonical repository, then verify from a clean temporary module with `GOWORK=off` that `go get github.com/xfzen/ecp/sdk/go@v0.1.0`, `go mod verify`, SDK tests and a minimal import all pass through the official Go module path. Record tag, source commit and module checksum in `ecp/sdk/go/RELEASE.md` and `versions.lock.yaml`. A local `go.work` success is not release evidence; if the canonical repository or tag is unavailable, stop before Task 13.
+The confirmed delivery model keeps ECP in the current monorepo for this phase; do not create, push, or separately submit a canonical ECP repository or SDK tag. Task 13 may proceed after `scripts/verify-release.sh`, SDK tests, the ECP clean-copy boundary check, and an ApiMind import-boundary test prove that consumers use only `github.com/xfzen/ecp/sdk/go/connector/v1`. Root `go.work` supplies the local module while ApiMind records `github.com/xfzen/ecp/sdk/go v0.0.0`; no module may contain a local `replace`. `ecp/sdk/go/RELEASE.md` records publication as deliberately deferred, not as a current integration blocker. If ECP is split later, publishing and official-proxy verification become a mandatory pre-split gate before the root workspace entries are removed.
 
 ### Task 9: Add service principals, scoped credentials, rotation, and revocation
 
@@ -1453,7 +1453,7 @@ cd server
 
 Do not add a second generator or edit generated routes/types manually.
 
-Add exact requirement `github.com/xfzen/ecp/sdk/go v0.1.0` to `server/go.mod`; do not add a local `replace`. Before editing ApiMind, rerun the Task 8 release check with `GOWORK=off`; stop if the canonical tag or checksum cannot be resolved. During the integrated checkout, root `go.work` uses `./server`, `./ecp/server`, and `./ecp/sdk/go`, so tests additionally exercise current SDK source. `go list -m` tests must prove ApiMind imports only `github.com/xfzen/ecp/sdk/go/connector/v1`, and `ecp/scripts/verify-boundary.sh` must still pass after root workspace integration. When ECP is moved to its own repository, remove only the ECP `use` entries and update the SDK version; source import paths remain unchanged.
+Add exact workspace requirement `github.com/xfzen/ecp/sdk/go v0.0.0` to `server/go.mod`; do not add a local `replace`. Root `go.work` uses `./server`, `./ecp/server`, and `./ecp/sdk/go`, making the monorepo build the canonical integration path for this phase. `go list -m` tests must prove ApiMind imports only `github.com/xfzen/ecp/sdk/go/connector/v1`, `GOWORK=off` must continue to pass for the copied ECP boundary, and `ecp/scripts/verify-boundary.sh` must still pass after root workspace integration. If ECP is moved to its own repository later, first publish and verify the SDK through the official Go Proxy, replace `v0.0.0` with that release, then remove only the ECP `use` entries; source import paths remain unchanged.
 
 - [ ] **Step 4: Implement one backend authorization entry**
 
@@ -1726,7 +1726,7 @@ cd ../..
 
 Expected: PASS. `verify-standalone.sh` copies only `ecp/` to a clean temporary directory and runs pinned input verification, SDK/server tests, contract regeneration, UI install/typecheck/test/build, both migration dialects and Compose configuration without reading parent ApiMind files.
 
-- [ ] **Step 7: Commit the standalone ECP deliverable separately from ApiMind glue**
+- [ ] **Step 7: Commit the deployable ECP boundary and ApiMind glue as monorepo phases**
 
 ```bash
 git add ecp
@@ -1735,7 +1735,7 @@ git add deploy/docker-compose.dev.yml Makefile docs/quick-start.md
 git commit -m "feat(apimind): add ecp local integration"
 ```
 
-The first commit must contain only paths beneath `ecp/` and must pass `verify-standalone.sh` by itself. The second commit contains ApiMind repository integration only. This separation is required so the ECP commit can be exported or submitted to the canonical ECP repository without filtering unrelated product files.
+The first commit contains the deployable ECP boundary and must pass `verify-standalone.sh`; the second contains ApiMind integration. Both remain ordinary commits in this monorepo. Do not create, push, or separately submit an ECP repository in this phase. The path separation preserves reviewability and makes a later, explicitly approved extraction possible without making extraction part of G0 delivery.
 
 ### Task 17: Execute the G0 acceptance matrix and close documentation
 
@@ -1819,7 +1819,7 @@ git commit -m "test(ecp): verify g0 acceptance"
 | Confirmed requirement | Implemented by | Gate evidence |
 | --- | --- | --- |
 | Feasibility proven and every official build/runtime input frozen | Task 0 | Casdoor/Casbin, dialect, N/N-1, backup/restore prototypes, standalone validation bundle and `versions.lock.yaml` verification |
-| ECP is independently buildable and its public Connector SDK keeps stable module paths after extraction | Tasks 1, 8, 13, 16 and 17 | canonical `sdk/go/v0.1.0` release check, ECP-only clean-directory build, module-boundary scan, SDK contract/signature tests |
+| ECP is independently buildable and its public Connector SDK keeps stable module paths after extraction | Tasks 1, 8, 13, 16 and 17 | monorepo workspace consumption without `replace`, ECP-only clean-directory build, module-boundary scan, SDK contract/signature tests; official-proxy release verification is a future pre-split gate |
 | Independent `ecp-api`, deterministic go-zero contracts, thin Handler/Logic | Tasks 1–3 | repeated generation diff, build, registry contract tests |
 | Separate `ecp_db`, PostgreSQL/MySQL compatibility, reversible migrations | Tasks 2–10, 16 | both dialects run up/down/up and empty restore |
 | Casdoor adapter, explicit OIDC clients, PKCE, exact redirects, no production DCR | Tasks 4 and 6 | adapter, router, callback, replay, and cookie-boundary tests |
@@ -1829,7 +1829,7 @@ git commit -m "test(ecp): verify g0 acceptance"
 | Scoped machine identities, one-time secret display, rotation and revocation | Task 9 | digest-only persistence, scope, overlap, expiry, and revocation tests |
 | Append-only audit, writer separation, transactional ECP events, signed archive | Task 10 | PostgreSQL/MySQL grants, rollback, redaction, archive verification |
 | Shared React + Ant Design + Tailwind CSS + Vite administration UI | Tasks 11 and 12 | same-origin, session, style-boundary, manifest, stale-state, and build tests |
-| Minimal ApiMind Connector and Web entry integration without YApi Web rewrite | Task 13 | released SDK, Connector, generation, resource, projection, community/enterprise mode and minimal Web tests |
+| Minimal ApiMind Connector and Web entry integration without YApi Web rewrite | Task 13 | workspace SDK boundary, Connector, generation, resource, projection, community/enterprise mode and minimal Web tests |
 | One ApiMind authorization path across HTTP/MCP/Mock/import/export/background work | Task 14 | complete surface inventory and cross-surface decision equivalence tests |
 | Bounded legacy-auth migration with no silent enterprise fallback | Task 15 | mode, dual-session, deadline, cutoff and rollback tests |
 | Low-threshold deployment, latest-instance-only local start, backup/restore, export/offboarding | Task 16 | Compose policy, validated PID handling, preflight, empty restore, export/offboard and BackupStatus tests |
