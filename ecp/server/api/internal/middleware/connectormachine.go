@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-type ConnectorClaims struct{ EnterpriseID, ApplicationInstanceID, ConnectorID string }
+type ConnectorClaims struct {
+	EnterpriseID, ApplicationID, ApplicationInstanceID, ConnectorID, Channel string
+	Scopes                                                                   []string
+}
 type connectorContextKey struct{}
 type ConnectorCredentialVerifier interface {
 	VerifyConnectorCredential(context.Context, string, string) (ConnectorClaims, error)

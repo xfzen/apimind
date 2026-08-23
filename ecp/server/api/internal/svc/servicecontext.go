@@ -13,6 +13,7 @@ import (
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
+	connectorservice "github.com/xfzen/ecp/server/internal/service/connector"
 	idempotencyservice "github.com/xfzen/ecp/server/internal/service/idempotency"
 	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
 	lifecycleservice "github.com/xfzen/ecp/server/internal/service/lifecycle"
@@ -39,12 +40,14 @@ type ServiceContext struct {
 	Access         *accessservice.Service
 	Policy         *policyservice.Service
 	SecurityConfig *securityconfigservice.Service
+	Connector      *connectorservice.Service
 
 	AdminSession       rest.Middleware
 	CSRF               rest.Middleware
 	IdempotencyHeaders rest.Middleware
 	RateLimit          rest.Middleware
 	ConnectorMachine   rest.Middleware
+	OperatorMachine    rest.Middleware
 }
 
 func NewServiceContext(cfg config.Config) *ServiceContext {
@@ -73,12 +76,14 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.Sessions = sessionservice.NewWithSecurity(persistence.NewSessionStore(db), nil, cfg.Session.TTL, verifier, identityPrincipalResolver{service: ctx.Identity})
 		ctx.Idempotency = idempotencyservice.New(persistence.NewIdempotencyStore(db))
 		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
+		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
 	}
 	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
 	ctx.CSRF = asRestMiddleware(apiMiddleware.NewCSRF().Handle)
 	ctx.IdempotencyHeaders = asRestMiddleware(apiMiddleware.NewIdempotency(ctx.Idempotency).Handle)
 	ctx.RateLimit = asRestMiddleware(apiMiddleware.NewRateLimit(30, time.Minute).Handle)
-	ctx.ConnectorMachine = asRestMiddleware(apiMiddleware.NewConnectorMachine(nil).Handle)
+	ctx.ConnectorMachine = asRestMiddleware(apiMiddleware.NewConnectorMachine(connectorCredentialAdapter{service: ctx.Connector}).Handle)
+	ctx.OperatorMachine = asRestMiddleware(apiMiddleware.NewOperatorMachine(operatorCredentialAdapter{service: ctx.Connector}).Handle)
 	if cfg.Casdoor.Enabled {
 		client, err := casdoor.NewClient(casdoor.Config{
 			BaseURL: cfg.Casdoor.BaseURL, EnterpriseID: cfg.Casdoor.EnterpriseID,
@@ -106,6 +111,30 @@ func asRestMiddleware(handle func(http.Handler) http.Handler) rest.Middleware {
 type envSecretProvider struct{}
 
 type identityPrincipalResolver struct{ service *identityservice.Service }
+type connectorCredentialAdapter struct{ service *connectorservice.Service }
+type operatorCredentialAdapter struct{ service *connectorservice.Service }
+
+func (a connectorCredentialAdapter) VerifyConnectorCredential(ctx context.Context, id, secret string) (apiMiddleware.ConnectorClaims, error) {
+	if a.service == nil {
+		return apiMiddleware.ConnectorClaims{}, fmt.Errorf("connector service unavailable")
+	}
+	claims, err := a.service.AuthenticateInboundCredential(ctx, id, secret)
+	if err != nil {
+		return apiMiddleware.ConnectorClaims{}, err
+	}
+	return apiMiddleware.ConnectorClaims{ConnectorID: claims.ConnectorID, EnterpriseID: claims.EnterpriseID, ApplicationID: claims.ApplicationID, ApplicationInstanceID: claims.InstanceID, Channel: claims.Channel, Scopes: claims.Scopes}, nil
+}
+
+func (a operatorCredentialAdapter) VerifyOperatorCredential(ctx context.Context, id, secret string) (apiMiddleware.OperatorClaims, error) {
+	if a.service == nil {
+		return apiMiddleware.OperatorClaims{}, fmt.Errorf("connector service unavailable")
+	}
+	claims, err := a.service.AuthenticateKeySetOperator(ctx, id, secret)
+	if err != nil {
+		return apiMiddleware.OperatorClaims{}, err
+	}
+	return apiMiddleware.OperatorClaims{CredentialID: claims.ConnectorID, Scopes: claims.Scopes}, nil
+}
 
 func (r identityPrincipalResolver) ResolvePrincipal(ctx context.Context, enterpriseID, issuer, subject string) (string, error) {
 	if r.service == nil {

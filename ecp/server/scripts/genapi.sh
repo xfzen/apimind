@@ -16,3 +16,4 @@ rm -f api/internal/middleware/connectormachinemiddleware.go
 rm -f api/internal/middleware/csrfmiddleware.go
 rm -f api/internal/middleware/idempotencyheadersmiddleware.go
 rm -f api/internal/middleware/ratelimitmiddleware.go
+rm -f api/internal/middleware/operatormachinemiddleware.go

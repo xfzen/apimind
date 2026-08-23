@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
@@ -33,11 +34,26 @@ func (l *RegisterConnectorLogic) RegisterConnector(req *types.RegisterConnectorR
 	if req == nil || l.svcCtx.Registry == nil {
 		return nil, fmt.Errorf("registry is unavailable")
 	}
+	if l.svcCtx.Connector == nil {
+		return nil, fmt.Errorf("connector service unavailable")
+	}
+	contextClaims, found := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
+	if !found || contextClaims.ApplicationInstanceID != req.InstanceID || contextClaims.EnterpriseID != req.EnterpriseID || contextClaims.ApplicationID != req.ApplicationID {
+		return nil, fmt.Errorf("connector_scope_denied")
+	}
+	claims, err := connectorClaims(contextClaims, "keyset.read")
+	if err != nil {
+		return nil, err
+	}
+	keyset, rootFingerprint, err := l.svcCtx.Connector.GetDelegationKeySet(l.ctx, claims)
+	if err != nil {
+		return nil, err
+	}
 	value, err := l.svcCtx.Registry.RegisterConnector(l.ctx, registryservice.RegisterConnectorInput{
 		EnterpriseID: req.EnterpriseID, ApplicationID: req.ApplicationID, InstanceID: req.InstanceID, ConnectorKey: req.ConnectorKey,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &types.ConnectorResp{ID: value.ID, EnterpriseID: value.EnterpriseID, ApplicationID: value.ApplicationID, InstanceID: value.InstanceID, ConnectorKey: value.ConnectorKey, Status: value.Status, Version: value.Version}, nil
+	return &types.ConnectorResp{ID: value.ID, EnterpriseID: value.EnterpriseID, ApplicationID: value.ApplicationID, InstanceID: value.InstanceID, ConnectorKey: value.ConnectorKey, Status: value.Status, Version: value.Version, RootFingerprint: rootFingerprint, DelegationKeySet: *keySetResponse(keyset, rootFingerprint)}, nil
 }

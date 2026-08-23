@@ -8,12 +8,22 @@ import (
 
 type Config struct {
 	rest.RestConf
-	Build    BuildConfig
-	Database DatabaseConfig `json:",optional"`
-	Casdoor  CasdoorConfig  `json:",optional"`
-	OIDC     OIDCConfig     `json:",optional"`
-	Identity IdentityConfig `json:",optional"`
-	Session  SessionConfig  `json:",optional"`
+	Build     BuildConfig
+	Database  DatabaseConfig  `json:",optional"`
+	Casdoor   CasdoorConfig   `json:",optional"`
+	OIDC      OIDCConfig      `json:",optional"`
+	Identity  IdentityConfig  `json:",optional"`
+	Session   SessionConfig   `json:",optional"`
+	Connector ConnectorConfig `json:",optional"`
+}
+
+type ConnectorConfig struct {
+	Issuer                     string        `json:",default=ecp"`
+	RootPublicKeyReference     string        `json:",optional"`
+	RootFingerprint            string        `json:",optional"`
+	SigningPrivateKeyReference string        `json:",optional"`
+	ActiveSigningKeyID         string        `json:",optional"`
+	ClockSkew                  time.Duration `json:",default=30s"`
 }
 
 type CasdoorConfig struct {

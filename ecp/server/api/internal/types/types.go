@@ -3,6 +3,11 @@
 
 package types
 
+type AckDelegationKeySetReq struct {
+	Version        uint64   `json:"version"`
+	AcceptedKeyIDs []string `json:"accepted_key_ids"`
+}
+
 type AddGroupMemberReq struct {
 	GroupID      string `path:"id"`
 	EnterpriseID string `json:"enterprise_id"`
@@ -88,19 +93,62 @@ type BlockPrincipalReq struct {
 	EnterpriseID string `json:"enterprise_id"`
 }
 
+type ConnectorAuditEvent struct {
+	OperationID  string `json:"operation_id"`
+	Action       string `json:"action"`
+	ResourceType string `json:"resource_type"`
+	ResourceID   string `json:"resource_id"`
+	Outcome      string `json:"outcome"`
+	OccurredAt   int64  `json:"occurred_at"`
+}
+
+type ConnectorHeartbeatReq struct {
+	InstanceID string `json:"instance_id"`
+	Version    string `json:"version"`
+	ObservedAt int64  `json:"observed_at"`
+}
+
+type ConnectorHeartbeatResp struct {
+	Accepted bool `json:"accepted"`
+}
+
 type ConnectorResp struct {
-	ID            string `json:"id"`
-	EnterpriseID  string `json:"enterprise_id"`
-	ApplicationID string `json:"application_id"`
-	InstanceID    string `json:"instance_id"`
-	ConnectorKey  string `json:"connector_key"`
-	Status        string `json:"status"`
-	Version       uint64 `json:"version"`
+	ID               string               `json:"id"`
+	EnterpriseID     string               `json:"enterprise_id"`
+	ApplicationID    string               `json:"application_id"`
+	InstanceID       string               `json:"instance_id"`
+	ConnectorKey     string               `json:"connector_key"`
+	Status           string               `json:"status"`
+	Version          uint64               `json:"version"`
+	RootFingerprint  string               `json:"root_fingerprint"`
+	DelegationKeySet DelegationKeySetResp `json:"delegation_key_set"`
 }
 
 type CreateGroupReq struct {
 	EnterpriseID string `json:"enterprise_id"`
 	Name         string `json:"name"`
+}
+
+type DelegationKeyItem struct {
+	KeyID     string `json:"kid"`
+	Algorithm string `json:"alg"`
+	PublicKey string `json:"public_key"`
+	NotBefore int64  `json:"not_before"`
+	NotAfter  int64  `json:"not_after"`
+	Status    string `json:"status"`
+}
+
+type DelegationKeySetResp struct {
+	Version             uint64              `json:"version"`
+	Purpose             string              `json:"purpose"`
+	PreviousVersion     uint64              `json:"previous_version"`
+	PreviousFingerprint string              `json:"previous_fingerprint"`
+	Keys                []DelegationKeyItem `json:"keys"`
+	PayloadHash         string              `json:"payload_hash"`
+	SigningKeyID        string              `json:"signing_kid"`
+	RootSignature       string              `json:"root_signature"`
+	Fingerprint         string              `json:"fingerprint"`
+	RootFingerprint     string              `json:"root_fingerprint"`
 }
 
 type Empty struct {
@@ -132,6 +180,10 @@ type HealthResp struct {
 	Version string `json:"version"`
 }
 
+type IngestConnectorAuditReq struct {
+	Events []ConnectorAuditEvent `json:"events"`
+}
+
 type InstanceResp struct {
 	ID            string `json:"id"`
 	EnterpriseID  string `json:"enterprise_id"`
@@ -141,6 +193,22 @@ type InstanceResp struct {
 	CanonicalURL  string `json:"canonical_url"`
 	Status        string `json:"status"`
 	Version       uint64 `json:"version"`
+}
+
+type LifecycleChangeItem struct {
+	PrincipalID string `json:"principal_id"`
+	State       string `json:"state"`
+	Version     uint64 `json:"version"`
+}
+
+type LifecyclePollReq struct {
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit"`
+}
+
+type LifecyclePollResp struct {
+	Changes    []LifecycleChangeItem `json:"changes"`
+	NextCursor string                `json:"next_cursor"`
 }
 
 type LifecycleResp struct {
@@ -181,6 +249,16 @@ type PolicyProjectionResp struct {
 	ReconciliationState   string `json:"reconciliation_state"`
 }
 
+type PolicyVersionReq struct {
+	InstanceID string `path:"id"`
+}
+
+type PolicyVersionResp struct {
+	Version       uint64 `json:"version"`
+	State         string `json:"state"`
+	CanonicalHash string `json:"canonical_hash"`
+}
+
 type PrincipalResp struct {
 	ID              string `json:"id"`
 	EnterpriseID    string `json:"enterprise_id"`
@@ -200,6 +278,13 @@ type ProductLoginExchangeResp struct {
 	SessionToken string `json:"session_token"`
 	CSRFToken    string `json:"csrf_token"`
 	ExpiresAt    int64  `json:"expires_at"`
+}
+
+type PublishDelegationKeySetReq struct {
+	Algorithm    string `json:"alg"`
+	SigningKeyID string `json:"signing_kid"`
+	Payload      string `json:"payload"`
+	Signature    string `json:"signature"`
 }
 
 type PutManifestReq struct {
@@ -249,6 +334,18 @@ type RegisterInstanceReq struct {
 	InstanceKey   string `json:"instance_key"`
 	Environment   string `json:"environment,optional"`
 	CanonicalURL  string `json:"canonical_url"`
+}
+
+type ResolveProductSessionReq struct {
+	InstanceID   string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
+
+type ResolveProductSessionResp struct {
+	PrincipalID      string `json:"principal_id"`
+	Revoked          bool   `json:"revoked"`
+	ExpiresAt        int64  `json:"expires_at"`
+	LifecycleVersion uint64 `json:"lifecycle_version"`
 }
 
 type RevokeSessionReq struct {

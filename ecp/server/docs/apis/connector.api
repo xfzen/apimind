@@ -15,4 +15,87 @@ type ConnectorResp {
 	ConnectorKey  string `json:"connector_key"`
 	Status        string `json:"status"`
 	Version       uint64 `json:"version"`
+	RootFingerprint string `json:"root_fingerprint"`
+	DelegationKeySet DelegationKeySetResp `json:"delegation_key_set"`
+}
+
+type ConnectorHeartbeatReq {
+	InstanceID string `json:"instance_id"`
+	Version string `json:"version"`
+	ObservedAt int64 `json:"observed_at"`
+}
+type ConnectorHeartbeatResp {
+	Accepted bool `json:"accepted"`
+}
+type ResolveProductSessionReq {
+	InstanceID string `json:"instance_id"`
+	SessionToken string `json:"session_token"`
+}
+type ResolveProductSessionResp {
+	PrincipalID string `json:"principal_id"`
+	Revoked bool `json:"revoked"`
+	ExpiresAt int64 `json:"expires_at"`
+	LifecycleVersion uint64 `json:"lifecycle_version"`
+}
+type PolicyVersionReq {
+	InstanceID string `path:"id"`
+}
+type PolicyVersionResp {
+	Version uint64 `json:"version"`
+	State string `json:"state"`
+	CanonicalHash string `json:"canonical_hash"`
+}
+type LifecyclePollReq {
+	Cursor string `json:"cursor"`
+	Limit int `json:"limit"`
+}
+type LifecycleChangeItem {
+	PrincipalID string `json:"principal_id"`
+	State string `json:"state"`
+	Version uint64 `json:"version"`
+}
+type LifecyclePollResp {
+	Changes []LifecycleChangeItem `json:"changes"`
+	NextCursor string `json:"next_cursor"`
+}
+type ConnectorAuditEvent {
+	OperationID string `json:"operation_id"`
+	Action string `json:"action"`
+	ResourceType string `json:"resource_type"`
+	ResourceID string `json:"resource_id"`
+	Outcome string `json:"outcome"`
+	OccurredAt int64 `json:"occurred_at"`
+}
+type IngestConnectorAuditReq {
+	Events []ConnectorAuditEvent `json:"events"`
+}
+type DelegationKeyItem {
+	KeyID string `json:"kid"`
+	Algorithm string `json:"alg"`
+	PublicKey string `json:"public_key"`
+	NotBefore int64 `json:"not_before"`
+	NotAfter int64 `json:"not_after"`
+	Status string `json:"status"`
+}
+type DelegationKeySetResp {
+	Version uint64 `json:"version"`
+	Purpose string `json:"purpose"`
+	PreviousVersion uint64 `json:"previous_version"`
+	PreviousFingerprint string `json:"previous_fingerprint"`
+	Keys []DelegationKeyItem `json:"keys"`
+	PayloadHash string `json:"payload_hash"`
+	SigningKeyID string `json:"signing_kid"`
+	RootSignature string `json:"root_signature"`
+	Fingerprint string `json:"fingerprint"`
+	RootFingerprint string `json:"root_fingerprint"`
+}
+type AckDelegationKeySetReq {
+	Version uint64 `json:"version"`
+	AcceptedKeyIDs []string `json:"accepted_key_ids"`
+}
+type PublishDelegationKeySetReq {
+	Algorithm string `json:"alg"`
+	SigningKeyID string `json:"signing_kid"`
+	Payload string `json:"payload"`
+	Signature string `json:"signature"`
 }

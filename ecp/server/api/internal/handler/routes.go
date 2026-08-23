@@ -11,6 +11,7 @@ import (
 	authPublic "github.com/xfzen/ecp/server/api/internal/handler/authPublic"
 	connectorMachine "github.com/xfzen/ecp/server/api/internal/handler/connectorMachine"
 	metaPublic "github.com/xfzen/ecp/server/api/internal/handler/metaPublic"
+	operatorMachine "github.com/xfzen/ecp/server/api/internal/handler/operatorMachine"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -169,10 +170,52 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: connectorMachine.BatchAuthorizeHandler(serverCtx),
 				},
 				{
+					// Ingest product audit events
+					Method:  http.MethodPost,
+					Path:    "/connector/audit/events",
+					Handler: connectorMachine.IngestConnectorAuditHandler(serverCtx),
+				},
+				{
 					// Exchange a one-time product login transaction
 					Method:  http.MethodPost,
 					Path:    "/connector/auth/exchange",
 					Handler: connectorMachine.ExchangeProductLoginHandler(serverCtx),
+				},
+				{
+					// Report product Connector health
+					Method:  http.MethodPost,
+					Path:    "/connector/heartbeat",
+					Handler: connectorMachine.ConnectorHeartbeatHandler(serverCtx),
+				},
+				{
+					// Get the current policy projection version
+					Method:  http.MethodGet,
+					Path:    "/connector/instances/:id/policy-version",
+					Handler: connectorMachine.GetPolicyVersionHandler(serverCtx),
+				},
+				{
+					// Poll principal lifecycle changes
+					Method:  http.MethodPost,
+					Path:    "/connector/lifecycle/poll",
+					Handler: connectorMachine.PollLifecycleChangesHandler(serverCtx),
+				},
+				{
+					// Resolve a product session
+					Method:  http.MethodPost,
+					Path:    "/connector/sessions/resolve",
+					Handler: connectorMachine.ResolveProductSessionHandler(serverCtx),
+				},
+				{
+					// Get the signed Delegation verification KeySet
+					Method:  http.MethodGet,
+					Path:    "/connector/signing-keys/delegation",
+					Handler: connectorMachine.GetDelegationKeySetHandler(serverCtx),
+				},
+				{
+					// Acknowledge the exact accepted Delegation KeySet
+					Method:  http.MethodPost,
+					Path:    "/connector/signing-keys/delegation/ack",
+					Handler: connectorMachine.AckDelegationKeySetHandler(serverCtx),
 				},
 				{
 					// Register a product connector
@@ -200,6 +243,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: metaPublic.VersionHandler(serverCtx),
 			},
 		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.OperatorMachine, serverCtx.IdempotencyHeaders, serverCtx.RateLimit},
+			[]rest.Route{
+				{
+					// Publish an offline-root-signed Delegation KeySet
+					Method:  http.MethodPost,
+					Path:    "/operator/signing-keys/delegation",
+					Handler: operatorMachine.PublishDelegationKeySetHandler(serverCtx),
+				},
+			}...,
+		),
 		rest.WithPrefix("/api/v1"),
 	)
 }

@@ -6,8 +6,15 @@ tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/ecp-boundary.XXXXXX")
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 GOCACHE="$tmp_dir/go-build-cache"
 export GOCACHE
-cp -R "$ecp_dir" "$tmp_dir/ecp"
-rm -rf "$tmp_dir/ecp/.artifacts" "$tmp_dir/ecp/.run" "$tmp_dir/ecp/server/dist" "$tmp_dir/ecp/ui/dist" "$tmp_dir/ecp/ui/node_modules"
+mkdir -p "$tmp_dir/ecp"
+rsync -a \
+  --exclude '/.artifacts/' \
+  --exclude '/.run/' \
+  --exclude '/server/.run/' \
+  --exclude '/server/dist/' \
+  --exclude '/ui/dist/' \
+  --exclude '/ui/node_modules/' \
+  "$ecp_dir/" "$tmp_dir/ecp/"
 
 if grep -R -n -E '(^|["[:space:]])(\.\./)+(server|web|deploy)/|github.com/xfzen/apimind' \
   "$tmp_dir/ecp/server" "$tmp_dir/ecp/sdk" "$tmp_dir/ecp/scripts" 2>/dev/null \
@@ -17,8 +24,8 @@ if grep -R -n -E '(^|["[:space:]])(\.\./)+(server|web|deploy)/|github.com/xfzen/
 fi
 
 cd "$tmp_dir/ecp"
-(cd sdk/go && GOWORK=off GOTOOLCHAIN=go1.25.12 go test ./...)
-(cd server && GOWORK=off GOTOOLCHAIN=go1.25.12 go test ./...)
+(cd sdk/go && GOWORK=off GOTOOLCHAIN=go1.25.12 go test -p 1 ./...)
+(cd server && GOWORK=off GOTOOLCHAIN=go1.25.12 go test -p 1 ./...)
 (cd tools && GOWORK=off GOTOOLCHAIN=go1.25.12 go mod verify)
 
 if [ -f ui/package.json ]; then

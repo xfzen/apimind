@@ -143,4 +143,43 @@ service ecp {
 	@doc "Authorize a batch of product operations"
 	@handler BatchAuthorize
 	post /access/batch (BatchAuthorizeReq) returns (BatchAuthorizeResp)
+
+	@doc "Report product Connector health"
+	@handler ConnectorHeartbeat
+	post /connector/heartbeat (ConnectorHeartbeatReq) returns (ConnectorHeartbeatResp)
+
+	@doc "Resolve a product session"
+	@handler ResolveProductSession
+	post /connector/sessions/resolve (ResolveProductSessionReq) returns (ResolveProductSessionResp)
+
+	@doc "Get the current policy projection version"
+	@handler GetPolicyVersion
+	get /connector/instances/:id/policy-version (PolicyVersionReq) returns (PolicyVersionResp)
+
+	@doc "Poll principal lifecycle changes"
+	@handler PollLifecycleChanges
+	post /connector/lifecycle/poll (LifecyclePollReq) returns (LifecyclePollResp)
+
+	@doc "Ingest product audit events"
+	@handler IngestConnectorAudit
+	post /connector/audit/events (IngestConnectorAuditReq) returns (Empty)
+
+	@doc "Get the signed Delegation verification KeySet"
+	@handler GetDelegationKeySet
+	get /connector/signing-keys/delegation returns (DelegationKeySetResp)
+
+	@doc "Acknowledge the exact accepted Delegation KeySet"
+	@handler AckDelegationKeySet
+	post /connector/signing-keys/delegation/ack (AckDelegationKeySetReq) returns (Empty)
+}
+
+@server (
+	group:      operatorMachine
+	prefix:     /api/v1
+	middleware: OperatorMachine,IdempotencyHeaders,RateLimit
+)
+service ecp {
+	@doc "Publish an offline-root-signed Delegation KeySet"
+	@handler PublishDelegationKeySet
+	post /operator/signing-keys/delegation (PublishDelegationKeySetReq) returns (DelegationKeySetResp)
 }

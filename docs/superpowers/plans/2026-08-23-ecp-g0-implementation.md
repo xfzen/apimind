@@ -905,7 +905,7 @@ git commit -m "feat(ecp): add policy authorization"
 - Trust channels: Product-to-ECP Connector credential and ECP-to-product outbound credential use distinct client IDs, secret references, audiences, scopes, rotation lineages, and replay stores; neither can call Casdoor APIs or perform OIDC code exchange.
 - Cryptography: Connector SDK canonical encoding plus Ed25519 Delegation signing/verification with explicit `alg=EdDSA`, `kid`, issuer, audience and purpose; no algorithm negotiation or server-internal types cross the module boundary. `GET /api/v1/connector/signing-keys/delegation` and `POST /api/v1/connector/signing-keys/delegation/ack` belong to `connector-machine` and require instance-scoped `keyset.read`/`keyset.ack` scopes.
 
-- [ ] **Step 1: Write confused-deputy, audience, expiry, and replay tests**
+- [x] **Step 1: Write confused-deputy, audience, expiry, and replay tests**
 
 ```go
 func TestDelegationCannotCrossInstance(t *testing.T) {
@@ -923,13 +923,13 @@ func TestInboundConnectorCredentialCannotAuthenticateOutboundCall(t *testing.T) 
 }
 ```
 
-- [ ] **Step 2: Run Connector tests and verify failure**
+- [x] **Step 2: Run Connector tests and verify failure**
 
 Run: `cd ecp && go test ./sdk/go/connector/v1 -count=1 && cd server && ./scripts/gencontracts.sh && go test ./internal/service/connector ./internal/infra/connector ./tests/contracts -count=1`
 
 Expected: FAIL because Connector types and signing do not exist.
 
-- [ ] **Step 3: Implement the delegation envelope**
+- [x] **Step 3: Implement the delegation envelope**
 
 ```go
 type Delegation struct {
@@ -958,17 +958,17 @@ Delegation signing private keys are loaded only through `SecretProvider`. A sepa
 
 Rotate by publishing the new public key, waiting until every required online Connector acknowledges it, switching signing, retaining the old verification key for at least maximum token lifetime + clock skew + key-cache TTL, then revoking the old private key. Offline Connectors remain degraded and cannot receive new signed administration work until they fetch and acknowledge the required set. Unknown `kid`, unverified key-set replacement, stale set outside its declared validity and algorithm mismatch fail closed. Emergency revocation publishes a new monotonic set version; root/fingerprint compromise requires explicit out-of-band re-bootstrap and cannot be repaired by the compromised online channel. Key generation, activation, acknowledgement, rotation, rollback and revocation are audited. Audit archive keys use a separate purpose and verifier bundle and retain historic public keys for the full audit retention period.
 
-- [ ] **Step 4: Implement product resource redaction rules**
+- [x] **Step 4: Implement product resource redaction rules**
 
 `SearchResources` and `ResolveResource` return only resources authorized for the delegated actor. Unauthorized ID, name, and existence all use the same stable denial response.
 
-- [ ] **Step 5: Run Connector and key-distribution tests**
+- [x] **Step 5: Run Connector and key-distribution tests**
 
 Run: `cd ecp && go test ./sdk/go/connector/v1 -count=1 && cd server && go test ./internal/service/connector ./internal/infra/connector -count=1`
 
 Expected: PASS, including first root pin, invalid root signature, broken previous-fingerprint chain, key-set version rollback, Connector/browser publish rejection, missing acknowledgement, offline Connector, unknown `kid`, emergency revocation and out-of-band root re-bootstrap tests.
 
-- [ ] **Step 6: Commit the Connector contract**
+- [x] **Step 6: Commit the Connector contract**
 
 ```bash
 git add ecp/server ecp/sdk/go
