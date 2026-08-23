@@ -12,6 +12,36 @@ type memoryIdentityStore struct {
 	principals map[string]domain.Principal
 	groups     map[string]domain.IdentityGroup
 	members    map[string][]string
+	mappings   map[string]domain.LegacyIdentityMapping
+}
+
+func (s *memoryIdentityStore) GetPrincipal(_ context.Context, enterpriseID, id string) (domain.Principal, bool, error) {
+	value, found := s.principals[id]
+	return value, found && value.EnterpriseID == enterpriseID, nil
+}
+func (s *memoryIdentityStore) FindLegacyIdentityMapping(_ context.Context, enterpriseID, applicationID, source, subject string) (domain.LegacyIdentityMapping, bool, error) {
+	value, found := s.mappings[enterpriseID+"\x00"+applicationID+"\x00"+source+"\x00"+subject]
+	return value, found, nil
+}
+
+func (s *memoryIdentityStore) FindLegacyIdentityMappingByPrincipal(_ context.Context, enterpriseID, applicationID, source, principalID string) (domain.LegacyIdentityMapping, bool, error) {
+	for _, value := range s.mappings {
+		if value.EnterpriseID == enterpriseID && value.ApplicationID == applicationID && value.LegacySource == source && value.PrincipalID == principalID {
+			return value, true, nil
+		}
+	}
+	return domain.LegacyIdentityMapping{}, false, nil
+}
+func (s *memoryIdentityStore) PutLegacyIdentityMapping(_ context.Context, value domain.LegacyIdentityMapping) (domain.LegacyIdentityMapping, error) {
+	if s.mappings == nil {
+		s.mappings = make(map[string]domain.LegacyIdentityMapping)
+	}
+	key := value.EnterpriseID + "\x00" + value.ApplicationID + "\x00" + value.LegacySource + "\x00" + value.LegacySubject
+	if current, found := s.mappings[key]; found {
+		return current, nil
+	}
+	s.mappings[key] = value
+	return value, nil
 }
 
 type membershipProjectorFixture struct {
@@ -140,6 +170,58 @@ func TestMembershipMutationTriggersRoleProjection(t *testing.T) {
 	}
 	if projector.calls != 1 || projector.enterpriseID != "ent-1" || projector.groupID != group.ID {
 		t.Fatalf("projector=%+v", projector)
+	}
+}
+
+func TestResolveLegacyIdentityRequiresStableMappingAndActivePrincipal(t *testing.T) {
+	principal := domain.Principal{Base: domain.Base{ID: "pri-1", EnterpriseID: "ent-1"}, Status: "active"}
+	store := &memoryIdentityStore{
+		principals: map[string]domain.Principal{principal.ID: principal},
+		mappings:   map[string]domain.LegacyIdentityMapping{"ent-1\x00app-1\x00yapi_user_id\x0042": {ID: "lim-1", EnterpriseID: "ent-1", ApplicationID: "app-1", LegacySource: "yapi_user_id", LegacySubject: "42", PrincipalID: "pri-1"}},
+	}
+	service := New(store, nil)
+	resolved, err := service.ResolveLegacyIdentity(context.Background(), LegacyIdentityInput{EnterpriseID: "ent-1", ApplicationID: "app-1", Source: "yapi_user_id", Subject: "42"})
+	if err != nil || resolved.ID != "pri-1" {
+		t.Fatalf("principal=%+v err=%v", resolved, err)
+	}
+	store.principals[principal.ID] = domain.Principal{Base: principal.Base, Status: "disabled"}
+	if _, err := service.ResolveLegacyIdentity(context.Background(), LegacyIdentityInput{EnterpriseID: "ent-1", ApplicationID: "app-1", Source: "yapi_user_id", Subject: "42"}); err == nil || !strings.Contains(err.Error(), "principal_not_active") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestPutLegacyIdentityMappingRejectsRemap(t *testing.T) {
+	store := &memoryIdentityStore{principals: map[string]domain.Principal{
+		"pri-1": {Base: domain.Base{ID: "pri-1", EnterpriseID: "ent-1"}, Status: "active"},
+		"pri-2": {Base: domain.Base{ID: "pri-2", EnterpriseID: "ent-1"}, Status: "active"},
+	}}
+	service := New(store, nil)
+	input := PutLegacyIdentityInput{EnterpriseID: "ent-1", ApplicationID: "app-1", Source: "yapi_user_id", Subject: "42", PrincipalID: "pri-1"}
+	created, err := service.PutLegacyIdentity(context.Background(), input)
+	if err != nil || created.ID == "" {
+		t.Fatalf("mapping=%+v err=%v", created, err)
+	}
+	input.PrincipalID = "pri-2"
+	if _, err := service.PutLegacyIdentity(context.Background(), input); err == nil || !strings.Contains(err.Error(), "legacy_identity_conflict") {
+		t.Fatalf("err=%v", err)
+	}
+	secondSubject := PutLegacyIdentityInput{EnterpriseID: "ent-1", ApplicationID: "app-1", Source: "yapi_user_id", Subject: "43", PrincipalID: "pri-1"}
+	if _, err := service.PutLegacyIdentity(context.Background(), secondSubject); err == nil || !strings.Contains(err.Error(), "legacy_identity_conflict") {
+		t.Fatalf("reverse remap err=%v", err)
+	}
+}
+
+func TestResolveProductIdentityReturnsProfileAndOptionalLegacySubject(t *testing.T) {
+	principal := domain.Principal{Base: domain.Base{ID: "pri-1", EnterpriseID: "ent-1"}, NormalizedEmail: "member@example.com", DisplayName: "Member", Status: "active"}
+	store := &memoryIdentityStore{
+		principals: map[string]domain.Principal{principal.ID: principal},
+		mappings: map[string]domain.LegacyIdentityMapping{
+			"ent-1\x00app-1\x00yapi_user_id\x0042": {EnterpriseID: "ent-1", ApplicationID: "app-1", LegacySource: "yapi_user_id", LegacySubject: "42", PrincipalID: "pri-1"},
+		},
+	}
+	resolved, err := New(store, nil).ResolveProductIdentity(context.Background(), "ent-1", "app-1", "pri-1", "yapi_user_id")
+	if err != nil || resolved.Principal.NormalizedEmail != "member@example.com" || resolved.LegacySubject != "42" {
+		t.Fatalf("identity=%+v err=%v", resolved, err)
 	}
 }
 

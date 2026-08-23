@@ -31,7 +31,7 @@ func NewResolveProductSessionLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *ResolveProductSessionLogic) ResolveProductSession(req *types.ResolveProductSessionReq) (resp *types.ResolveProductSessionResp, err error) {
-	if req == nil || l.svcCtx.Sessions == nil {
+	if req == nil || l.svcCtx.Sessions == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("session service unavailable")
 	}
 	claims, found := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
@@ -45,5 +45,12 @@ func (l *ResolveProductSessionLogic) ResolveProductSession(req *types.ResolvePro
 	if value.ApplicationInstanceID != req.InstanceID {
 		return nil, fmt.Errorf("session_instance_mismatch")
 	}
-	return &types.ResolveProductSessionResp{PrincipalID: value.PrincipalID, Revoked: value.RevokedAt != nil, ExpiresAt: value.ExpiresAt.Unix(), LifecycleVersion: value.Version}, nil
+	identity, err := l.svcCtx.Identity.ResolveProductIdentity(l.ctx, claims.EnterpriseID, claims.ApplicationID, value.PrincipalID, "yapi_user_id")
+	if err != nil {
+		return nil, err
+	}
+	return &types.ResolveProductSessionResp{
+		PrincipalID: value.PrincipalID, DisplayName: identity.Principal.DisplayName, Email: identity.Principal.NormalizedEmail,
+		LegacySubject: identity.LegacySubject, Revoked: value.RevokedAt != nil, ExpiresAt: value.ExpiresAt.Unix(), LifecycleVersion: value.Version,
+	}, nil
 }

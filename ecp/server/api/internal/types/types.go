@@ -324,6 +324,14 @@ type InstanceResp struct {
 	Version       uint64 `json:"version"`
 }
 
+type LegacyIdentityResp struct {
+	ID            string `json:"id"`
+	ApplicationID string `json:"application_id"`
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+	PrincipalID   string `json:"principal_id"`
+}
+
 type LifecycleChangeItem struct {
 	PrincipalID string `json:"principal_id"`
 	State       string `json:"state"`
@@ -484,6 +492,14 @@ type PublishDelegationKeySetReq struct {
 	Signature    string `json:"signature"`
 }
 
+type PutLegacyIdentityReq struct {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+	PrincipalID   string `json:"principal_id"`
+}
+
 type PutManifestReq struct {
 	ApplicationID string `path:"id"`
 	EnterpriseID  string `json:"enterprise_id"`
@@ -534,6 +550,15 @@ type RegisterInstanceReq struct {
 	CanonicalURL  string `json:"canonical_url"`
 }
 
+type ResolveLegacyIdentityReq struct {
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+}
+
+type ResolveLegacyIdentityResp struct {
+	PrincipalID string `json:"principal_id"`
+}
+
 type ResolveProductSessionReq struct {
 	InstanceID   string `json:"instance_id"`
 	SessionToken string `json:"session_token"`
@@ -541,6 +566,9 @@ type ResolveProductSessionReq struct {
 
 type ResolveProductSessionResp struct {
 	PrincipalID      string `json:"principal_id"`
+	DisplayName      string `json:"display_name"`
+	Email            string `json:"email"`
+	LegacySubject    string `json:"legacy_subject,optional"`
 	Revoked          bool   `json:"revoked"`
 	ExpiresAt        int64  `json:"expires_at"`
 	LifecycleVersion uint64 `json:"lifecycle_version"`

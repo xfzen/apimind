@@ -812,6 +812,26 @@ components:
                 - version
             title: InstanceResp
             type: object
+        LegacyIdentityResp:
+            properties:
+                application_id:
+                    type: string
+                id:
+                    type: string
+                legacy_source:
+                    type: string
+                legacy_subject:
+                    type: string
+                principal_id:
+                    type: string
+            required:
+                - id
+                - application_id
+                - legacy_source
+                - legacy_subject
+                - principal_id
+            title: LegacyIdentityResp
+            type: object
         LifecycleChangeItem:
             properties:
                 principal_id:
@@ -1184,6 +1204,23 @@ components:
                 - signature
             title: PublishDelegationKeySetReq
             type: object
+        PutLegacyIdentityReq:
+            properties:
+                enterprise_id:
+                    type: string
+                legacy_source:
+                    type: string
+                legacy_subject:
+                    type: string
+                principal_id:
+                    type: string
+            required:
+                - enterprise_id
+                - legacy_source
+                - legacy_subject
+                - principal_id
+            title: PutLegacyIdentityReq
+            type: object
         PutManifestReq:
             properties:
                 api_version:
@@ -1299,6 +1336,25 @@ components:
                 - canonical_url
             title: RegisterInstanceReq
             type: object
+        ResolveLegacyIdentityReq:
+            properties:
+                legacy_source:
+                    type: string
+                legacy_subject:
+                    type: string
+            required:
+                - legacy_source
+                - legacy_subject
+            title: ResolveLegacyIdentityReq
+            type: object
+        ResolveLegacyIdentityResp:
+            properties:
+                principal_id:
+                    type: string
+            required:
+                - principal_id
+            title: ResolveLegacyIdentityResp
+            type: object
         ResolveProductSessionReq:
             properties:
                 instance_id:
@@ -1312,9 +1368,15 @@ components:
             type: object
         ResolveProductSessionResp:
             properties:
+                display_name:
+                    type: string
+                email:
+                    type: string
                 expires_at:
                     format: int64
                     type: integer
+                legacy_subject:
+                    type: string
                 lifecycle_version:
                     format: int64
                     type: integer
@@ -1325,6 +1387,8 @@ components:
                     type: boolean
             required:
                 - principal_id
+                - display_name
+                - email
                 - revoked
                 - expires_at
                 - lifecycle_version
@@ -1837,6 +1901,32 @@ paths:
             tags:
                 - adminWrite
             x-ecp-access: public
+    /api/v1/applications/{id}/legacy-identities:
+        post:
+            operationId: PutLegacyIdentity
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PutLegacyIdentityReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LegacyIdentityResp'
+                    description: A successful response.
+            summary: Create an immutable legacy product identity mapping
+            tags:
+                - adminWrite
+            x-ecp-access: public
     /api/v1/applications/{id}/manifest:
         get:
             operationId: GetManifest
@@ -2159,6 +2249,26 @@ paths:
                                 $ref: '#/components/schemas/ConnectorHeartbeatResp'
                     description: A successful response.
             summary: Report product Connector health
+            tags:
+                - connectorMachine
+            x-ecp-access: public
+    /api/v1/connector/identities/legacy/resolve:
+        post:
+            operationId: ResolveLegacyIdentity
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResolveLegacyIdentityReq'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ResolveLegacyIdentityResp'
+                    description: A successful response.
+            summary: Resolve a mapped legacy product identity
             tags:
                 - connectorMachine
             x-ecp-access: public

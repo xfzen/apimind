@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +18,10 @@ import (
 type Store interface {
 	FindPrincipalByExternal(context.Context, string, string, string) (domain.Principal, bool, error)
 	FindPrincipalByVerifiedEmail(context.Context, string, string) (domain.Principal, bool, error)
+	GetPrincipal(context.Context, string, string) (domain.Principal, bool, error)
+	FindLegacyIdentityMapping(context.Context, string, string, string, string) (domain.LegacyIdentityMapping, bool, error)
+	FindLegacyIdentityMappingByPrincipal(context.Context, string, string, string, string) (domain.LegacyIdentityMapping, bool, error)
+	PutLegacyIdentityMapping(context.Context, domain.LegacyIdentityMapping) (domain.LegacyIdentityMapping, error)
 	CreatePrincipal(context.Context, domain.Principal) error
 	CreateGroup(context.Context, domain.IdentityGroup) error
 	FindGroupByExternal(context.Context, string, string, string) (domain.IdentityGroup, bool, error)
@@ -71,6 +76,92 @@ type JITInput struct {
 }
 type ManagedGroupInput struct{ EnterpriseID, Name string }
 type DirectoryGroupInput struct{ EnterpriseID, Provider, ExternalID, Name string }
+type LegacyIdentityInput struct{ EnterpriseID, ApplicationID, Source, Subject string }
+type PutLegacyIdentityInput struct{ EnterpriseID, ApplicationID, Source, Subject, PrincipalID string }
+
+type ProductIdentity struct {
+	Principal     domain.Principal
+	LegacySubject string
+}
+
+var legacySourcePattern = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
+
+func (s *Service) PutLegacyIdentity(ctx context.Context, input PutLegacyIdentityInput) (domain.LegacyIdentityMapping, error) {
+	input.Source, input.Subject = strings.TrimSpace(input.Source), strings.TrimSpace(input.Subject)
+	if s == nil || s.store == nil || input.EnterpriseID == "" || input.ApplicationID == "" || !legacySourcePattern.MatchString(input.Source) || input.Subject == "" || len(input.Subject) > 255 || input.PrincipalID == "" {
+		return domain.LegacyIdentityMapping{}, decision("legacy_identity_invalid", nil)
+	}
+	principal, found, err := s.store.GetPrincipal(ctx, input.EnterpriseID, input.PrincipalID)
+	if err != nil {
+		return domain.LegacyIdentityMapping{}, decision("identity_store_error", err)
+	}
+	if !found || principal.Status != "active" {
+		return domain.LegacyIdentityMapping{}, decision("principal_not_active", nil)
+	}
+	if current, found, err := s.store.FindLegacyIdentityMappingByPrincipal(ctx, input.EnterpriseID, input.ApplicationID, input.Source, input.PrincipalID); err != nil {
+		return domain.LegacyIdentityMapping{}, decision("identity_store_error", err)
+	} else if found && current.LegacySubject != input.Subject {
+		return domain.LegacyIdentityMapping{}, decision("legacy_identity_conflict", nil)
+	}
+	if current, found, err := s.store.FindLegacyIdentityMapping(ctx, input.EnterpriseID, input.ApplicationID, input.Source, input.Subject); err != nil {
+		return domain.LegacyIdentityMapping{}, decision("identity_store_error", err)
+	} else if found {
+		if current.PrincipalID != input.PrincipalID {
+			return domain.LegacyIdentityMapping{}, decision("legacy_identity_conflict", nil)
+		}
+		return current, nil
+	}
+	value := domain.LegacyIdentityMapping{ID: newID("lim"), EnterpriseID: input.EnterpriseID, ApplicationID: input.ApplicationID, LegacySource: input.Source, LegacySubject: input.Subject, PrincipalID: input.PrincipalID, CreatedAt: time.Now().UTC()}
+	persisted, err := s.store.PutLegacyIdentityMapping(ctx, value)
+	if err != nil {
+		return domain.LegacyIdentityMapping{}, decision("identity_store_error", err)
+	}
+	if persisted.PrincipalID != input.PrincipalID {
+		return domain.LegacyIdentityMapping{}, decision("legacy_identity_conflict", nil)
+	}
+	return persisted, nil
+}
+
+func (s *Service) ResolveProductIdentity(ctx context.Context, enterpriseID, applicationID, principalID, legacySource string) (ProductIdentity, error) {
+	if s == nil || s.store == nil || enterpriseID == "" || applicationID == "" || principalID == "" || !legacySourcePattern.MatchString(legacySource) {
+		return ProductIdentity{}, decision("identity_invalid", nil)
+	}
+	principal, found, err := s.store.GetPrincipal(ctx, enterpriseID, principalID)
+	if err != nil {
+		return ProductIdentity{}, decision("identity_store_error", err)
+	}
+	if !found || principal.Status != "active" {
+		return ProductIdentity{}, decision("principal_not_active", nil)
+	}
+	result := ProductIdentity{Principal: principal}
+	if mapping, mapped, findErr := s.store.FindLegacyIdentityMappingByPrincipal(ctx, enterpriseID, applicationID, legacySource, principalID); findErr != nil {
+		return ProductIdentity{}, decision("identity_store_error", findErr)
+	} else if mapped {
+		result.LegacySubject = mapping.LegacySubject
+	}
+	return result, nil
+}
+
+func (s *Service) ResolveLegacyIdentity(ctx context.Context, input LegacyIdentityInput) (domain.Principal, error) {
+	if s == nil || s.store == nil || input.EnterpriseID == "" || input.ApplicationID == "" || input.Source == "" || input.Subject == "" {
+		return domain.Principal{}, decision("legacy_identity_invalid", nil)
+	}
+	mapping, found, err := s.store.FindLegacyIdentityMapping(ctx, input.EnterpriseID, input.ApplicationID, input.Source, input.Subject)
+	if err != nil {
+		return domain.Principal{}, decision("identity_store_error", err)
+	}
+	if !found {
+		return domain.Principal{}, decision("legacy_identity_unmapped", nil)
+	}
+	principal, found, err := s.store.GetPrincipal(ctx, input.EnterpriseID, mapping.PrincipalID)
+	if err != nil {
+		return domain.Principal{}, decision("identity_store_error", err)
+	}
+	if !found || principal.Status != "active" {
+		return domain.Principal{}, decision("principal_not_active", nil)
+	}
+	return principal, nil
+}
 
 func (s *Service) ResolveExternalIdentity(ctx context.Context, input ExternalIdentity) (domain.Principal, error) {
 	if s == nil || s.store == nil {

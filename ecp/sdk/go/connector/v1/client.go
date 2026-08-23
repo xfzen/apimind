@@ -3,6 +3,8 @@ package connectorv1
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -79,12 +81,20 @@ func (c *Client) Heartbeat(ctx context.Context, input HeartbeatRequest) error {
 func (c *Client) ResolveSession(ctx context.Context, input SessionResolutionRequest) (SessionResolution, error) {
 	var output struct {
 		PrincipalID      string `json:"principal_id"`
+		DisplayName      string `json:"display_name"`
+		Email            string `json:"email"`
+		LegacySubject    string `json:"legacy_subject"`
 		Revoked          bool   `json:"revoked"`
 		ExpiresAt        int64  `json:"expires_at"`
 		LifecycleVersion uint64 `json:"lifecycle_version"`
 	}
 	err := c.do(ctx, http.MethodPost, "api/v1/connector/sessions/resolve", input, &output)
-	return SessionResolution{PrincipalID: output.PrincipalID, Revoked: output.Revoked, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC(), LifecycleVersion: output.LifecycleVersion}, err
+	return SessionResolution{PrincipalID: output.PrincipalID, DisplayName: output.DisplayName, Email: output.Email, LegacySubject: output.LegacySubject, Revoked: output.Revoked, ExpiresAt: time.Unix(output.ExpiresAt, 0).UTC(), LifecycleVersion: output.LifecycleVersion}, err
+}
+func (c *Client) ResolveLegacyIdentity(ctx context.Context, input LegacyIdentityResolutionRequest) (LegacyIdentityResolution, error) {
+	var output LegacyIdentityResolution
+	err := c.do(ctx, http.MethodPost, "api/v1/connector/identities/legacy/resolve", input, &output)
+	return output, err
 }
 func (c *Client) RevokeProductSession(ctx context.Context, input SessionRevocationRequest) error {
 	return c.do(ctx, http.MethodPost, "api/v1/connector/sessions/revoke", input, &struct{}{})
@@ -138,7 +148,7 @@ func (c *Client) AuthenticateServiceCredential(ctx context.Context, input Servic
 func (c *Client) IngestAuditEvents(ctx context.Context, input []AuditEvent) error {
 	events := make([]map[string]any, len(input))
 	for index := range input {
-		events[index] = map[string]any{"operation_id": input[index].OperationID, "action": input[index].Action, "resource_type": input[index].ResourceType, "resource_id": input[index].ResourceID, "outcome": input[index].Outcome, "occurred_at": input[index].OccurredAt.Unix()}
+		events[index] = map[string]any{"operation_id": input[index].OperationID, "action": input[index].Action, "resource_type": input[index].ResourceType, "resource_id": input[index].ResourceID, "outcome": input[index].Outcome, "occurred_at": input[index].OccurredAt.Unix(), "safe_diff": input[index].SafeDiff}
 	}
 	return c.do(ctx, http.MethodPost, "api/v1/connector/audit/events", map[string]any{"events": events}, &struct{}{})
 }
@@ -180,6 +190,11 @@ func (c *Client) do(ctx context.Context, method, path string, input, output any)
 	if input != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	if method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions {
+		operationID := newOperationID()
+		req.Header.Set("Operation-ID", operationID)
+		req.Header.Set("Idempotency-Key", "idem-"+operationID)
+	}
 	if c.credential.ConnectorID != "" {
 		req.Header.Set("X-ECP-Connector-ID", c.credential.ConnectorID)
 		req.Header.Set("Authorization", "Bearer "+c.credential.Secret)
@@ -204,4 +219,12 @@ func (c *Client) do(ctx context.Context, method, path string, input, output any)
 		return fmt.Errorf("decode connector response: %w", err)
 	}
 	return nil
+}
+
+func newOperationID() string {
+	value := make([]byte, 16)
+	if _, err := rand.Read(value); err != nil {
+		panic(err)
+	}
+	return "op-" + hex.EncodeToString(value)
 }

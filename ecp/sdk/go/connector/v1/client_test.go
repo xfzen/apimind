@@ -48,6 +48,9 @@ func TestConnectorCallsUseMachineCredential(t *testing.T) {
 		if request.Header.Get("X-ECP-Connector-ID") != "connector-1" || request.Header.Get("Authorization") != "Bearer secret" {
 			t.Error("machine credential missing")
 		}
+		if request.Header.Get("Operation-ID") == "" || request.Header.Get("Idempotency-Key") == "" {
+			t.Error("write operation identifiers missing")
+		}
 		_ = json.NewEncoder(response).Encode(map[string]any{})
 	}))
 	defer server.Close()
@@ -86,6 +89,25 @@ func TestProductLoginUsesSnakeCaseWireContractAndUnixTime(t *testing.T) {
 	}
 	if result.TransactionID != "tx-1" || result.ExpiresAt.Unix() != 1787443200 {
 		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestResolveSessionReturnsStableProductIdentity(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/connector/sessions/resolve" {
+			t.Fatalf("path = %s", request.URL.Path)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"principal_id":"pri-1","display_name":"Member","email":"member@example.com","legacy_subject":"42","revoked":false,"expires_at":1787443200,"lifecycle_version":3}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := client.ResolveSession(context.Background(), SessionResolutionRequest{InstanceID: "ins-1", SessionToken: "session"})
+	if err != nil || value.PrincipalID != "pri-1" || value.Email != "member@example.com" || value.LegacySubject != "42" || value.LifecycleVersion != 3 {
+		t.Fatalf("value=%+v err=%v", value, err)
 	}
 }
 

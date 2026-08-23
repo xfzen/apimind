@@ -70,3 +70,28 @@ type GroupResp {
 type GroupMembersResp {
 	PrincipalIDs []string `json:"principal_ids"`
 }
+
+type ResolveLegacyIdentityReq {
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+}
+
+type ResolveLegacyIdentityResp {
+	PrincipalID string `json:"principal_id"`
+}
+
+type PutLegacyIdentityReq {
+	ApplicationID string `path:"id"`
+	EnterpriseID  string `json:"enterprise_id"`
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+	PrincipalID   string `json:"principal_id"`
+}
+
+type LegacyIdentityResp {
+	ID            string `json:"id"`
+	ApplicationID string `json:"application_id"`
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+	PrincipalID   string `json:"principal_id"`
+}

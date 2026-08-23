@@ -149,15 +149,26 @@ type SessionRevocationRequest struct {
 }
 type SessionResolution struct {
 	PrincipalID      string    `json:"principal_id"`
+	DisplayName      string    `json:"display_name"`
+	Email            string    `json:"email"`
+	LegacySubject    string    `json:"legacy_subject,omitempty"`
 	Revoked          bool      `json:"revoked"`
 	ExpiresAt        time.Time `json:"expires_at"`
 	LifecycleVersion uint64    `json:"lifecycle_version"`
+}
+type LegacyIdentityResolutionRequest struct {
+	LegacySource  string `json:"legacy_source"`
+	LegacySubject string `json:"legacy_subject"`
+}
+type LegacyIdentityResolution struct {
+	PrincipalID string `json:"principal_id"`
 }
 type AuthorizationRequest struct {
 	EnterpriseID          string `json:"enterprise_id"`
 	ApplicationInstanceID string `json:"application_instance_id"`
 	PrincipalID           string `json:"principal_id"`
 	Action                string `json:"action"`
+	ResourceType          string `json:"resource_type"`
 	ResourceID            string `json:"resource_id"`
 	ResourceVersion       uint64 `json:"resource_version"`
 }

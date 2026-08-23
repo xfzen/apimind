@@ -41,8 +41,25 @@ test('enterprise capability parser accepts only safe public entry points', () =>
     {
       status: 'enterprise',
       adminUrl: 'https://admin.example.com/enterprise',
-      authStartPath: '/api/enterprise/auth/start'
+      authStartPath: '/api/enterprise/auth/start',
+      legacyAuthCompat: false,
+      legacyAuthDeadline: undefined
     }
+  );
+
+  assert.equal(
+    capabilities.parseEnterpriseCapabilities({
+      errcode: 0,
+      errmsg: 'ok',
+      data: {
+        enterprise_enabled: true,
+        enterprise_admin_url: 'https://admin.example.com',
+        enterprise_auth_start_path: '/api/enterprise/auth/start',
+        enterprise_legacy_auth_compat: true,
+        enterprise_legacy_auth_deadline: '2026-09-01T00:00:00Z'
+      }
+    }).legacyAuthCompat,
+    true
   );
 
   for (const authStartPath of ['https://evil.example.com/login', '//evil.example.com/login', '/user/login']) {

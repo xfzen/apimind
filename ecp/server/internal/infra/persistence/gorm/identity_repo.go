@@ -33,6 +33,43 @@ func (s *IdentityStore) FindPrincipalByVerifiedEmail(ctx context.Context, enterp
 	return value, err == nil, err
 }
 
+func (s *IdentityStore) GetPrincipal(ctx context.Context, enterpriseID, id string) (domain.Principal, bool, error) {
+	var value domain.Principal
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND id = ?", enterpriseID, id).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return value, false, nil
+	}
+	return value, err == nil, err
+}
+
+func (s *IdentityStore) FindLegacyIdentityMapping(ctx context.Context, enterpriseID, applicationID, source, subject string) (domain.LegacyIdentityMapping, bool, error) {
+	var value domain.LegacyIdentityMapping
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND application_id = ? AND legacy_source = ? AND legacy_subject = ?", enterpriseID, applicationID, source, subject).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return value, false, nil
+	}
+	return value, err == nil, err
+}
+
+func (s *IdentityStore) FindLegacyIdentityMappingByPrincipal(ctx context.Context, enterpriseID, applicationID, source, principalID string) (domain.LegacyIdentityMapping, bool, error) {
+	var value domain.LegacyIdentityMapping
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND application_id = ? AND legacy_source = ? AND principal_id = ?", enterpriseID, applicationID, source, principalID).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return value, false, nil
+	}
+	return value, err == nil, err
+}
+
+func (s *IdentityStore) PutLegacyIdentityMapping(ctx context.Context, value domain.LegacyIdentityMapping) (domain.LegacyIdentityMapping, error) {
+	db := s.db.WithContext(ctx)
+	if err := db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "enterprise_id"}, {Name: "application_id"}, {Name: "legacy_source"}, {Name: "legacy_subject"}}, DoNothing: true}).Create(&value).Error; err != nil {
+		return domain.LegacyIdentityMapping{}, err
+	}
+	var persisted domain.LegacyIdentityMapping
+	err := db.Where("enterprise_id = ? AND application_id = ? AND legacy_source = ? AND legacy_subject = ?", value.EnterpriseID, value.ApplicationID, value.LegacySource, value.LegacySubject).First(&persisted).Error
+	return persisted, err
+}
+
 func (s *IdentityStore) CreatePrincipal(ctx context.Context, value domain.Principal) error {
 	return s.db.WithContext(ctx).Create(&value).Error
 }

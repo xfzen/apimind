@@ -5,12 +5,20 @@ interface CapabilityPayload {
   enterprise_enabled?: boolean;
   enterprise_admin_url?: string;
   enterprise_auth_start_path?: string;
+  enterprise_legacy_auth_compat?: boolean;
+  enterprise_legacy_auth_deadline?: string;
 }
 
 export type EnterpriseCapabilities =
   | { status: 'loading' | 'unavailable'; adminUrl: ''; authStartPath: '' }
   | { status: 'community'; adminUrl: ''; authStartPath: '' }
-  | { status: 'enterprise'; adminUrl: string; authStartPath: string };
+  | {
+      status: 'enterprise';
+      adminUrl: string;
+      authStartPath: string;
+      legacyAuthCompat?: boolean;
+      legacyAuthDeadline?: string;
+    };
 
 export const loadingEnterpriseCapabilities: EnterpriseCapabilities = {
   status: 'loading',
@@ -65,10 +73,17 @@ export function parseEnterpriseCapabilities(
   ) {
     return unavailableEnterpriseCapabilities;
   }
+  const legacyDeadline = response.data.enterprise_legacy_auth_deadline;
+  const legacyAuthCompat =
+    response.data.enterprise_legacy_auth_compat === true &&
+    typeof legacyDeadline === 'string' &&
+    Number.isFinite(Date.parse(legacyDeadline));
   return {
     status: 'enterprise',
     adminUrl: response.data.enterprise_admin_url,
-    authStartPath: response.data.enterprise_auth_start_path
+    authStartPath: response.data.enterprise_auth_start_path,
+    legacyAuthCompat,
+    legacyAuthDeadline: legacyAuthCompat ? legacyDeadline : undefined
   };
 }
 

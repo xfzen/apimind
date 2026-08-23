@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import type { FormInstance, RadioChangeEvent } from 'antd';
 import Button from 'antd/es/button';
+import Alert from 'antd/es/alert';
+import Divider from 'antd/es/divider';
 import Form from 'antd/es/form';
 import Input from 'antd/es/input';
 import message from 'antd/es/message';
@@ -140,7 +142,10 @@ class Login extends Component<LoginProps, LoginState> {
     if (this.props.enterpriseCapabilities.status === 'unavailable') {
       return <div>暂时无法确认企业登录方式，请稍后重试。</div>;
     }
-    if (this.props.enterpriseCapabilities.status === 'enterprise') {
+    if (
+      this.props.enterpriseCapabilities.status === 'enterprise' &&
+      !this.props.enterpriseCapabilities.legacyAuthCompat
+    ) {
       return (
         <Button
           style={changeHeight}
@@ -152,6 +157,32 @@ class Login extends Component<LoginProps, LoginState> {
         </Button>
       );
     }
+    const enterpriseLogin =
+      this.props.enterpriseCapabilities.status === 'enterprise' ? (
+        <>
+          <Button
+            style={changeHeight}
+            type="primary"
+            className="login-form-button"
+            onClick={() =>
+              window.location.assign(this.props.enterpriseCapabilities.authStartPath)
+            }
+          >
+            企业账号登录
+          </Button>
+          <Alert
+            type="warning"
+            showIcon
+            message="旧账号登录仅在迁移期可用"
+            description={
+              this.props.enterpriseCapabilities.legacyAuthDeadline
+                ? `截止时间：${this.props.enterpriseCapabilities.legacyAuthDeadline}`
+                : undefined
+            }
+          />
+          <Divider>旧账号登录</Divider>
+        </>
+      ) : null;
 
     const emailRule =
       this.state.loginType === 'ldap'
@@ -163,6 +194,7 @@ class Login extends Component<LoginProps, LoginState> {
           };
     return (
       <Form form={this.props.form} onFinish={this.handleSubmit}>
+        {enterpriseLogin}
         {/* 登录类型 (普通登录／LDAP登录) */}
         {isLDAP && (
           <FormItem>

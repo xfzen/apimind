@@ -170,6 +170,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: adminWrite.RegisterInstanceHandler(serverCtx),
 				},
 				{
+					// Create an immutable legacy product identity mapping
+					Method:  http.MethodPost,
+					Path:    "/applications/:id/legacy-identities",
+					Handler: adminWrite.PutLegacyIdentityHandler(serverCtx),
+				},
+				{
 					// Put a product manifest
 					Method:  http.MethodPut,
 					Path:    "/applications/:id/manifest",
@@ -324,6 +330,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/connector/heartbeat",
 					Handler: connectorMachine.ConnectorHeartbeatHandler(serverCtx),
+				},
+				{
+					// Resolve a mapped legacy product identity
+					Method:  http.MethodPost,
+					Path:    "/connector/identities/legacy/resolve",
+					Handler: connectorMachine.ResolveLegacyIdentityHandler(serverCtx),
 				},
 				{
 					// Get the current policy projection version

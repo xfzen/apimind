@@ -55,6 +55,9 @@ type ResolveProductSessionReq {
 }
 type ResolveProductSessionResp {
 	PrincipalID string `json:"principal_id"`
+	DisplayName string `json:"display_name"`
+	Email string `json:"email"`
+	LegacySubject string `json:"legacy_subject,optional"`
 	Revoked bool `json:"revoked"`
 	ExpiresAt int64 `json:"expires_at"`
 	LifecycleVersion uint64 `json:"lifecycle_version"`
