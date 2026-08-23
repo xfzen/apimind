@@ -107,7 +107,7 @@ web/client/
 - Consumes: only official Casdoor, Go, Go module, npm, PostgreSQL and MySQL publisher sources.
 - Produces: reproducible evidence, a frozen input manifest, explicit `pass/accepted_limit/fail` decisions, and the only authorization to enter Gate A.
 
-- [ ] **Step 1: Freeze verified build and runtime inputs**
+- [x] **Step 1: Freeze verified build and runtime inputs**
 
 Record exact version, official source URL, checksum or immutable multi-platform image digest, supported architectures, and verification command for every build/runtime input. Initial image baselines are:
 
@@ -119,19 +119,21 @@ mysql:8.4.6@sha256:869218921e61d6c3c89820955d63cca42971f0e3e6c1e2792247bbd944ebc
 
 Pin goctl and goctl-swagger in the Gate 0 `ecp/tools/go.mod`; build them into a checkout-local ignored tool directory. Never resolve generators from the ambient PATH. Freeze the exact future GORM, both database drivers, migration library and UI package versions in `versions.lock.yaml`; their `go.mod/go.sum` and `package.json/package-lock.json` do not exist until Tasks 1 and 11 and are checked against the frozen values when created. In Gate 0, `verify-inputs.sh` validates the lock schema, official origins, exact versions, module sums available in `ecp/tools`, image digests and prototype inputs; it must not require later production manifests.
 
-- [ ] **Step 2: Prove Casdoor/Casbin semantics and scale**
+`goctl v1.9.2` and `goctl-swagger v0.2.0` initially expose an ambiguous pre/post-split `genproto` graph when added together. Resolve this only by pinning the official `google.golang.org/genproto/googleapis/api` and `/rpc` modules at `v0.0.0-20240711142825-46eb208f015d` in the generated tools graph; `go mod tidy` and both `go tool` commands must then pass twice. Do not split the generators into ambient installs or hide the conflict with `replace` directives.
+
+- [x] **Step 2: Prove Casdoor/Casbin semantics and scale**
 
 Against the pinned image, validate real Organization/Application/User/Group/Role/Permission APIs, stable external IDs, disable/delete behavior, direct-member synchronization, event delivery or incremental polling continuity, restricted resources, explicit role override, owner recovery, reserved namespace drift, batch authorization, and target resource/policy scale. Capture requests, sanitized responses, counts, latency percentiles, restart/upgrade behavior, and all unsupported assumptions.
 
-- [ ] **Step 3: Prove database and contract compatibility**
+- [x] **Step 3: Prove database and contract compatibility**
 
 Run the same minimal reversible migration prototype on the pinned PostgreSQL and MySQL images, including unique constraints, timestamp precision, transaction rollback, grants and down/up cycles. Build Product Manifest N and N-1 fixtures and prove SDK/server unknown-field behavior, capability negotiation, error compatibility, signature verification, and downgrade refusal.
 
-- [ ] **Step 4: Prove the operational floor and decide conditional scope**
+- [x] **Step 4: Prove the operational floor and decide conditional scope**
 
 Use a short read-only window to back up pinned Casdoor, ECP prototype and product fixture data, restore into an empty environment, and verify identities, policies, sequence continuity and resources. Record explicit G0 decisions for SIEM/immutable sink, external Secret Manager, HA, SCIM and online snapshots based on the first target enterprise requirements.
 
-- [ ] **Step 5: Enforce the hard gate**
+- [x] **Step 5: Enforce the hard gate**
 
 `docs/test-reports/ecp-g0-feasibility.md` must give every mandatory item `pass` or a Spec-approved `accepted_limit`. Any `fail`, `unknown`, missing evidence, unverified official input, or prototype-boundary failure blocks Gate A. `verify-prototypes.sh` copies only `ecp/versions.lock.yaml`, `ecp/tools`, `ecp/validation` and the two Gate 0 scripts to a clean temporary directory and proves that the validation bundle has no parent-repository dependency. Full server/SDK/UI/Compose standalone verification is intentionally deferred until those artifacts exist and becomes a hard Gate D/acceptance check. Revise the Spec/plan and rerun Gate 0 instead of carrying uncertainty into implementation.
 

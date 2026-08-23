@@ -1,0 +1,6 @@
+organization: ecp-gate0
+user: ecp-gate0/ecp-user
+external_id: ecp-stable-001
+direct_group: ecp-gate0/developers
+reserved_organization: built-in
+polling_mode: incremental-list

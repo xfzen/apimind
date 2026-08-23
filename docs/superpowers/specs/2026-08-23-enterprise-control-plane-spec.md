@@ -912,6 +912,8 @@ ECP 达到 G0 必须同时满足：
 
 Gate 0 还必须冻结 `versions.lock.yaml`：Go/go-zero/goctl/goctl-swagger/GORM/迁移库、Node/npm/React/Ant Design/Tailwind/Vite、Casdoor、PostgreSQL 和 MySQL 的精确版本、官方来源与 checksum/digest。初始验证基线为官方 `casbin/casdoor:3.154.4@sha256:95c7be68fb98daf2ec74a10c9f785af1ef75e8fef6dd4aad455a899e651e87e2`、官方 `postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929` 与官方 `mysql:8.4.6@sha256:869218921e61d6c3c89820955d63cca42971f0e3e6c1e2792247bbd944ebc6e9`；若 Gate 0 证明基线不满足要求，必须先更新 Spec 与锁文件并重新验证，不使用浮动标签。
 
+G0 明确接受以下受限范围，且不得在产品文案中扩大解释：首个目标企业尚未提供容量画像前，Gate 0 只证明单次 100 决策批量授权的语义和基线延迟，不承诺持续吞吐或最大策略规模；Casdoor 变更同步采用可对账的增量轮询，不依赖未验证的事件投递；只验证锁定版本的重启与数据恢复，跨版本升级必须在实际升级前单独重跑 N/N-1 验证。G0 采用单 ECP 实例、短暂停写协调备份、可注入的外部 Secret 引用和可导出的审计流；不内置 HA、SCIM、Secret Manager、SIEM 或在线一致性快照。这些能力一旦成为目标企业的强制采购条件，必须先升级为硬验收项，不得继续沿用 `accepted_limit`。
+
 Gate 0 的硬退出条件：上述每项都有 `pass` 或经本 Spec 明确缩减范围后的 `accepted_limit`，并且只包含锁文件、工具模块和验证原型的 ECP Gate 0 bundle 可以在干净目录运行，双数据库迁移原型、Casdoor/Casbin 语义原型和 N/N-1 契约原型全部通过。任何必需项为 `fail`、`unknown` 或缺少证据时，不得进入 Gate A；应先修订本 Spec、依赖锁或 G0 范围。完整 server、SDK、UI 和 Compose 的 ECP-only 构建只能在相应工件完成后执行，并作为 Gate D 与最终验收的硬门槛，不能由 Gate 0 提前宣称。
 
 ## 19. 参考标准与官方资料

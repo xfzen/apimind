@@ -1,0 +1,7 @@
+organization: ecp-gate0
+user: ecp-gate0/ecp-user
+resource: workspace:1
+direct_action: read
+role: ecp-gate0/workspace-admin
+role_action: write
+batch_size: 100

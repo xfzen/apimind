@@ -1,0 +1,10 @@
+{
+  "schema_version": "connector.manifest/v1",
+  "product": "apimind",
+  "instance_id": "apimind-local",
+  "min_ecp_version": "1.0.0",
+  "capabilities": ["resource.list", "resource.authorize", "resource.version"],
+  "resources": [{"type": "workspace", "actions": ["read", "write", "admin"], "unknown_resource_field": "ignored-by-n-minus-one"}],
+  "errors": ["ECP_DENIED", "ECP_UNAVAILABLE", "ECP_STALE_IDENTITY"],
+  "unknown_top_level_field": {"future": true}
+}

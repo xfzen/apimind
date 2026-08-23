@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-08-23",
+  "registries": {
+    "go_proxy": "https://proxy.golang.org",
+    "npm": "https://registry.npmjs.org",
+    "docker": "https://registry-1.docker.io"
+  },
+  "toolchains": {
+    "go": {
+      "version": "1.25.12",
+      "source": "https://go.dev/dl/go1.25.12.darwin-arm64.tar.gz",
+      "sha256": "fa2c88bbcf64bd3b2aef355f026cfec6d3a4a01c132f999c8f8c964eb767164f",
+      "architectures": ["darwin/arm64", "linux/amd64", "linux/arm64"]
+    },
+    "node": {
+      "version": "24.19.0",
+      "npm_version": "11.17.0",
+      "source": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-arm64.tar.gz",
+      "sha256": "8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d",
+      "architectures": ["darwin/arm64", "linux/amd64", "linux/arm64"]
+    }
+  },
+  "go_modules": {
+    "github.com/zeromicro/go-zero": {"version": "v1.10.2", "source": "https://github.com/zeromicro/go-zero", "sum": "h1:XVxs4tGi4dkNE08iZP0BoqlCuof4iAnCdZ424mz8yyM="},
+    "github.com/zeromicro/go-zero/tools/goctl": {"version": "v1.9.2", "source": "https://github.com/zeromicro/go-zero", "sum": "h1:SCgx7BlN0Rce3J4R77AWqmp6KWCyBlAZUwlYjBOOn2Y="},
+    "github.com/zeromicro/goctl-swagger": {"version": "v0.2.0", "source": "https://github.com/zeromicro/goctl-swagger", "sum": "h1:NHjRV6IUYVS2HQTDsvZdrj2Yt0XV3WXbaQS9BpWuDpI="},
+    "gorm.io/gorm": {"version": "v1.31.2", "source": "https://github.com/go-gorm/gorm", "sum": "h1:3o8FXNo9v9S858gil+3LlZA1LkCOzgb4g5BL64FgaCo="},
+    "gorm.io/driver/postgres": {"version": "v1.6.2", "source": "https://github.com/go-gorm/postgres", "sum": "h1:BvXQ/cNUg63q5TFNg672DmDcowZSFrNLkkA3Xe6GXq4="},
+    "gorm.io/driver/mysql": {"version": "v1.6.0", "source": "https://github.com/go-gorm/mysql", "sum": "h1:eNbLmNTpPpTOVZi8MMxCi2aaIm0ZpInbORNXDwyLGvg="},
+    "github.com/golang-migrate/migrate/v4": {"version": "v4.19.1", "source": "https://github.com/golang-migrate/migrate", "sum": "h1:OCyb44lFuQfYXYLx1SCxPZQGU7mcaZ7gH9yH4jSFbBA="}
+  },
+  "npm_packages": {
+    "react": {"version": "18.3.1", "integrity": "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="},
+    "react-dom": {"version": "18.3.1", "integrity": "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw=="},
+    "react-router": {"version": "7.18.0", "integrity": "sha512-pTTGt8J+ji1NOmYnjzT+bAJy/1zD+Jp4ziO6cL7T3ZLvXKtusO7BpFqlRXitqpcPVqllsIXFHRMt+2/k3Xn6HQ=="},
+    "antd": {"version": "6.4.3", "integrity": "sha512-6H2avkxCGfxcF67r3J2mwm9Ck50el1pks/73vfM1wDsPL/tPtj5vHuauMgJFnrqmq7CH3g8aoZ0VBQbt+jpAsw=="},
+    "@ant-design/icons": {"version": "6.2.3", "integrity": "sha512-Pl3aoAtxQeKryYnt6VvDJtOxMOtA8wrRSACe/pTjOAIG3fdHrWm6Ivb4ku9tsFjYroSXBKirvuxG4QkwBXD9gg=="},
+    "axios": {"version": "1.19.0", "integrity": "sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw=="},
+    "typescript": {"version": "5.9.3", "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="},
+    "vite": {"version": "8.2.2", "integrity": "sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q=="},
+    "@vitejs/plugin-react": {"version": "6.1.0", "integrity": "sha512-qd2BzUBehkov86WFhg0JkEFEYyCLG9uPCe6qWTY/kRlss9OvJrOF2UbIWT7p+8IzZHkEu0DNGHc4HSv+JdDLsw=="},
+    "tailwindcss": {"version": "4.3.3", "integrity": "sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ=="},
+    "@tailwindcss/vite": {"version": "4.3.3", "integrity": "sha512-yYU8cogLeSh/ms2jh8Fj7jaba/EWa7Ja6GoUqYZaraEuCI5YS6ms6ObZgjjedm+jm6XZjdNRWBpPP6Z86oOxcw=="},
+    "vitest": {"version": "4.1.11", "integrity": "sha512-fhACrNXUidIbGSBr5FlbuBkO7VWC1ZyLl0DO4CU2DrQoAPxX84Ysxs+HeGQpii5lZWV1Q4gBZTTu49mF+A6Edw=="},
+    "jsdom": {"version": "30.0.1", "integrity": "sha512-52v7mUVUfNQVYYqE1lcdaymWL0njO7lTLUog6ZvW2U5KsbiLk/GnZlVJ+qx0xfNJZ6Gn+KSpPNE52vurbxZwrA=="},
+    "@playwright/test": {"version": "1.62.1", "integrity": "sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ=="},
+    "@testing-library/react": {"version": "16.3.2", "integrity": "sha512-XU5/SytQM+ykqMnAnvB2umaJNIOsLF3PVv//1Ew4CTcpz0/BRyy/af40qqrt7SjKpDdT1saBMc42CUok5gaw+g=="},
+    "@testing-library/user-event": {"version": "14.6.6", "integrity": "sha512-Jbs9FpkkIDw8FgSc6kOVsOv8JuuqGAL7J4X1oot77JxAoDlkNn2GRkd0aYRVuQ+pVQAiHWVkE4rX/dkF5fBiCw=="},
+    "@types/react": {"version": "18.3.31", "integrity": "sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw=="},
+    "@types/react-dom": {"version": "18.3.7", "integrity": "sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ=="}
+  },
+  "images": {
+    "casdoor": {"reference": "casbin/casdoor:3.154.4@sha256:95c7be68fb98daf2ec74a10c9f785af1ef75e8fef6dd4aad455a899e651e87e2", "source": "https://hub.docker.com/r/casbin/casdoor", "architectures": ["linux/amd64", "linux/arm64"], "platform_digests": {"linux/amd64": "sha256:b43add37b45754ffc627448e8de70da01a28f891f875eb9115aa2757dede0b81", "linux/arm64": "sha256:b624dee4c5631782a6c74b0ede8553089a54c386d9ca019d7e1857023752ee68"}},
+    "postgres": {"reference": "postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929", "source": "https://hub.docker.com/_/postgres", "architectures": ["linux/amd64", "linux/arm64"], "platform_digests": {"linux/amd64": "sha256:b86568d3e0fe1dfaeff52714f9da36f206a30e4c49131b82bf96982d78627409", "linux/arm64": "sha256:ac74e8c63c516b1f81fbaaede0663981399f80e42369431136b2455557f8547b"}},
+    "mysql": {"reference": "mysql:8.4.6@sha256:869218921e61d6c3c89820955d63cca42971f0e3e6c1e2792247bbd944ebc6e9", "source": "https://hub.docker.com/_/mysql", "architectures": ["linux/amd64", "linux/arm64"], "platform_digests": {"linux/amd64": "sha256:c296d65ee6ab3ce2f608c1d1b2bdd3c08b087a5834101d76a6db2e00875216cc", "linux/arm64": "sha256:6752fee1ed70df146fe22d5d1656deee79463f780a24cb7e67c807f2f07d7dc5"}}
+  }
+}
