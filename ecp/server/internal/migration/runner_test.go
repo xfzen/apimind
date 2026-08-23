@@ -32,7 +32,7 @@ func TestMigrationRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if version != 2 || dirty {
+			if version != 3 || dirty {
 				t.Fatalf("version=%d dirty=%v", version, dirty)
 			}
 			if err := Down(test.driver, dsn, 1); err != nil {
@@ -42,7 +42,7 @@ func TestMigrationRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if version != 1 || dirty {
+			if version != 2 || dirty {
 				t.Fatalf("down version=%d dirty=%v", version, dirty)
 			}
 			if err := Up(test.driver, dsn); err != nil {

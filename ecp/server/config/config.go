@@ -10,6 +10,21 @@ type Config struct {
 	rest.RestConf
 	Build    BuildConfig
 	Database DatabaseConfig `json:",optional"`
+	Casdoor  CasdoorConfig  `json:",optional"`
+	OIDC     OIDCConfig     `json:",optional"`
+}
+
+type CasdoorConfig struct {
+	Enabled             bool   `json:",default=false"`
+	BaseURL             string `json:",optional"`
+	EnterpriseID        string `json:",optional"`
+	Organization        string `json:",optional"`
+	CredentialReference string `json:",optional"`
+	LocalMode           bool   `json:",default=false"`
+}
+
+type OIDCConfig struct {
+	LocalMode bool `json:",default=false"`
 }
 
 type DatabaseConfig struct {

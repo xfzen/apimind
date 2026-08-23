@@ -531,7 +531,7 @@ git commit -m "feat(ecp): add product registry"
 - Produces: `OIDCClientService.Register`, `RotateSecret`, `Disable`, and `ValidateRedirect`.
 - Produces: `SecretProvider.Get(ctx, reference) ([]byte, error)`; only the Casdoor adapter and server-side OIDC code exchange receive the relevant secret reference.
 
-- [ ] **Step 1: Write redirect and credential-boundary tests**
+- [x] **Step 1: Write redirect and credential-boundary tests**
 
 ```go
 func TestValidateRedirectRequiresExactHTTPSURI(t *testing.T) {
@@ -555,27 +555,27 @@ func TestProductionRejectsDynamicClientRegistration(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `cd ecp/server && go test ./internal/infra/casdoor ./internal/service/oidcclient -count=1`
 
 Expected: FAIL because the adapter and service do not exist.
 
-- [ ] **Step 3: Implement a narrow Casdoor interface using official APIs**
+- [x] **Step 3: Implement a narrow Casdoor interface using official APIs**
 
 Use `net/http` or the existing official OAuth/OIDC libraries. Bind every adapter credential to one enterprise and keep its raw value in the configured `SecretProvider`, not `ecp_db`. The adapter credential audience and scopes allow only required Casdoor management calls; it cannot authenticate Connector traffic or OIDC relying-party code exchange.
 
-- [ ] **Step 4: Implement exact redirect and rotation rules**
+- [x] **Step 4: Implement exact redirect and rotation rules**
 
 Reject wildcards, request-supplied redirect overrides, non-HTTPS production callbacks, open redirects, and cross-instance client reuse. Permit only explicitly configured localhost callbacks in local mode. Production dynamic client registration is disabled; client creation and secret rotation are explicit, audited control-plane operations.
 
-- [ ] **Step 5: Run adapter and migration tests**
+- [x] **Step 5: Run adapter and migration tests**
 
 Run: `cd ecp/server && go test ./internal/infra/casdoor ./internal/service/oidcclient ./internal/infra/persistence/gorm -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the Casdoor boundary**
+- [x] **Step 6: Commit the Casdoor boundary**
 
 ```bash
 git add ecp/server
