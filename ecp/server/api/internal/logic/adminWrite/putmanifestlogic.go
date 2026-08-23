@@ -33,8 +33,12 @@ func (l *PutManifestLogic) PutManifest(req *types.PutManifestReq) (resp *types.M
 	if req == nil || l.svcCtx.Registry == nil {
 		return nil, fmt.Errorf("registry is unavailable")
 	}
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
 	value, err := l.svcCtx.Registry.PutManifest(l.ctx, registryservice.PutManifestInput{
-		EnterpriseID: req.EnterpriseID, ApplicationID: req.ApplicationID, APIVersion: req.APIVersion, Body: []byte(req.Body),
+		EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, APIVersion: req.APIVersion, Body: []byte(req.Body),
 	})
 	if err != nil {
 		return nil, err

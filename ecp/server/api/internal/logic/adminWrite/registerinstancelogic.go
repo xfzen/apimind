@@ -33,8 +33,12 @@ func (l *RegisterInstanceLogic) RegisterInstance(req *types.RegisterInstanceReq)
 	if req == nil || l.svcCtx.Registry == nil {
 		return nil, fmt.Errorf("registry is unavailable")
 	}
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
 	value, err := l.svcCtx.Registry.RegisterInstance(l.ctx, registryservice.RegisterInstanceInput{
-		EnterpriseID: req.EnterpriseID, ApplicationID: req.ApplicationID, InstanceKey: req.InstanceKey,
+		EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, InstanceKey: req.InstanceKey,
 		Environment: req.Environment, CanonicalURL: req.CanonicalURL,
 	})
 	if err != nil {

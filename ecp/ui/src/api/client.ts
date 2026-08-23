@@ -1,15 +1,22 @@
 import axios from 'axios'
 
 let csrfToken = ''
+let enterpriseID = ''
 
 export const apiClient = axios.create({ baseURL: '/api/v1', withCredentials: true })
 
 apiClient.interceptors.request.use((request) => {
   const method = request.method?.toUpperCase() ?? 'GET'
-  if (csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(method)) request.headers.set('X-CSRF-Token', csrfToken)
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    if (enterpriseID) request.params = { ...request.params as object, enterprise_id: enterpriseID }
+  } else {
+    if (csrfToken) request.headers.set('X-CSRF-Token', csrfToken)
+    if (enterpriseID && request.data && typeof request.data === 'object' && !Array.isArray(request.data)) request.data = { ...request.data as object, enterprise_id: enterpriseID }
+  }
   return request
 })
 
-export function setCSRFToken(value: string) {
-  csrfToken = value
+export function setSessionScope(nextEnterpriseID: string, nextCSRFToken: string) {
+  enterpriseID = nextEnterpriseID
+  csrfToken = nextCSRFToken
 }

@@ -33,7 +33,11 @@ func (l *SyncDirectoryGroupLogic) SyncDirectoryGroup(req *types.SyncDirectoryGro
 	if req == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("identity service is unavailable")
 	}
-	value, err := l.svcCtx.Identity.SyncDirectoryGroup(l.ctx, identityservice.DirectoryGroupInput{EnterpriseID: req.EnterpriseID, Provider: req.Provider, ExternalID: req.ExternalID, Name: req.Name}, req.PrincipalIDs)
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Identity.SyncDirectoryGroup(l.ctx, identityservice.DirectoryGroupInput{EnterpriseID: enterpriseID, Provider: req.Provider, ExternalID: req.ExternalID, Name: req.Name}, req.PrincipalIDs)
 	if err != nil {
 		return nil, err
 	}

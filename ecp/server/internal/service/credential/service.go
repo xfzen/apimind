@@ -115,11 +115,17 @@ func (s *Service) create(ctx context.Context, input CreateInput, lineage, rotate
 }
 
 func (s *Service) Rotate(ctx context.Context, id string, lifetime time.Duration) (Created, error) {
+	return s.rotate(ctx, "", id, lifetime)
+}
+func (s *Service) RotateForEnterprise(ctx context.Context, enterpriseID, id string, lifetime time.Duration) (Created, error) {
+	return s.rotate(ctx, enterpriseID, id, lifetime)
+}
+func (s *Service) rotate(ctx context.Context, enterpriseID, id string, lifetime time.Duration) (Created, error) {
 	value, found, err := s.store.Get(ctx, id)
 	if err != nil {
 		return Created{}, decision("credential_store_error", err)
 	}
-	if !found || value.Status != "active" {
+	if !found || value.Status != "active" || (enterpriseID != "" && value.EnterpriseID != enterpriseID) {
 		return Created{}, decision("credential_inactive", nil)
 	}
 	var scopes []domain.CredentialScope
@@ -139,11 +145,17 @@ func (s *Service) Rotate(ctx context.Context, id string, lifetime time.Duration)
 }
 
 func (s *Service) Revoke(ctx context.Context, id string) error {
+	return s.revoke(ctx, "", id)
+}
+func (s *Service) RevokeForEnterprise(ctx context.Context, enterpriseID, id string) error {
+	return s.revoke(ctx, enterpriseID, id)
+}
+func (s *Service) revoke(ctx context.Context, enterpriseID, id string) error {
 	value, found, err := s.store.Get(ctx, id)
 	if err != nil {
 		return decision("credential_store_error", err)
 	}
-	if !found {
+	if !found || (enterpriseID != "" && value.EnterpriseID != enterpriseID) {
 		return decision("credential_not_found", nil)
 	}
 	now := s.clock.Now().UTC()

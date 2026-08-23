@@ -16,6 +16,7 @@ import "apis/auth.api"
 import "apis/access.api"
 import "apis/credential.api"
 import "apis/audit.api"
+import "apis/admin.api"
 
 @server (
 	group:  metaPublic
@@ -75,6 +76,42 @@ service ecp {
 	@doc "Query append-only audit events"
 	@handler QueryAudit
 	get /audit/events (AuditQueryReq) returns (AuditQueryResp)
+
+	@doc "List enterprise principals"
+	@handler ListPrincipals
+	get /identity/principals (AdminEnterpriseReq) returns (PrincipalListResp)
+
+	@doc "Get one enterprise principal"
+	@handler GetPrincipal
+	get /identity/principals/:id (AdminEntityReq) returns (PrincipalResp)
+
+	@doc "List enterprise identity groups"
+	@handler ListIdentityGroups
+	get /identity/groups (AdminEnterpriseReq) returns (GroupListResp)
+
+	@doc "Get one enterprise identity group"
+	@handler GetIdentityGroup
+	get /identity/groups/:id (AdminEntityReq) returns (GroupDetailResp)
+
+	@doc "List enterprise identity source status"
+	@handler ListIdentitySources
+	get /identity/sources (AdminEnterpriseReq) returns (IdentitySourceListResp)
+
+	@doc "List registered applications"
+	@handler ListApplications
+	get /applications (AdminEnterpriseReq) returns (ApplicationListResp)
+
+	@doc "List registered application instances"
+	@handler ListInstances
+	get /instances (InstanceListReq) returns (InstanceListResp)
+
+	@doc "Get one registered application instance"
+	@handler GetInstance
+	get /instances/:id (AdminEntityReq) returns (InstanceResp)
+
+	@doc "Get the accepted product manifest"
+	@handler GetManifest
+	get /applications/:id/manifest (AdminEntityReq) returns (ManifestDetailResp)
 }
 
 @server (

@@ -26,6 +26,7 @@ type SessionSummaryResp {
 	Kind                  string `json:"kind"`
 	ExpiresAt             int64  `json:"expires_at"`
 	Revoked               bool   `json:"revoked"`
+	CSRFToken             string `json:"csrf_token,optional"`
 }
 type SessionListReq { EnterpriseID string `form:"enterprise_id"` }
 type SessionListResp { Sessions []SessionSummaryResp `json:"sessions"` }

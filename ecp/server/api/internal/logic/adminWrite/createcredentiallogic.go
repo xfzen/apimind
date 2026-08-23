@@ -34,7 +34,11 @@ func (l *CreateCredentialLogic) CreateCredential(req *types.CreateCredentialReq)
 	if req == nil || l.svcCtx.Credential == nil {
 		return nil, fmt.Errorf("credential service unavailable")
 	}
-	value, err := l.svcCtx.Credential.Create(l.ctx, credentialservice.CreateInput{EnterpriseID: req.EnterpriseID, ApplicationID: req.ApplicationID, ApplicationInstanceID: req.ApplicationInstanceID, Name: req.Name, Scopes: credentialScopes(req.Scopes), Lifetime: time.Duration(req.LifetimeSeconds) * time.Second})
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Credential.Create(l.ctx, credentialservice.CreateInput{EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, ApplicationInstanceID: req.ApplicationInstanceID, Name: req.Name, Scopes: credentialScopes(req.Scopes), Lifetime: time.Duration(req.LifetimeSeconds) * time.Second})
 	if err != nil {
 		return nil, err
 	}

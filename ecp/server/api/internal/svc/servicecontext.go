@@ -13,6 +13,7 @@ import (
 	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
 	accessservice "github.com/xfzen/ecp/server/internal/service/access"
+	adminqueryservice "github.com/xfzen/ecp/server/internal/service/adminquery"
 	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	connectorservice "github.com/xfzen/ecp/server/internal/service/connector"
 	credentialservice "github.com/xfzen/ecp/server/internal/service/credential"
@@ -40,6 +41,7 @@ type ServiceContext struct {
 	Sessions       *sessionservice.Service
 	Idempotency    *idempotencyservice.Service
 	Access         *accessservice.Service
+	AdminQuery     *adminqueryservice.Service
 	Policy         *policyservice.Service
 	SecurityConfig *securityconfigservice.Service
 	Connector      *connectorservice.Service
@@ -63,8 +65,12 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 	ctx := &ServiceContext{Config: cfg}
 	databaseConfig := cfg.Database
 	if cfg.Audit.Enabled {
-		businessDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.BusinessDSNReference); if err != nil { panic(err) }
-		databaseConfig.Enabled = true; databaseConfig.DSN = string(businessDSN)
+		businessDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.BusinessDSNReference)
+		if err != nil {
+			panic(err)
+		}
+		databaseConfig.Enabled = true
+		databaseConfig.DSN = string(businessDSN)
 	}
 	if databaseConfig.Enabled {
 		db, err := persistence.Open(databaseConfig)
@@ -73,6 +79,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		}
 		ctx.DB = db
 		ctx.Registry = registryservice.New(persistence.NewRegistryStore(db))
+		ctx.AdminQuery = adminqueryservice.New(persistence.NewAdminQueryStore(db))
 		ctx.OIDCClients = oidcclientservice.New(persistence.NewOIDCClientStore(db), cfg.OIDC.LocalMode)
 		ctx.Identity = identityservice.New(persistence.NewIdentityStore(db), cfg.Identity.TrustedIssuers)
 		ctx.Lifecycle = lifecycleservice.New(persistence.NewLifecycleStore(db), nil, cfg.Identity.FreshnessTTL)
@@ -90,10 +97,30 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
 		ctx.Credential = credentialservice.New(persistence.NewCredentialStore(db), credentialservice.Config{})
 		if cfg.Audit.Enabled {
-			ingestDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.IngestDSNReference); if err != nil { panic(err) }; readDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.ReadDSNReference); if err != nil { panic(err) }
-			ingestConfig := databaseConfig; ingestConfig.DSN = string(ingestDSN); readConfig := databaseConfig; readConfig.DSN = string(readDSN)
-			ctx.AuditIngestDB, err = persistence.Open(ingestConfig); if err != nil { panic(err) }; ctx.AuditReadDB, err = persistence.Open(readConfig); if err != nil { panic(err) }
-			connections := persistence.NewAuditConnections(db, ctx.AuditIngestDB, ctx.AuditReadDB); if !connections.Valid() { panic("audit connections must use independent pools") }
+			ingestDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.IngestDSNReference)
+			if err != nil {
+				panic(err)
+			}
+			readDSN, err := envSecretProvider{}.Get(context.Background(), cfg.Audit.ReadDSNReference)
+			if err != nil {
+				panic(err)
+			}
+			ingestConfig := databaseConfig
+			ingestConfig.DSN = string(ingestDSN)
+			readConfig := databaseConfig
+			readConfig.DSN = string(readDSN)
+			ctx.AuditIngestDB, err = persistence.Open(ingestConfig)
+			if err != nil {
+				panic(err)
+			}
+			ctx.AuditReadDB, err = persistence.Open(readConfig)
+			if err != nil {
+				panic(err)
+			}
+			connections := persistence.NewAuditConnections(db, ctx.AuditIngestDB, ctx.AuditReadDB)
+			if !connections.Valid() {
+				panic("audit connections must use independent pools")
+			}
 			ctx.Audit = auditservice.New(persistence.NewAuditTransactionStore(connections.BusinessDB), persistence.NewAuditAppendStore(connections.AuditIngestDB), persistence.NewAuditReadStore(connections.AuditReadDB), nil)
 		}
 	}

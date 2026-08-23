@@ -1335,12 +1335,17 @@ git commit -m "feat(ecp-ui): add admin session shell"
 - Create: `ecp/ui/src/operations/{Health,IdentitySyncStatus}.tsx`
 - Create: `ecp/ui/src/api/{identity,identitySources,applications,access,security,credentials,audit}.ts`
 - Create: `ecp/ui/tests/{access,audit,identity-source,security-policy,stale-identity}.test.tsx`
+- Create: `ecp/server/docs/apis/admin.api`
+- Modify: `ecp/server/docs/{ecp.api,apis/auth.api}` and generated routes/types/OpenAPI
+- Create: `ecp/server/internal/service/adminquery/*`
+- Create: `ecp/server/internal/infra/persistence/gorm/admin_query_repo.go`
+- Modify: `ecp/server/api/internal/{handler,logic,svc}` for enterprise-scoped admin reads and session-bound CSRF recovery
 
 **Interfaces:**
 - Consumes: Manifest, identity, access, credential, audit, meta health, and identity-sync endpoints from Tasks 3–10.
 - Produces: global user/group/identity-source management plus generic product instance, fixed role, resource grant, security policy, service account, audit, health, and identity-sync pages. Backup status is intentionally deferred until Task 16 creates the matching operation API.
 
-- [ ] **Step 1: Write failing resource visibility and stale-state tests**
+- [x] **Step 1: Write failing resource visibility and stale-state tests**
 
 ```ts
 it('does not render unauthorized resource names returned as denied', async () => {
@@ -1358,27 +1363,27 @@ it('renders directory-managed groups as read-only', async () => {
 })
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `cd ecp/ui && npm run test:unit -- tests/access.test.tsx tests/audit.test.tsx tests/identity-source.test.tsx tests/security-policy.test.tsx tests/stale-identity.test.tsx`
 
 Expected: FAIL because the pages do not exist.
 
-- [ ] **Step 3: Implement manifest-driven generic pages**
+- [x] **Step 3: Implement manifest-driven generic pages**
 
 Render only fixed resource types, roles, actions, and capabilities declared by the accepted Manifest. Identity-source pages show provider, last successful sync, freshness deadline, lag, failure, and reconciliation state; directory-managed groups are read-only. Security pages expose only the controlled public-sharing/export/secret policy schema and policy-drift repair flow. Build tables, forms, trees, menus, pagination, dialogs, drawers, alerts, and result states with Ant Design; use Tailwind only for responsive page grids, flex layout, spacing, width, and alignment. Do not load product JavaScript or create parallel home-grown standard controls. Unsupported product settings use a controlled schema form or product deep link.
 
-- [ ] **Step 4: Implement high-risk confirmation and stable denial rendering**
+- [x] **Step 4: Implement high-risk confirmation and stable denial rendering**
 
 Role changes, credential operations, policy repair, identity disable, audit export, and instance URL changes require reauthentication where the API reports `reauth_required`. Never expose resource existence after `resource_not_visible`.
 
-- [ ] **Step 5: Run UI verification**
+- [x] **Step 5: Run UI verification**
 
 Run: `cd ecp/ui && npm run typecheck && npm test && npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit administration UI**
+- [x] **Step 6: Commit administration UI**
 
 ```bash
 git add ecp/ui

@@ -32,7 +32,11 @@ func (l *AddDirectGroupMemberLogic) AddDirectGroupMember(req *types.AddGroupMemb
 	if req == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("identity service is unavailable")
 	}
-	if err := l.svcCtx.Identity.AddDirectGroupMember(l.ctx, req.EnterpriseID, req.GroupID, req.PrincipalID); err != nil {
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	if err := l.svcCtx.Identity.AddDirectGroupMember(l.ctx, enterpriseID, req.GroupID, req.PrincipalID); err != nil {
 		return nil, err
 	}
 	return &types.Empty{}, nil

@@ -23,6 +23,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.AdminSession},
 			[]rest.Route{
 				{
+					// List registered applications
+					Method:  http.MethodGet,
+					Path:    "/applications",
+					Handler: adminRead.ListApplicationsHandler(serverCtx),
+				},
+				{
+					// Get the accepted product manifest
+					Method:  http.MethodGet,
+					Path:    "/applications/:id/manifest",
+					Handler: adminRead.GetManifestHandler(serverCtx),
+				},
+				{
 					// Query append-only audit events
 					Method:  http.MethodGet,
 					Path:    "/audit/events",
@@ -41,10 +53,52 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: adminRead.ListSessionsHandler(serverCtx),
 				},
 				{
+					// List enterprise identity groups
+					Method:  http.MethodGet,
+					Path:    "/identity/groups",
+					Handler: adminRead.ListIdentityGroupsHandler(serverCtx),
+				},
+				{
+					// Get one enterprise identity group
+					Method:  http.MethodGet,
+					Path:    "/identity/groups/:id",
+					Handler: adminRead.GetIdentityGroupHandler(serverCtx),
+				},
+				{
 					// List direct group members
 					Method:  http.MethodGet,
 					Path:    "/identity/groups/:id/members",
 					Handler: adminRead.ListDirectGroupMembersHandler(serverCtx),
+				},
+				{
+					// List enterprise principals
+					Method:  http.MethodGet,
+					Path:    "/identity/principals",
+					Handler: adminRead.ListPrincipalsHandler(serverCtx),
+				},
+				{
+					// Get one enterprise principal
+					Method:  http.MethodGet,
+					Path:    "/identity/principals/:id",
+					Handler: adminRead.GetPrincipalHandler(serverCtx),
+				},
+				{
+					// List enterprise identity source status
+					Method:  http.MethodGet,
+					Path:    "/identity/sources",
+					Handler: adminRead.ListIdentitySourcesHandler(serverCtx),
+				},
+				{
+					// List registered application instances
+					Method:  http.MethodGet,
+					Path:    "/instances",
+					Handler: adminRead.ListInstancesHandler(serverCtx),
+				},
+				{
+					// Get one registered application instance
+					Method:  http.MethodGet,
+					Path:    "/instances/:id",
+					Handler: adminRead.GetInstanceHandler(serverCtx),
 				},
 				{
 					// List service credential usage without secret material

@@ -32,7 +32,11 @@ func (l *ListDirectGroupMembersLogic) ListDirectGroupMembers(req *types.ListGrou
 	if req == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("identity service is unavailable")
 	}
-	values, err := l.svcCtx.Identity.ListDirectGroupMembers(l.ctx, req.EnterpriseID, req.GroupID)
+	enterpriseID, err := requireEnterprise(l.ctx, req.EnterpriseID)
+	if err != nil {
+		return nil, err
+	}
+	values, err := l.svcCtx.Identity.ListDirectGroupMembers(l.ctx, enterpriseID, req.GroupID)
 	if err != nil {
 		return nil, err
 	}

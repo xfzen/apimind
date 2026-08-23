@@ -33,7 +33,11 @@ func (l *QueryAuditLogic) QueryAudit(req *types.AuditQueryReq) (resp *types.Audi
 	if req == nil || l.svcCtx.Audit == nil {
 		return nil, fmt.Errorf("audit service unavailable")
 	}
-	values, err := l.svcCtx.Audit.Query(l.ctx, auditservice.Query{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, OperationID: req.OperationID, SequenceAfter: req.SequenceAfter, Limit: req.Limit})
+	enterpriseID, err := requireEnterprise(l.ctx, req.EnterpriseID)
+	if err != nil {
+		return nil, err
+	}
+	values, err := l.svcCtx.Audit.Query(l.ctx, auditservice.Query{EnterpriseID: enterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, OperationID: req.OperationID, SequenceAfter: req.SequenceAfter, Limit: req.Limit})
 	if err != nil {
 		return nil, err
 	}

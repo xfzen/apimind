@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 
-import { apiClient, setCSRFToken } from '../api/client'
+import { apiClient, setSessionScope } from '../api/client'
 
 export type SessionSummary = { id: string; principal_id: string; enterprise_id: string; expires_at: number; csrf_token: string }
 type AuthState = { loading: boolean; session: SessionSummary | null; refresh: () => Promise<void>; logout: () => Promise<void> }
@@ -10,13 +10,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<SessionSummary | null>(null)
 
-  const clear = useCallback(() => { setSession(null); setCSRFToken('') }, [])
+  const clear = useCallback(() => { setSession(null); setSessionScope('', '') }, [])
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const response = await apiClient.get<SessionSummary>('/auth/session')
       setSession(response.data)
-      setCSRFToken(response.data.csrf_token)
+      setSessionScope(response.data.enterprise_id, response.data.csrf_token)
     } catch (error) {
       if (axiosStatus(error) === 401) clear()
       else clear()

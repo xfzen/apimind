@@ -32,7 +32,11 @@ func (l *RevokeCredentialLogic) RevokeCredential(req *types.CredentialIDReq) (re
 	if req == nil || l.svcCtx.Credential == nil {
 		return nil, fmt.Errorf("credential service unavailable")
 	}
-	if err := l.svcCtx.Credential.Revoke(l.ctx, req.ID); err != nil {
+	enterpriseID, scopeErr := sessionEnterprise(l.ctx)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	if err := l.svcCtx.Credential.RevokeForEnterprise(l.ctx, enterpriseID, req.ID); err != nil {
 		return nil, err
 	}
 	return &types.Empty{}, nil

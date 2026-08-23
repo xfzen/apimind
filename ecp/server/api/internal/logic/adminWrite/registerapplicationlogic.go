@@ -33,8 +33,12 @@ func (l *RegisterApplicationLogic) RegisterApplication(req *types.RegisterApplic
 	if req == nil || l.svcCtx.Registry == nil {
 		return nil, fmt.Errorf("registry is unavailable")
 	}
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
 	value, err := l.svcCtx.Registry.RegisterApplication(l.ctx, registryservice.RegisterApplicationInput{
-		ID: req.ID, EnterpriseID: req.EnterpriseID, Key: req.Key, Name: req.Name,
+		ID: req.ID, EnterpriseID: enterpriseID, Key: req.Key, Name: req.Name,
 	})
 	if err != nil {
 		return nil, err

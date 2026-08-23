@@ -33,7 +33,11 @@ func (l *ExportAuditLogic) ExportAudit(req *types.AuditExportReq) (resp *types.A
 	if req == nil || l.svcCtx.Audit == nil {
 		return nil, fmt.Errorf("audit service unavailable")
 	}
-	value, err := l.svcCtx.Audit.ExportManifest(l.ctx, auditservice.Query{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, SequenceAfter: req.SequenceAfter, Limit: req.Limit})
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Audit.ExportManifest(l.ctx, auditservice.Query{EnterpriseID: enterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, SequenceAfter: req.SequenceAfter, Limit: req.Limit})
 	if err != nil {
 		return nil, err
 	}

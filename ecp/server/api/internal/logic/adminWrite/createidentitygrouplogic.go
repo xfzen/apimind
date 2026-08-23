@@ -33,7 +33,11 @@ func (l *CreateIdentityGroupLogic) CreateIdentityGroup(req *types.CreateGroupReq
 	if req == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("identity service is unavailable")
 	}
-	value, err := l.svcCtx.Identity.CreateManagedGroup(l.ctx, identityservice.ManagedGroupInput{EnterpriseID: req.EnterpriseID, Name: req.Name})
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Identity.CreateManagedGroup(l.ctx, identityservice.ManagedGroupInput{EnterpriseID: enterpriseID, Name: req.Name})
 	if err != nil {
 		return nil, err
 	}

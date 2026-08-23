@@ -1,0 +1,38 @@
+syntax = "v1"
+
+type AdminEnterpriseReq {
+	EnterpriseID string `form:"enterprise_id"`
+}
+type AdminEntityReq {
+	EnterpriseID string `form:"enterprise_id"`
+	ID string `path:"id"`
+}
+type PrincipalListResp { Principals []PrincipalResp `json:"principals"` }
+type GroupListResp { Groups []GroupResp `json:"groups"` }
+type GroupDetailResp {
+	Group GroupResp `json:"group"`
+	PrincipalIDs []string `json:"principal_ids"`
+}
+type IdentitySourceResp {
+	ID string `json:"id"`
+	Provider string `json:"provider"`
+	Version uint64 `json:"version"`
+	LastSuccessfulSync int64 `json:"last_successful_sync,optional"`
+	FreshnessDeadline int64 `json:"freshness_deadline,optional"`
+	State string `json:"state"`
+	LastError string `json:"last_error,optional"`
+}
+type IdentitySourceListResp { Sources []IdentitySourceResp `json:"sources"` }
+type ApplicationListResp { Applications []ApplicationResp `json:"applications"` }
+type InstanceListReq {
+	EnterpriseID string `form:"enterprise_id"`
+	ApplicationID string `form:"application_id,optional"`
+}
+type InstanceListResp { Instances []InstanceResp `json:"instances"` }
+type ManifestDetailResp {
+	ApplicationID string `json:"application_id"`
+	APIVersion string `json:"api_version"`
+	ManifestHash string `json:"manifest_hash"`
+	Body string `json:"body"`
+	Version uint64 `json:"version"`
+}

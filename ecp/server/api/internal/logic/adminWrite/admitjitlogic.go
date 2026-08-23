@@ -33,7 +33,11 @@ func (l *AdmitJITLogic) AdmitJIT(req *types.AdmitJITReq) (resp *types.PrincipalR
 	if req == nil || l.svcCtx.Identity == nil {
 		return nil, fmt.Errorf("identity service is unavailable")
 	}
-	value, err := l.svcCtx.Identity.AdmitJIT(l.ctx, identityservice.JITInput{EnterpriseID: req.EnterpriseID, ApplicationID: req.ApplicationID, Issuer: req.Issuer, Subject: req.Subject, Email: req.Email, EmailVerified: req.EmailVerified, DisplayName: req.DisplayName})
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Identity.AdmitJIT(l.ctx, identityservice.JITInput{EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, Issuer: req.Issuer, Subject: req.Subject, Email: req.Email, EmailVerified: req.EmailVerified, DisplayName: req.DisplayName})
 	if err != nil {
 		return nil, err
 	}

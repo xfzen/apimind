@@ -32,7 +32,11 @@ func (l *BlockPrincipalLogic) BlockPrincipal(req *types.BlockPrincipalReq) (resp
 	if req == nil || l.svcCtx.Lifecycle == nil {
 		return nil, fmt.Errorf("lifecycle service is unavailable")
 	}
-	value, err := l.svcCtx.Lifecycle.Block(l.ctx, req.EnterpriseID, req.PrincipalID)
+	enterpriseID, scopeErr := requireEnterprise(l.ctx, req.EnterpriseID)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Lifecycle.Block(l.ctx, enterpriseID, req.PrincipalID)
 	if err != nil {
 		return nil, err
 	}

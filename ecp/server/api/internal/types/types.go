@@ -14,6 +14,15 @@ type AddGroupMemberReq struct {
 	PrincipalID  string `json:"principal_id"`
 }
 
+type AdminEnterpriseReq struct {
+	EnterpriseID string `form:"enterprise_id"`
+}
+
+type AdminEntityReq struct {
+	EnterpriseID string `form:"enterprise_id"`
+	ID           string `path:"id"`
+}
+
 type AdmitJITReq struct {
 	EnterpriseID  string `json:"enterprise_id"`
 	ApplicationID string `json:"application_id"`
@@ -22,6 +31,10 @@ type AdmitJITReq struct {
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	DisplayName   string `json:"display_name,optional"`
+}
+
+type ApplicationListResp struct {
+	Applications []ApplicationResp `json:"applications"`
 }
 
 type ApplicationResp struct {
@@ -250,6 +263,15 @@ type EnterpriseResp struct {
 	Status string `json:"status"`
 }
 
+type GroupDetailResp struct {
+	Group        GroupResp `json:"group"`
+	PrincipalIDs []string  `json:"principal_ids"`
+}
+
+type GroupListResp struct {
+	Groups []GroupResp `json:"groups"`
+}
+
 type GroupMembersResp struct {
 	PrincipalIDs []string `json:"principal_ids"`
 }
@@ -270,8 +292,31 @@ type HealthResp struct {
 	Version string `json:"version"`
 }
 
+type IdentitySourceListResp struct {
+	Sources []IdentitySourceResp `json:"sources"`
+}
+
+type IdentitySourceResp struct {
+	ID                 string `json:"id"`
+	Provider           string `json:"provider"`
+	Version            uint64 `json:"version"`
+	LastSuccessfulSync int64  `json:"last_successful_sync,optional"`
+	FreshnessDeadline  int64  `json:"freshness_deadline,optional"`
+	State              string `json:"state"`
+	LastError          string `json:"last_error,optional"`
+}
+
 type IngestConnectorAuditReq struct {
 	Events []ConnectorAuditEvent `json:"events"`
+}
+
+type InstanceListReq struct {
+	EnterpriseID  string `form:"enterprise_id"`
+	ApplicationID string `form:"application_id,optional"`
+}
+
+type InstanceListResp struct {
+	Instances []InstanceResp `json:"instances"`
 }
 
 type InstanceResp struct {
@@ -312,6 +357,14 @@ type ListGroupMembersReq struct {
 	EnterpriseID string `form:"enterprise_id"`
 }
 
+type ManifestDetailResp struct {
+	ApplicationID string `json:"application_id"`
+	APIVersion    string `json:"api_version"`
+	ManifestHash  string `json:"manifest_hash"`
+	Body          string `json:"body"`
+	Version       uint64 `json:"version"`
+}
+
 type ManifestResp struct {
 	ApplicationID string `json:"application_id"`
 	APIVersion    string `json:"api_version"`
@@ -347,6 +400,10 @@ type PolicyVersionResp struct {
 	Version       uint64 `json:"version"`
 	State         string `json:"state"`
 	CanonicalHash string `json:"canonical_hash"`
+}
+
+type PrincipalListResp struct {
+	Principals []PrincipalResp `json:"principals"`
 }
 
 type PrincipalResp struct {
@@ -478,6 +535,7 @@ type SessionSummaryResp struct {
 	Kind                  string `json:"kind"`
 	ExpiresAt             int64  `json:"expires_at"`
 	Revoked               bool   `json:"revoked"`
+	CSRFToken             string `json:"csrf_token,optional"`
 }
 
 type SyncDirectoryGroupReq struct {

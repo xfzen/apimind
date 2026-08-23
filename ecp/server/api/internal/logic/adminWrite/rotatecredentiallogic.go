@@ -33,7 +33,11 @@ func (l *RotateCredentialLogic) RotateCredential(req *types.RotateCredentialReq)
 	if req == nil || l.svcCtx.Credential == nil {
 		return nil, fmt.Errorf("credential service unavailable")
 	}
-	value, err := l.svcCtx.Credential.Rotate(l.ctx, req.ID, time.Duration(req.LifetimeSeconds)*time.Second)
+	enterpriseID, scopeErr := sessionEnterprise(l.ctx)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
+	value, err := l.svcCtx.Credential.RotateForEnterprise(l.ctx, enterpriseID, req.ID, time.Duration(req.LifetimeSeconds)*time.Second)
 	if err != nil {
 		return nil, err
 	}

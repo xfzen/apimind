@@ -34,7 +34,11 @@ func (l *ListCredentialUsageLogic) ListCredentialUsage(req *types.CredentialUsag
 	if req == nil || l.svcCtx.Credential == nil {
 		return nil, fmt.Errorf("credential service unavailable")
 	}
-	values, err := l.svcCtx.Credential.ListUsage(l.ctx, req.EnterpriseID, req.ApplicationInstanceID)
+	enterpriseID, err := requireEnterprise(l.ctx, req.EnterpriseID)
+	if err != nil {
+		return nil, err
+	}
+	values, err := l.svcCtx.Credential.ListUsage(l.ctx, enterpriseID, req.ApplicationInstanceID)
 	if err != nil {
 		return nil, err
 	}

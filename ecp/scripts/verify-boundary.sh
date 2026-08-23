@@ -10,9 +10,10 @@ cleanup() {
 trap cleanup EXIT INT TERM
 GOCACHE="$tmp_dir/go-build-cache"
 GOMODCACHE="$tmp_dir/go-mod-cache"
+GOPATH="$tmp_dir/go-path"
 GOPROXY="https://proxy.golang.org"
 GOSUMDB="sum.golang.org"
-export GOCACHE GOMODCACHE GOPROXY GOSUMDB
+export GOCACHE GOMODCACHE GOPATH GOPROXY GOSUMDB
 mkdir -p "$tmp_dir/ecp"
 rsync -a \
   --exclude '/.artifacts/' \

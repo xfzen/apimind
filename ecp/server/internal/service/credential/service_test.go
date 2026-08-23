@@ -107,3 +107,20 @@ func TestRotationOverlapThenRevocation(t *testing.T) {
 		t.Fatalf("revoked reason=%q", reason(err))
 	}
 }
+
+func TestEnterpriseAdminCannotRotateOrRevokeAnotherEnterpriseCredential(t *testing.T) {
+	svc, store, _ := fixture()
+	created, err := svc.Create(context.Background(), CreateInput{EnterpriseID: "enterprise-1", ApplicationID: "apimind", ApplicationInstanceID: "instance-a", Name: "reader", Scopes: []domain.CredentialScope{{ResourceType: "project", ResourceID: "*", Actions: []string{"project.read"}}}, Lifetime: time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.RotateForEnterprise(context.Background(), "enterprise-2", created.ID, time.Hour); reason(err) != "credential_inactive" {
+		t.Fatalf("rotate reason=%q", reason(err))
+	}
+	if err := svc.RevokeForEnterprise(context.Background(), "enterprise-2", created.ID); reason(err) != "credential_not_found" {
+		t.Fatalf("revoke reason=%q", reason(err))
+	}
+	if got := store.values[created.ID].Status; got != "active" {
+		t.Fatalf("credential mutated across enterprise boundary: %s", got)
+	}
+}
