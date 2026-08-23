@@ -17,6 +17,7 @@ import type { ApiResponse } from '../../types/api';
 import type { RootState } from '../../reducer/modules/reducer';
 import type { UnknownRecord } from '../../reducer/types/runtime';
 import { asLegacyClassDecorator } from '../../types/legacyDecorators';
+import { isSystemProjectKind } from './projectKind';
 const confirm = Modal.confirm;
 
 export interface ProjectData extends UnknownRecord {
@@ -161,7 +162,7 @@ class ProjectCard extends Component<ProjectCardProps> {
 
   render() {
     const { projectData, inFollowPage, isShow } = this.props;
-    const isTemplateProject = projectData.kind === 'template';
+    const isSystemProject = isSystemProjectKind(projectData.kind);
     return (
       <div className="card-container">
         <Card
@@ -181,7 +182,7 @@ class ProjectCard extends Component<ProjectCardProps> {
           />
           <h4 className="ui-title">{projectData.name || projectData.projectname}</h4>
         </Card>
-        {!isTemplateProject && (
+        {!isSystemProject && (
           <div
             className="card-btns"
             onClick={projectData.follow || inFollowPage ? this.del : this.add}
@@ -197,7 +198,7 @@ class ProjectCard extends Component<ProjectCardProps> {
             </Tooltip>
           </div>
         )}
-        {isShow && !isTemplateProject && (
+        {isShow && !isSystemProject && (
           <div className="copy-btns" onClick={this.showConfirm}>
             <Tooltip placement="rightTop" title="复制项目">
               <Icon type="copy" className="icon" />

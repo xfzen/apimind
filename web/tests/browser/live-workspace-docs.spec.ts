@@ -129,5 +129,11 @@ test('workspace docs entry provisions once and preserves Markdown outline naviga
   await quickStart.click();
   await expect(quickStart).toHaveClass(/active/);
   await expect(page.locator('#快速开始')).toBeInViewport();
+
+  await page.goto(`/group/${workspaceId}`);
+  const docsCard = page.locator('.card-container').filter({ hasText: '工作区文档' });
+  await expect(docsCard).toHaveCount(1);
+  await expect(docsCard.locator('.card-btns')).toHaveCount(0);
+  await expect(docsCard.locator('.copy-btns')).toHaveCount(0);
   guard.assertNoErrors();
 });
