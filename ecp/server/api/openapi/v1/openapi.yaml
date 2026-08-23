@@ -237,26 +237,12 @@ components:
             title: AuthCallbackReq
             type: object
         AuthStartReq:
-            properties:
-                application_instance_id:
-                    type: string
-                enterprise_id:
-                    type: string
-                kind:
-                    type: string
-                oidc_client_id:
-                    type: string
-                redirect_uri:
-                    type: string
-            required:
-                - enterprise_id
-                - oidc_client_id
-                - kind
-                - redirect_uri
             title: AuthStartReq
             type: object
         AuthStartResp:
             properties:
+                authorization_url:
+                    type: string
                 code_challenge:
                     type: string
                 expires_at:
@@ -273,6 +259,7 @@ components:
                 - state
                 - nonce
                 - code_challenge
+                - authorization_url
                 - expires_at
             title: AuthStartResp
             type: object
@@ -1900,32 +1887,6 @@ paths:
     /api/v1/auth/start:
         get:
             operationId: AuthStart
-            parameters:
-                - in: query
-                  name: enterprise_id
-                  required: true
-                  schema:
-                    type: string
-                - in: query
-                  name: oidc_client_id
-                  required: true
-                  schema:
-                    type: string
-                - in: query
-                  name: application_instance_id
-                  required: false
-                  schema:
-                    type: string
-                - in: query
-                  name: kind
-                  required: true
-                  schema:
-                    type: string
-                - in: query
-                  name: redirect_uri
-                  required: true
-                  schema:
-                    type: string
             responses:
                 "200":
                     content:

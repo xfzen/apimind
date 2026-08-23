@@ -9,6 +9,7 @@ import (
 
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
+	"github.com/xfzen/ecp/server/internal/infra/casdoor"
 	sessionservice "github.com/xfzen/ecp/server/internal/service/session"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -38,23 +39,31 @@ func (l *AuthStartLogic) Begin(req *types.AuthStartReq) (*types.AuthStartResp, s
 	if req == nil || l.svcCtx.Sessions == nil || l.svcCtx.OIDCClients == nil {
 		return nil, sessionservice.BeginResult{}, fmt.Errorf("session service is unavailable")
 	}
-	if req.Kind != sessionservice.AdminSession || req.ApplicationInstanceID != "" {
-		return nil, sessionservice.BeginResult{}, fmt.Errorf("login_transaction_invalid")
+	config := l.svcCtx.Config.OIDC
+	if config.AdminEnterpriseID == "" || config.AdminClientRecordID == "" || config.AdminRedirectURI == "" {
+		return nil, sessionservice.BeginResult{}, fmt.Errorf("admin_login_configuration_incomplete")
 	}
-	client, err := l.svcCtx.OIDCClients.Get(l.ctx, req.EnterpriseID, req.OIDCClientID)
+	client, err := l.svcCtx.OIDCClients.Get(l.ctx, config.AdminEnterpriseID, config.AdminClientRecordID)
 	if err != nil {
 		return nil, sessionservice.BeginResult{}, err
 	}
-	if client.Status != "active" || client.ClientID != l.svcCtx.Config.OIDC.AdminAudience || client.SecretReference != l.svcCtx.Config.OIDC.SecretReference {
+	if client.Status != "active" || client.ClientID != config.AdminAudience || client.SecretReference != config.SecretReference {
 		return nil, sessionservice.BeginResult{}, fmt.Errorf("oidc_client_scope_mismatch")
 	}
-	if err := l.svcCtx.OIDCClients.ValidateRedirect(client.RedirectURIs, req.RedirectURI); err != nil {
+	if err := l.svcCtx.OIDCClients.ValidateRedirect(client.RedirectURIs, config.AdminRedirectURI); err != nil {
 		return nil, sessionservice.BeginResult{}, err
 	}
-	result, err := l.svcCtx.Sessions.Begin(l.ctx, sessionservice.BeginInput{EnterpriseID: req.EnterpriseID, OIDCClientID: req.OIDCClientID, Kind: req.Kind, RedirectURI: req.RedirectURI})
+	result, err := l.svcCtx.Sessions.Begin(l.ctx, sessionservice.BeginInput{EnterpriseID: config.AdminEnterpriseID, OIDCClientID: config.AdminClientRecordID, Kind: sessionservice.AdminSession, RedirectURI: config.AdminRedirectURI})
 	if err != nil {
 		return nil, sessionservice.BeginResult{}, err
 	}
-	resp := &types.AuthStartResp{TransactionID: result.TransactionID, State: result.State, Nonce: result.Nonce, CodeChallenge: sessionservice.PKCEChallenge(result.PKCEVerifier), ExpiresAt: result.ExpiresAt.Unix()}
+	authorizationURL, err := casdoor.BuildAuthorizationURL(casdoor.AuthorizationRequest{
+		Endpoint: config.AuthorizationEndpoint, ClientID: client.ClientID, RedirectURI: config.AdminRedirectURI,
+		State: result.State, Nonce: result.Nonce, CodeChallenge: sessionservice.PKCEChallenge(result.PKCEVerifier), LocalMode: config.LocalMode,
+	})
+	if err != nil {
+		return nil, sessionservice.BeginResult{}, err
+	}
+	resp := &types.AuthStartResp{TransactionID: result.TransactionID, State: result.State, Nonce: result.Nonce, CodeChallenge: sessionservice.PKCEChallenge(result.PKCEVerifier), AuthorizationURL: authorizationURL, ExpiresAt: result.ExpiresAt.Unix()}
 	return resp, result, nil
 }

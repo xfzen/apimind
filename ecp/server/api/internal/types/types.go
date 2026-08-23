@@ -98,19 +98,15 @@ type AuthCallbackReq struct {
 }
 
 type AuthStartReq struct {
-	EnterpriseID          string `form:"enterprise_id"`
-	OIDCClientID          string `form:"oidc_client_id"`
-	ApplicationInstanceID string `form:"application_instance_id,optional"`
-	Kind                  string `form:"kind"`
-	RedirectURI           string `form:"redirect_uri"`
 }
 
 type AuthStartResp struct {
-	TransactionID string `json:"transaction_id"`
-	State         string `json:"state"`
-	Nonce         string `json:"nonce"`
-	CodeChallenge string `json:"code_challenge"`
-	ExpiresAt     int64  `json:"expires_at"`
+	TransactionID    string `json:"transaction_id"`
+	State            string `json:"state"`
+	Nonce            string `json:"nonce"`
+	CodeChallenge    string `json:"code_challenge"`
+	AuthorizationURL string `json:"authorization_url"`
+	ExpiresAt        int64  `json:"expires_at"`
 }
 
 type AuthenticateServiceCredentialReq struct {

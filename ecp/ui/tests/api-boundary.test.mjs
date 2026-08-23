@@ -21,5 +21,5 @@ test('browser code uses only the same-origin ECP boundary', () => {
   assert.doesNotMatch(source, /\/api\/(?:enforce|batch-enforce|add-policy|delete-policy)/)
   assert.doesNotMatch(source, /X-ECP-(?:Connector|Outbound)/)
   assert.match(source, /baseURL:\s*['"]\/api\/v1['"]/)
-  assert.match(source, /['"]\/api\/v1\/auth\/start['"]/)
+  assert.match(source, /apiClient\.get<AuthStartResponse>\(['"]\/auth\/start['"]\)/)
 })

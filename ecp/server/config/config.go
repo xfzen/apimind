@@ -46,6 +46,9 @@ type CasdoorConfig struct {
 
 type OIDCConfig struct {
 	LocalMode             bool   `json:",default=false"`
+	AdminEnterpriseID     string `json:",optional"`
+	AdminClientRecordID   string `json:",optional"`
+	AdminRedirectURI      string `json:",optional"`
 	AdminAudience         string `json:",optional"`
 	Issuer                string `json:",optional"`
 	AuthorizationEndpoint string `json:",optional"`
