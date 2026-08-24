@@ -7,7 +7,7 @@ import test from "node:test";
 
 const sourceRoot = resolve(new URL("../", import.meta.url).pathname);
 const verifier = resolve(sourceRoot, "scripts/verify-workspace.mjs");
-const serverCommit = "b5ba5079091596df2d282eb68d75b476d20c5c89";
+const serverCommit = "efa84e879e5aa85f4c2437d0d83381aac90be6ee";
 
 test("private CI can validate the gitlink without materializing the private Server", () => {
   const fixture = mkdtempSync(join(tmpdir(), "apimind-workspace-"));

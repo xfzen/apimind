@@ -6,7 +6,7 @@ components:
   server:
     source: https://github.com/xfzen/apimind-server
     version: 0.1.0
-    commit: b5ba5079091596df2d282eb68d75b476d20c5c89
+    commit: efa84e879e5aa85f4c2437d0d83381aac90be6ee
   skills:
     source: skills/
     version: 0.1.0
