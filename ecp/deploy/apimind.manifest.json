@@ -1,0 +1,15 @@
+{
+  "schema_version": "connector.manifest/v1",
+  "product": "apimind",
+  "resources": [
+    {"type": "workspace", "actions": ["workspace.read", "workspace.manage", "workspace.member.manage"]},
+    {"type": "project", "actions": ["project.read", "project.write", "project.member.manage"]},
+    {"type": "document", "actions": ["document.read", "document.write"]},
+    {"type": "interface", "actions": ["interface.read", "interface.write"]}
+  ],
+  "roles": [
+    {"id": "workspace.admin", "resource_type": "workspace", "actions": ["workspace.read", "workspace.manage", "workspace.member.manage", "project.read", "project.write", "project.member.manage", "document.read", "document.write", "interface.read", "interface.write"]},
+    {"id": "project.editor", "resource_type": "project", "actions": ["project.read", "project.write", "project.member.manage", "document.read", "document.write", "interface.read", "interface.write"]},
+    {"id": "project.viewer", "resource_type": "project", "actions": ["project.read", "document.read", "interface.read"]}
+  ]
+}

@@ -1,0 +1,42 @@
+services:
+  ecp-product-bootstrap:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    entrypoint: ["/ecp-product-bootstrap"]
+    command: ["--driver", "postgres", "--dsn-file", "/run/secrets/ecp_schema_dsn", "--enterprise", "enterprise-local", "--application", "apimind", "--application-key", "apimind", "--application-name", "ApiMind", "--instance", "apimind-local", "--instance-key", "local", "--canonical-url", "https://apimind.local", "--manifest-file", "/bootstrap/apimind.manifest.json", "--client-record", "oidc-apimind-local", "--client-id", "apimind-local", "--client-secret-reference", "file:///run/secrets/apimind_oidc_secret", "--redirect-uri", "http://127.0.0.1:4000/api/enterprise/auth/callback", "--connector-id", "apimind-connector", "--connector-key", "primary", "--connector-secret-file", "/run/secrets/product_connector_secret", "--callback-client-id", "ecp-to-apimind", "--callback-secret-file", "/run/secrets/product_callback_secret", "--root-public-key-file", "/run/secrets/delegation_root_public_key", "--root-private-key-file", "/run/secrets/delegation_root_private_key", "--signing-private-key-file", "/run/secrets/delegation_signing_private_key", "--casdoor-base-url", "http://casdoor:8000", "--casdoor-organization", "built-in", "--casdoor-client-id", "ecp-admin", "--casdoor-secret-file", "/run/secrets/casdoor_client_secret", "--casdoor-boundary-name", "ecp-apimind-local", "--casdoor-allowed-insecure-host", "casdoor", "--local-mode"]
+    depends_on:
+      ecp-registry-bootstrap: { condition: service_completed_successfully }
+      casdoor: { condition: service_started }
+    secrets: [ecp_schema_dsn, apimind_oidc_secret, product_connector_secret, product_callback_secret, delegation_root_public_key, delegation_root_private_key, delegation_signing_private_key, casdoor_client_secret]
+    volumes:
+      - ./apimind.manifest.json:/bootstrap/apimind.manifest.json:ro
+    restart: "no"
+
+  ecp-api:
+    depends_on:
+      ecp-product-bootstrap: { condition: service_completed_successfully }
+    secrets:
+      - delegation_root_fingerprint
+      - product_connector_secret
+      - apimind_oidc_secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./ecp.enterprise.yaml:/etc/ecp/ecp.yaml:ro
+
+secrets:
+  delegation_root_public_key:
+    file: ./.run/secrets/delegation-root-public.local.secret
+  delegation_root_private_key:
+    file: ./.run/secrets/delegation-root-private.local.secret
+  delegation_root_fingerprint:
+    file: ./.run/secrets/delegation-root-fingerprint.local.secret
+  delegation_signing_private_key:
+    file: ./.run/secrets/delegation-signing-private.local.secret
+  product_connector_secret:
+    file: ./.run/secrets/product-connector.local.secret
+  product_callback_secret:
+    file: ./.run/secrets/product-callback.local.secret
+  apimind_oidc_secret:
+    file: ./.run/secrets/apimind-oidc.local.secret
