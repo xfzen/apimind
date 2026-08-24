@@ -14,4 +14,5 @@ CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o 
 CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-migrate ./cmd/migrate
 CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-audit-bootstrap ./cmd/audit-bootstrap
 CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-bootstrap ./cmd/bootstrap
+CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-product-bootstrap ./cmd/product-bootstrap
 CGO_ENABLED=0 GOOS=linux GOWORK=off GOTOOLCHAIN=go1.25.12 go build -trimpath -o dist/ecp-ui-server ./cmd/ui-server

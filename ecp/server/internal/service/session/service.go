@@ -46,6 +46,9 @@ type OIDCVerifier interface {
 type PrincipalResolver interface {
 	ResolvePrincipal(context.Context, string, string, string) (string, error)
 }
+type AuthenticationObserver interface {
+	ObserveAuthentication(context.Context, string, string, string) error
+}
 
 type Service struct {
 	store    Store
@@ -53,6 +56,13 @@ type Service struct {
 	ttl      time.Duration
 	verifier OIDCVerifier
 	resolver PrincipalResolver
+	observer AuthenticationObserver
+}
+
+func (s *Service) SetAuthenticationObserver(observer AuthenticationObserver) {
+	if s != nil {
+		s.observer = observer
+	}
 }
 
 func New(store Store, clock Clock, ttl time.Duration) *Service {
@@ -202,6 +212,11 @@ func (s *Service) completePrincipal(ctx context.Context, input CompleteInput) (d
 		principalID, err = s.resolver.ResolvePrincipal(ctx, transaction.EnterpriseID, claims.Issuer, claims.Subject)
 		if err != nil {
 			return domain.LoginTransaction{}, "", decision("identity_resolution_failed", err)
+		}
+	}
+	if s.observer != nil {
+		if err := s.observer.ObserveAuthentication(ctx, transaction.EnterpriseID, principalID, claims.Issuer); err != nil {
+			return domain.LoginTransaction{}, "", decision("identity_state_rejected", err)
 		}
 	}
 	return transaction, principalID, nil

@@ -3,4 +3,5 @@ COPY server/dist/ecp-api /ecp-api
 COPY server/dist/ecp-migrate /ecp-migrate
 COPY server/dist/ecp-audit-bootstrap /ecp-audit-bootstrap
 COPY server/dist/ecp-bootstrap /ecp-bootstrap
+COPY server/dist/ecp-product-bootstrap /ecp-product-bootstrap
 ENTRYPOINT ["/ecp-api"]

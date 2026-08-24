@@ -118,6 +118,36 @@ func (v fakeVerifier) Verify(_ context.Context, _, _, _ string) (OIDCClaims, err
 	return v.claims, nil
 }
 
+type recordingAuthenticationObserver struct {
+	enterpriseID string
+	principalID  string
+	provider     string
+}
+
+func (o *recordingAuthenticationObserver) ObserveAuthentication(_ context.Context, enterpriseID, principalID, provider string) error {
+	o.enterpriseID, o.principalID, o.provider = enterpriseID, principalID, provider
+	return nil
+}
+
+func TestOIDCCompleteRecordsVerifiedAuthenticationFreshness(t *testing.T) {
+	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
+	store := &memoryStore{}
+	observer := &recordingAuthenticationObserver{}
+	service := NewWithVerifier(store, clock, time.Hour, fakeVerifier{claims: OIDCClaims{PrincipalID: "principal-1", Issuer: "https://idp.example.com", Audience: "admin-client", Nonce: "placeholder"}})
+	service.SetAuthenticationObserver(observer)
+	begin, err := service.Begin(context.Background(), BeginInput{EnterpriseID: "ent-1", OIDCClientID: "oidc-1", Kind: AdminSession, RedirectURI: "https://admin.example.com/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.verifier = fakeVerifier{claims: OIDCClaims{PrincipalID: "principal-1", Issuer: "https://idp.example.com", Audience: "admin-client", Nonce: begin.Nonce}}
+	if _, err := service.Complete(context.Background(), CompleteInput{TransactionID: begin.TransactionID, State: begin.State, PKCEVerifier: begin.PKCEVerifier, Nonce: begin.Nonce, Code: "code", ExpectedAudience: "admin-client"}); err != nil {
+		t.Fatal(err)
+	}
+	if observer.enterpriseID != "ent-1" || observer.principalID != "principal-1" || observer.provider != "https://idp.example.com" {
+		t.Fatalf("observer=%+v", observer)
+	}
+}
+
 func TestOIDCCompleteValidatesStatePKCENonceAndAudience(t *testing.T) {
 	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
 	store := &memoryStore{}

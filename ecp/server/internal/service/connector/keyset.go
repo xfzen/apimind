@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
@@ -61,11 +62,15 @@ func (s *Service) GetDelegationKeySet(ctx context.Context, claims Claims) (domai
 	if claims.Channel != domain.TrustChannelInbound || !contains(claims.Scopes, "keyset.read") {
 		return domain.DelegationKeySet{}, "", decision("keyset_read_denied", nil)
 	}
+	root, err := s.rootPublicKey(ctx)
+	if err != nil {
+		return domain.DelegationKeySet{}, "", err
+	}
 	value, err := s.currentKeySet(ctx)
 	if err != nil {
 		return domain.DelegationKeySet{}, "", err
 	}
-	return value, s.config.RootFingerprint, nil
+	return value, Fingerprint(root), nil
 }
 
 func (s *Service) AckDelegationKeySet(ctx context.Context, claims Claims, version uint64, acceptedKeyIDs []string) error {
@@ -110,7 +115,15 @@ func (s *Service) rootPublicKey(ctx context.Context) (ed25519.PublicKey, error) 
 		return nil, decision("keyset_root_invalid", err)
 	}
 	publicKey := ed25519.PublicKey(decoded)
-	if s.config.RootFingerprint == "" || Fingerprint(publicKey) != s.config.RootFingerprint {
+	want := strings.TrimSpace(s.config.RootFingerprint)
+	if s.config.RootFingerprintReference != "" {
+		rawFingerprint, err := s.secrets.Get(ctx, s.config.RootFingerprintReference)
+		if err != nil {
+			return nil, decision("keyset_root_fingerprint_unavailable", err)
+		}
+		want = strings.TrimSpace(string(rawFingerprint))
+	}
+	if want == "" || Fingerprint(publicKey) != want {
 		return nil, decision("keyset_root_fingerprint_mismatch", nil)
 	}
 	return publicKey, nil

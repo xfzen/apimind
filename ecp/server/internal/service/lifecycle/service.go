@@ -64,6 +64,33 @@ func (s *Service) MarkPendingExternalSync(ctx context.Context, enterpriseID, pri
 	return s.setLifecycle(ctx, enterpriseID, principalID, domain.LifecyclePendingExternalSync)
 }
 
+// ObserveAuthentication records a freshly verified OIDC assertion without
+// reactivating a principal that was explicitly blocked or awaits directory sync.
+func (s *Service) ObserveAuthentication(ctx context.Context, enterpriseID, principalID, provider string) error {
+	if s == nil || s.store == nil || enterpriseID == "" || principalID == "" || provider == "" {
+		return decision("lifecycle_unavailable", nil)
+	}
+	value, found, err := s.store.GetLifecycle(ctx, enterpriseID, principalID)
+	if err != nil {
+		return decision("lifecycle_store_error", err)
+	}
+	if found {
+		switch value.State {
+		case domain.LifecycleBlocked:
+			return decision("principal_blocked", nil)
+		case domain.LifecyclePendingExternalSync:
+			return decision("principal_pending_external_sync", nil)
+		case domain.LifecycleActive:
+		default:
+			return decision("principal_lifecycle_invalid", nil)
+		}
+	} else if _, err := s.setLifecycle(ctx, enterpriseID, principalID, domain.LifecycleActive); err != nil {
+		return err
+	}
+	_, err = s.MarkSyncSuccess(ctx, enterpriseID, provider, "oidc")
+	return err
+}
+
 func (s *Service) setLifecycle(ctx context.Context, enterpriseID, principalID, state string) (domain.PrincipalLifecycle, error) {
 	if s == nil || s.store == nil || enterpriseID == "" || principalID == "" {
 		return domain.PrincipalLifecycle{}, decision("lifecycle_unavailable", nil)

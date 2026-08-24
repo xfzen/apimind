@@ -112,9 +112,10 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 			verifier = value
 		}
 		ctx.Sessions = sessionservice.NewWithSecurity(persistence.NewSessionStore(db), nil, cfg.Session.TTL, verifier, identityPrincipalResolver{service: ctx.Identity})
+		ctx.Sessions.SetAuthenticationObserver(ctx.Lifecycle)
 		ctx.Idempotency = idempotencyservice.New(persistence.NewIdempotencyStore(db))
 		ctx.SecurityConfig = securityconfigservice.New(persistence.NewSecurityConfigStore(db))
-		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
+		ctx.Connector = connectorservice.New(persistence.NewConnectorStore(db), envSecretProvider{}, connectorservice.Config{Issuer: cfg.Connector.Issuer, RootPublicKeyReference: cfg.Connector.RootPublicKeyReference, RootFingerprint: cfg.Connector.RootFingerprint, RootFingerprintReference: cfg.Connector.RootFingerprintReference, SigningPrivateKeyReference: cfg.Connector.SigningPrivateKeyReference, ActiveSigningKeyID: cfg.Connector.ActiveSigningKeyID, ClockSkew: cfg.Connector.ClockSkew})
 		ctx.Credential = credentialservice.New(persistence.NewCredentialStore(db), credentialservice.Config{})
 		operationStore := persistence.NewOperationStore(db)
 		ctx.Operations = operationservice.New(operationStore, ctx.Audit, operationStore, nil)
@@ -177,7 +178,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		if len(cfg.Connector.Products) != 0 {
 			products := make([]connectorinfra.ProductConfig, len(cfg.Connector.Products))
 			for index, product := range cfg.Connector.Products {
-				products[index] = connectorinfra.ProductConfig{InstanceID: product.InstanceID, BaseURL: product.BaseURL, ClientID: product.ClientID, SecretReference: product.SecretReference}
+				products[index] = connectorinfra.ProductConfig{InstanceID: product.InstanceID, BaseURL: product.BaseURL, ClientID: product.ClientID, SecretReference: product.SecretReference, LocalMode: product.LocalMode, AllowedInsecureHosts: product.AllowedInsecureHosts}
 			}
 			resolver, err := connectorinfra.NewResolver(products, envSecretProvider{}, &http.Client{Timeout: 10 * time.Second})
 			if err != nil {

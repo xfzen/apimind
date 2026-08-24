@@ -65,7 +65,7 @@ func TestPostgresAndMySQLMigrationSetsRemainReversibleAndAligned(t *testing.T) {
 	if !reflect.DeepEqual(postgres, mysql) {
 		t.Fatalf("dialect migration sets differ:\npostgres=%v\nmysql=%v", postgres, mysql)
 	}
-	if len(postgres) != 14 || postgres[len(postgres)-1] != "000014_backup_operations" {
+	if len(postgres) != 15 || postgres[len(postgres)-1] != "000015_policy_reconciling_state" {
 		t.Fatalf("unexpected migration boundary: %v", postgres)
 	}
 }

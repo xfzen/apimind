@@ -22,6 +22,7 @@ type ConnectorConfig struct {
 	Issuer                     string                   `json:",default=ecp"`
 	RootPublicKeyReference     string                   `json:",optional"`
 	RootFingerprint            string                   `json:",optional"`
+	RootFingerprintReference   string                   `json:",optional"`
 	SigningPrivateKeyReference string                   `json:",optional"`
 	ActiveSigningKeyID         string                   `json:",optional"`
 	ClockSkew                  time.Duration            `json:",default=30s"`
@@ -29,10 +30,12 @@ type ConnectorConfig struct {
 }
 
 type ProductConnectorConfig struct {
-	InstanceID      string
-	BaseURL         string
-	ClientID        string
-	SecretReference string
+	InstanceID           string
+	BaseURL              string
+	ClientID             string
+	SecretReference      string
+	LocalMode            bool     `json:",default=false"`
+	AllowedInsecureHosts []string `json:",optional"`
 }
 
 type CasdoorConfig struct {

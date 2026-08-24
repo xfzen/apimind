@@ -36,17 +36,20 @@ func (l *BatchAuthorizeLogic) BatchAuthorize(req *types.BatchAuthorizeReq) (resp
 	}
 	claims, ok := apiMiddleware.ConnectorClaimsFromContext(l.ctx)
 	if !ok || !hasScope(claims.Scopes, "access.authorize") {
+		l.Errorf("batch authorization rejected: connector scope mismatch")
 		return nil, fmt.Errorf("connector_scope_mismatch")
 	}
 	requests := make([]domain.AuthorizationRequest, 0, len(req.Requests))
 	for _, value := range req.Requests {
 		if value.EnterpriseID != claims.EnterpriseID || value.ApplicationInstanceID != claims.ApplicationInstanceID {
+			l.Errorf("batch authorization rejected: connector boundary mismatch")
 			return nil, fmt.Errorf("connector_scope_mismatch")
 		}
 		requests = append(requests, authorizationRequest(value))
 	}
 	decisions, err := l.svcCtx.Access.BatchAuthorize(l.ctx, requests)
 	if err != nil {
+		l.Errorf("batch authorization failed: %v", err)
 		return nil, err
 	}
 	resp = &types.BatchAuthorizeResp{Decisions: make([]types.AuthorizationDecisionResp, 0, len(decisions))}

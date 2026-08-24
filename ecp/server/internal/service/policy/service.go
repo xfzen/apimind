@@ -20,9 +20,9 @@ type Store interface {
 	Put(context.Context, domain.PolicyProjection) (domain.PolicyProjection, error)
 }
 type Adapter interface {
-	ReadPolicies(context.Context) ([]casdoor.Policy, error)
-	WritePolicies(context.Context, []casdoor.Policy) error
-	DeletePolicies(context.Context, []casdoor.Policy) error
+	ReadPolicies(context.Context, string) ([]casdoor.Policy, error)
+	WritePolicies(context.Context, string, []casdoor.Policy) error
+	DeletePolicies(context.Context, string, []casdoor.Policy) error
 }
 type Service struct {
 	store   Store
@@ -45,8 +45,7 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 	if !validPermissionID(input.CasdoorPermissionID, input.Policies) {
 		return domain.PolicyProjection{}, fmt.Errorf("casdoor_permission_binding_invalid")
 	}
-	prefix := "ecp:" + input.ApplicationInstanceID + ":"
-	desired := normalize(input.Policies, prefix)
+	desired := normalize(input.Policies)
 	desiredHash := canonicalHash(desired)
 	value, found, err := s.store.Get(ctx, input.EnterpriseID, input.ApplicationInstanceID)
 	if err != nil {
@@ -77,26 +76,25 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 		}
 		return persisted, cause
 	}
-	existing, err := s.adapter.ReadPolicies(ctx)
+	existing, err := s.adapter.ReadPolicies(ctx, input.CasdoorPermissionID)
 	if err != nil {
 		return fail(err)
 	}
-	scoped := filter(existing, prefix)
-	if len(scoped) > 0 {
-		if err := s.adapter.DeletePolicies(ctx, scoped); err != nil {
+	if len(existing) > 0 {
+		if err := s.adapter.DeletePolicies(ctx, input.CasdoorPermissionID, existing); err != nil {
 			return fail(err)
 		}
 	}
 	if len(desired) > 0 {
-		if err := s.adapter.WritePolicies(ctx, desired); err != nil {
+		if err := s.adapter.WritePolicies(ctx, input.CasdoorPermissionID, desired); err != nil {
 			return fail(err)
 		}
 	}
-	readback, err := s.adapter.ReadPolicies(ctx)
+	readback, err := s.adapter.ReadPolicies(ctx, input.CasdoorPermissionID)
 	if err != nil {
 		return fail(err)
 	}
-	actual := filter(readback, prefix)
+	actual := normalize(readback)
 	actualHash := canonicalHash(actual)
 	value.NormalizedHash = actualHash
 	value.CasdoorPolicyIDs = policyIDs(actual)
@@ -119,7 +117,7 @@ func (s *Service) Reconcile(ctx context.Context, input ReconcileInput) (domain.P
 
 func validPermissionID(permissionID string, policies []casdoor.Policy) bool {
 	owner, name, ok := strings.Cut(permissionID, "/")
-	if !ok || owner == "" || name == "" || strings.Contains(name, "/") || len(policies) == 0 {
+	if !ok || owner == "" || name == "" || strings.Contains(name, "/") {
 		return false
 	}
 	for _, policy := range policies {
@@ -129,23 +127,8 @@ func validPermissionID(permissionID string, policies []casdoor.Policy) bool {
 	}
 	return true
 }
-func normalize(values []casdoor.Policy, prefix string) []casdoor.Policy {
+func normalize(values []casdoor.Policy) []casdoor.Policy {
 	result := append([]casdoor.Policy(nil), values...)
-	for i := range result {
-		if !strings.HasPrefix(result[i].Name, prefix) {
-			result[i].Name = prefix + result[i].Name
-		}
-	}
-	sortPolicies(result)
-	return result
-}
-func filter(values []casdoor.Policy, prefix string) []casdoor.Policy {
-	var result []casdoor.Policy
-	for _, value := range values {
-		if strings.HasPrefix(value.Name, prefix) {
-			result = append(result, value)
-		}
-	}
 	sortPolicies(result)
 	return result
 }
@@ -164,7 +147,9 @@ func canonicalHash(values []casdoor.Policy) string {
 func policyIDs(values []casdoor.Policy) []string {
 	result := make([]string, 0, len(values))
 	for _, value := range values {
-		result = append(result, value.Name)
+		payload, _ := json.Marshal(value)
+		digest := sha256.Sum256(payload)
+		result = append(result, "rule-"+hex.EncodeToString(digest[:8]))
 	}
 	return result
 }

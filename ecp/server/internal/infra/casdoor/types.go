@@ -28,8 +28,8 @@ type User struct {
 }
 
 type Policy struct {
-	Owner string `json:"owner"`
-	Name  string `json:"name"`
+	Owner string `json:"-"`
+	Name  string `json:"-"`
 	PType string `json:"ptype"`
 	V0    string `json:"v0"`
 	V1    string `json:"v1"`
@@ -37,6 +37,55 @@ type Policy struct {
 	V3    string `json:"v3,omitempty"`
 	V4    string `json:"v4,omitempty"`
 	V5    string `json:"v5,omitempty"`
+}
+
+type Model struct {
+	Owner       string `json:"owner"`
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	ModelText   string `json:"modelText"`
+}
+
+type Adapter struct {
+	Owner        string `json:"owner"`
+	Name         string `json:"name"`
+	Table        string `json:"table"`
+	UseSameDB    bool   `json:"useSameDb"`
+	Type         string `json:"type"`
+	DatabaseType string `json:"databaseType"`
+}
+
+type Enforcer struct {
+	Owner       string `json:"owner"`
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	Model       string `json:"model"`
+	Adapter     string `json:"adapter"`
+}
+
+type Permission struct {
+	Owner        string   `json:"owner"`
+	Name         string   `json:"name"`
+	DisplayName  string   `json:"displayName"`
+	Description  string   `json:"description"`
+	Users        []string `json:"users"`
+	Groups       []string `json:"groups"`
+	Roles        []string `json:"roles"`
+	Domains      []string `json:"domains"`
+	Model        string   `json:"model"`
+	Adapter      string   `json:"adapter"`
+	ResourceType string   `json:"resourceType"`
+	Resources    []string `json:"resources"`
+	Actions      []string `json:"actions"`
+	Effect       string   `json:"effect"`
+	IsEnabled    bool     `json:"isEnabled"`
+}
+
+type AuthorizationBoundary struct {
+	Name  string
+	Table string
 }
 
 type Client struct {

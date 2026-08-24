@@ -23,11 +23,24 @@ type Client struct {
 }
 
 func NewClient(baseURL string, credential OutboundCredential, httpClient *http.Client) (*Client, error) {
+	return NewClientWithOptions(baseURL, credential, httpClient, false, nil)
+}
+
+func NewClientWithOptions(baseURL string, credential OutboundCredential, httpClient *http.Client, localMode bool, allowedInsecureHosts []string) (*Client, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse connector URL: %w", err)
 	}
-	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && (parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost")) {
+	allowedHTTP := parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost"
+	if localMode && !allowedHTTP {
+		for _, host := range allowedInsecureHosts {
+			if strings.EqualFold(strings.TrimSpace(host), parsed.Hostname()) {
+				allowedHTTP = true
+				break
+			}
+		}
+	}
+	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && allowedHTTP) {
 		return nil, fmt.Errorf("connector URL must use HTTPS or loopback HTTP")
 	}
 	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || credential.ClientID == "" || credential.Secret == "" || credential.Audience == "" {

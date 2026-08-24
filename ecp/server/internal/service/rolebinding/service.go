@@ -113,6 +113,54 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (domain.RoleBin
 	return persisted, nil
 }
 
+// CanBootstrap permits the pre-provisioned enterprise administrator to create
+// only the first self-binding for a manifest-declared membership-management
+// role. It is the narrow bootstrap path that breaks the resource-discovery
+// dependency before any product policy exists.
+func (s *Service) CanBootstrap(ctx context.Context, input CreateInput, actorPrincipalID string) (bool, error) {
+	if s == nil || s.store == nil || input.EnterpriseID == "" || input.ApplicationInstanceID == "" || actorPrincipalID == "" || input.SubjectType != "principal" || input.SubjectID != actorPrincipalID || input.ResourceID == "" {
+		return false, nil
+	}
+	bindings, err := s.store.ListRoleBindings(ctx, input.EnterpriseID, input.ApplicationInstanceID)
+	if err != nil {
+		return false, err
+	}
+	activeBindings := 0
+	retryingSameBinding := false
+	for _, binding := range bindings {
+		if binding.Status == "active" {
+			activeBindings++
+			retryingSameBinding = binding.SubjectType == input.SubjectType && binding.SubjectID == input.SubjectID && binding.RoleID == input.RoleID && binding.ResourceType == input.ResourceType && binding.ResourceID == input.ResourceID
+		}
+	}
+	if activeBindings > 1 || (activeBindings == 1 && !retryingSameBinding) {
+		return false, nil
+	}
+	instance, found, err := s.store.GetInstance(ctx, input.EnterpriseID, input.ApplicationInstanceID)
+	if err != nil || !found || instance.Status != "active" {
+		return false, err
+	}
+	record, found, err := s.store.GetManifest(ctx, input.EnterpriseID, instance.ApplicationID)
+	if err != nil || !found {
+		return false, err
+	}
+	document, err := manifest.Parse(record.Body)
+	if err != nil {
+		return false, err
+	}
+	role, found := manifest.RoleMap(document)[input.RoleID]
+	if !found || role.ResourceType != input.ResourceType {
+		return false, nil
+	}
+	managementAction := input.ResourceType + ".member.manage"
+	for _, action := range role.Actions {
+		if action == managementAction {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *Service) Revoke(ctx context.Context, input RevokeInput) error {
 	if s == nil || s.store == nil || s.policies == nil || input.EnterpriseID == "" || input.ApplicationInstanceID == "" || input.BindingID == "" {
 		return fmt.Errorf("role_binding_invalid")

@@ -23,6 +23,10 @@ func (s *memoryStore) GetChannel(_ context.Context, id string) (domain.Connector
 	value, ok := s.channels[id]
 	return value, ok, nil
 }
+func (s *memoryStore) PutChannel(_ context.Context, value domain.ConnectorChannel) error {
+	s.channels[value.ID] = value
+	return nil
+}
 func (s *memoryStore) ConsumeNonce(_ context.Context, value domain.DelegationNonce) (bool, error) {
 	key := strings.Join([]string{value.Issuer, value.Audience, value.Purpose, value.Nonce}, "|")
 	if _, found := s.nonces[key]; found {
@@ -80,6 +84,26 @@ func TestInboundConnectorCredentialCannotAuthenticateOutboundCall(t *testing.T) 
 	}
 	if _, err := svc.AuthenticateInbound(context.Background(), "outbound-1", "secret-outbound", "instance-a", "delegate.verify"); reason(err) != "connector_trust_channel_mismatch" {
 		t.Fatalf("reason = %q, err=%v", reason(err), err)
+	}
+}
+
+func TestProvisionChannelIsIdempotentAndDoesNotReviveDisabledCredential(t *testing.T) {
+	svc, store, now := fixture(t)
+	input := ProvisionChannelInput{ID: "bootstrap-1", EnterpriseID: "enterprise-1", ApplicationID: "apimind", InstanceID: "instance-a", Channel: domain.TrustChannelInbound, Scopes: []string{"session.resolve"}, RawSecret: "secret", ExpiresAt: now.Add(time.Hour)}
+	first, err := svc.ProvisionChannel(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := svc.ProvisionChannel(context.Background(), input)
+	if err != nil || first.SecretDigest != second.SecretDigest {
+		t.Fatalf("first=%+v second=%+v err=%v", first, second, err)
+	}
+	disabled := second
+	disabled.Status = "disabled"
+	store.channels[disabled.ID] = disabled
+	third, err := svc.ProvisionChannel(context.Background(), input)
+	if err != nil || third.Status != "disabled" {
+		t.Fatalf("disabled credential was revived: %+v err=%v", third, err)
 	}
 }
 

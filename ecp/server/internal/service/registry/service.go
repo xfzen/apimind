@@ -26,7 +26,9 @@ type Store interface {
 	CreateApplication(context.Context, domain.Application) error
 	GetInstance(context.Context, string, string) (domain.ApplicationInstance, bool, error)
 	CreateInstance(context.Context, domain.ApplicationInstance) error
+	GetManifest(context.Context, string, string) (domain.ProductManifest, bool, error)
 	PutManifest(context.Context, domain.ProductManifest) (domain.ProductManifest, error)
+	GetConnector(context.Context, string, string) (domain.Connector, bool, error)
 	CreateConnector(context.Context, domain.Connector) error
 }
 
@@ -68,7 +70,7 @@ type PutManifestInput struct {
 	EnterpriseID, ApplicationID, APIVersion string
 	Body                                    []byte
 }
-type RegisterConnectorInput struct{ EnterpriseID, ApplicationID, InstanceID, ConnectorKey string }
+type RegisterConnectorInput struct{ ID, EnterpriseID, ApplicationID, InstanceID, ConnectorKey string }
 type ConnectorCredential struct{ EnterpriseID, InstanceID string }
 
 func (s *Service) RegisterEnterprise(ctx context.Context, input RegisterEnterpriseInput) (domain.Enterprise, error) {
@@ -186,6 +188,18 @@ func (s *Service) PutManifest(ctx context.Context, input PutManifestInput) (doma
 	return persisted, nil
 }
 
+func (s *Service) EnsureManifest(ctx context.Context, input PutManifestInput) (domain.ProductManifest, error) {
+	want := sha256.Sum256(input.Body)
+	current, found, err := s.store.GetManifest(ctx, input.EnterpriseID, input.ApplicationID)
+	if err != nil {
+		return domain.ProductManifest{}, decision("registry_store_error", err)
+	}
+	if found && current.APIVersion == input.APIVersion && current.ManifestHash == hex.EncodeToString(want[:]) {
+		return current, nil
+	}
+	return s.PutManifest(ctx, input)
+}
+
 func (s *Service) RegisterConnector(ctx context.Context, input RegisterConnectorInput) (domain.Connector, error) {
 	if s == nil || s.store == nil {
 		return domain.Connector{}, decision("registry_unavailable", nil)
@@ -200,12 +214,35 @@ func (s *Service) RegisterConnector(ctx context.Context, input RegisterConnector
 	if !validID(input.ConnectorKey) {
 		return domain.Connector{}, decision("invalid_connector", nil)
 	}
+	id := input.ID
+	if id == "" {
+		id = newID("con")
+	} else if !validID(id) {
+		return domain.Connector{}, decision("invalid_connector", nil)
+	}
 	now := time.Now().UTC()
-	value := domain.Connector{Base: domain.Base{ID: newID("con"), EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now}, ApplicationID: input.ApplicationID, InstanceID: input.InstanceID, ConnectorKey: input.ConnectorKey, Status: "active", Version: 1}
+	value := domain.Connector{Base: domain.Base{ID: id, EnterpriseID: input.EnterpriseID, CreatedAt: now, UpdatedAt: now}, ApplicationID: input.ApplicationID, InstanceID: input.InstanceID, ConnectorKey: input.ConnectorKey, Status: "active", Version: 1}
 	if err := s.store.CreateConnector(ctx, value); err != nil {
 		return domain.Connector{}, decision("registry_store_error", err)
 	}
 	return value, nil
+}
+
+func (s *Service) EnsureConnector(ctx context.Context, input RegisterConnectorInput) (domain.Connector, error) {
+	if input.ID == "" {
+		return domain.Connector{}, decision("invalid_connector", nil)
+	}
+	current, found, err := s.store.GetConnector(ctx, input.EnterpriseID, input.ID)
+	if err != nil {
+		return domain.Connector{}, decision("registry_store_error", err)
+	}
+	if found {
+		if current.ApplicationID != input.ApplicationID || current.InstanceID != input.InstanceID || current.ConnectorKey != input.ConnectorKey {
+			return domain.Connector{}, decision("connector_identity_conflict", nil)
+		}
+		return current, nil
+	}
+	return s.RegisterConnector(ctx, input)
 }
 
 func (s *Service) AssertConnectorScope(_ context.Context, credential ConnectorCredential, instanceID string) error {

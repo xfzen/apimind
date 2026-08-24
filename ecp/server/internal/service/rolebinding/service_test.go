@@ -126,6 +126,47 @@ func TestCreateRoleBindingRejectsRoleOutsideAcceptedManifest(t *testing.T) {
 	}
 }
 
+func TestInitialSelfBindingAllowsManifestManagementRole(t *testing.T) {
+	store := roleFixture()
+	store.manifest.Body = []byte(`{"schema_version":"connector.manifest/v1","roles":[{"id":"workspace.admin","resource_type":"workspace","actions":["workspace.read","workspace.member.manage"]}]}`)
+	service := New(store, &reconcilerFixture{}, "acme")
+	allowed, err := service.CanBootstrap(context.Background(), CreateInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", SubjectType: "principal", SubjectID: "pri-1", RoleID: "workspace.admin", ResourceType: "workspace", ResourceID: "261"}, "pri-1")
+	if err != nil || !allowed {
+		t.Fatalf("allowed=%v err=%v", allowed, err)
+	}
+}
+
+func TestInitialBindingCannotGrantAnotherSubjectOrNonManagementRole(t *testing.T) {
+	store := roleFixture()
+	service := New(store, &reconcilerFixture{}, "acme")
+	allowed, err := service.CanBootstrap(context.Background(), CreateInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", SubjectType: "principal", SubjectID: "pri-2", RoleID: "project.viewer", ResourceType: "project", ResourceID: "42"}, "pri-1")
+	if err != nil || allowed {
+		t.Fatalf("allowed=%v err=%v", allowed, err)
+	}
+}
+
+func TestInitialBindingClosesAfterAnyActiveBinding(t *testing.T) {
+	store := roleFixture()
+	store.manifest.Body = []byte(`{"schema_version":"connector.manifest/v1","roles":[{"id":"workspace.admin","resource_type":"workspace","actions":["workspace.member.manage"]}]}`)
+	store.bindings = []domain.RoleBinding{{Base: domain.Base{ID: "rbd-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", Status: "active"}}
+	service := New(store, &reconcilerFixture{}, "acme")
+	allowed, err := service.CanBootstrap(context.Background(), CreateInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", SubjectType: "principal", SubjectID: "pri-1", RoleID: "workspace.admin", ResourceType: "workspace", ResourceID: "261"}, "pri-1")
+	if err != nil || allowed {
+		t.Fatalf("allowed=%v err=%v", allowed, err)
+	}
+}
+
+func TestInitialBindingCanRetrySameSelfManagementGrantAfterProjectionFailure(t *testing.T) {
+	store := roleFixture()
+	store.manifest.Body = []byte(`{"schema_version":"connector.manifest/v1","roles":[{"id":"workspace.admin","resource_type":"workspace","actions":["workspace.member.manage"]}]}`)
+	store.bindings = []domain.RoleBinding{{Base: domain.Base{ID: "rbd-1", EnterpriseID: "ent-1"}, ApplicationInstanceID: "ins-1", SubjectType: "principal", SubjectID: "pri-1", RoleID: "workspace.admin", ResourceType: "workspace", ResourceID: "261", Status: "active"}}
+	service := New(store, &reconcilerFixture{}, "acme")
+	allowed, err := service.CanBootstrap(context.Background(), CreateInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", SubjectType: "principal", SubjectID: "pri-1", RoleID: "workspace.admin", ResourceType: "workspace", ResourceID: "261"}, "pri-1")
+	if err != nil || !allowed {
+		t.Fatalf("allowed=%v err=%v", allowed, err)
+	}
+}
+
 func TestGroupRoleBindingEmitsMembershipPolicies(t *testing.T) {
 	store, reconciler := roleFixture(), &reconcilerFixture{}
 	store.memberships = []domain.DirectGroupMembership{{EnterpriseID: "ent-1", GroupID: "grp-1", PrincipalID: "pri-1"}}

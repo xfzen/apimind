@@ -91,6 +91,33 @@ func TestManifestUpdateTriggersRoleProjection(t *testing.T) {
 	}
 }
 
+func TestBootstrapEnsureDoesNotCreateDuplicateManifestOrConnector(t *testing.T) {
+	ctx := context.Background()
+	store := newMemoryStore()
+	svc := New(store)
+	_, _ = svc.RegisterEnterprise(ctx, RegisterEnterpriseInput{ID: "ent-1", Name: "Acme"})
+	_, _ = svc.RegisterApplication(ctx, RegisterApplicationInput{ID: "app-1", EnterpriseID: "ent-1", Key: "apimind", Name: "ApiMind"})
+	_, _ = svc.RegisterInstance(ctx, RegisterInstanceInput{ID: "ins-1", EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceKey: "local", CanonicalURL: "https://apimind.local"})
+	body := []byte(`{"schema_version":"connector.manifest/v1","roles":[{"id":"project.viewer","resource_type":"project","actions":["project.read"]}]}`)
+	firstManifest, err := svc.EnsureManifest(ctx, PutManifestInput{EnterpriseID: "ent-1", ApplicationID: "app-1", APIVersion: "connector.manifest/v1", Body: body})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondManifest, err := svc.EnsureManifest(ctx, PutManifestInput{EnterpriseID: "ent-1", ApplicationID: "app-1", APIVersion: "connector.manifest/v1", Body: body})
+	if err != nil || secondManifest.Version != firstManifest.Version {
+		t.Fatalf("manifest versions first=%d second=%d err=%v", firstManifest.Version, secondManifest.Version, err)
+	}
+	input := RegisterConnectorInput{ID: "connector-1", EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceID: "ins-1", ConnectorKey: "primary"}
+	firstConnector, err := svc.EnsureConnector(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondConnector, err := svc.EnsureConnector(ctx, input)
+	if err != nil || secondConnector.ID != firstConnector.ID || len(store.connectors) != 1 {
+		t.Fatalf("connectors=%d first=%+v second=%+v err=%v", len(store.connectors), firstConnector, secondConnector, err)
+	}
+}
+
 func assertReason(t *testing.T, err error, reason string) {
 	t.Helper()
 	decision, ok := err.(*DecisionError)
@@ -151,7 +178,15 @@ func (s *memoryStore) PutManifest(_ context.Context, value domain.ProductManifes
 	s.manifests[value.ApplicationID] = value
 	return value, nil
 }
+func (s *memoryStore) GetManifest(_ context.Context, enterpriseID, applicationID string) (domain.ProductManifest, bool, error) {
+	value, ok := s.manifests[applicationID]
+	return value, ok && value.EnterpriseID == enterpriseID, nil
+}
 func (s *memoryStore) CreateConnector(_ context.Context, value domain.Connector) error {
 	s.connectors[value.ID] = value
 	return nil
+}
+func (s *memoryStore) GetConnector(_ context.Context, enterpriseID, id string) (domain.Connector, bool, error) {
+	value, ok := s.connectors[id]
+	return value, ok && value.EnterpriseID == enterpriseID, nil
 }

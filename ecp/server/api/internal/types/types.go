@@ -137,11 +137,11 @@ type AuthorizeReq struct {
 	EnterpriseID          string   `json:"enterprise_id"`
 	ApplicationInstanceID string   `json:"application_instance_id"`
 	PrincipalID           string   `json:"principal_id"`
-	PrincipalKind         string   `json:"principal_kind"`
-	IdentityProvider      string   `json:"identity_provider"`
-	PolicySubject         string   `json:"policy_subject"`
-	DirectGroupIDs        []string `json:"direct_group_ids"`
-	DirectGroupVersion    uint64   `json:"direct_group_version"`
+	PrincipalKind         string   `json:"principal_kind,optional"`
+	IdentityProvider      string   `json:"identity_provider,optional"`
+	PolicySubject         string   `json:"policy_subject,optional"`
+	DirectGroupIDs        []string `json:"direct_group_ids,optional"`
+	DirectGroupVersion    uint64   `json:"direct_group_version,optional"`
 	Action                string   `json:"action"`
 	ResourceType          string   `json:"resource_type"`
 	ResourceID            string   `json:"resource_id"`

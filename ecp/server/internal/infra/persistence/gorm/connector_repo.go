@@ -13,9 +13,21 @@ func (s *RegistryStore) CreateConnector(ctx context.Context, value domain.Connec
 	return s.db.WithContext(ctx).Create(&value).Error
 }
 
+func (s *RegistryStore) GetConnector(ctx context.Context, enterpriseID, id string) (domain.Connector, bool, error) {
+	var value domain.Connector
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND id = ?", enterpriseID, id).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.Connector{}, false, nil
+	}
+	return value, err == nil, err
+}
+
 type ConnectorStore struct{ db *gorm.DB }
 
 func NewConnectorStore(db *gorm.DB) *ConnectorStore { return &ConnectorStore{db: db} }
+func (s *ConnectorStore) PutChannel(ctx context.Context, value domain.ConnectorChannel) error {
+	return s.db.WithContext(ctx).Save(&value).Error
+}
 func (s *ConnectorStore) GetChannel(ctx context.Context, id string) (domain.ConnectorChannel, bool, error) {
 	var value domain.ConnectorChannel
 	err := s.db.WithContext(ctx).Where("id = ?", id).First(&value).Error

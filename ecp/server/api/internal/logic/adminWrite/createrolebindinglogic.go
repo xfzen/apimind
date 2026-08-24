@@ -45,9 +45,15 @@ func (l *CreateRoleBindingLogic) CreateRoleBinding(req *types.RoleBindingReq) (r
 	if err != nil {
 		return nil, err
 	}
-	resource, err := l.svcCtx.ProductResources.Resolve(l.ctx, productresourceservice.Actor{EnterpriseID: claims.EnterpriseID, PrincipalID: claims.PrincipalID, SessionID: claims.SessionID}, productresourceservice.ResourceInput{InstanceID: req.ApplicationInstanceID, ResourceType: req.Resource.Type, ResourceID: req.Resource.ID, RequestedAction: action})
-	if err != nil || resource.ResourceType != req.Resource.Type || resource.ExternalID != req.Resource.ID {
-		return nil, fmt.Errorf("role_binding_resource_not_visible")
+	resource, resolveErr := l.svcCtx.ProductResources.Resolve(l.ctx, productresourceservice.Actor{EnterpriseID: claims.EnterpriseID, PrincipalID: claims.PrincipalID, SessionID: claims.SessionID}, productresourceservice.ResourceInput{InstanceID: req.ApplicationInstanceID, ResourceType: req.Resource.Type, ResourceID: req.Resource.ID, RequestedAction: action})
+	if resolveErr != nil || resource.ResourceType != req.Resource.Type || resource.ExternalID != req.Resource.ID {
+		allowed, bootstrapErr := l.svcCtx.RoleBindings.CanBootstrap(l.ctx, rolebindingservice.CreateInput{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, SubjectType: req.SubjectType, SubjectID: req.SubjectID, RoleID: req.Role, ResourceType: req.Resource.Type, ResourceID: req.Resource.ID}, claims.PrincipalID)
+		if bootstrapErr != nil {
+			return nil, bootstrapErr
+		}
+		if !allowed {
+			return nil, fmt.Errorf("role_binding_resource_not_visible")
+		}
 	}
 	var value domain.RoleBinding
 	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: req.EnterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "role_binding.create", ResourceType: req.Resource.Type, ResourceID: req.Resource.ID, SafeDiff: map[string]any{"status": "active"}}, func() error {

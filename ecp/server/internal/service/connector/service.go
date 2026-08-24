@@ -19,10 +19,49 @@ const maximumDelegationLifetime = 60 * time.Second
 
 type Store interface {
 	GetChannel(context.Context, string) (domain.ConnectorChannel, bool, error)
+	PutChannel(context.Context, domain.ConnectorChannel) error
 	ConsumeNonce(context.Context, domain.DelegationNonce) (bool, error)
 	PutKeySet(context.Context, domain.DelegationKeySet) error
 	LatestKeySet(context.Context, string) (domain.DelegationKeySet, bool, error)
 	PutKeySetAck(context.Context, domain.DelegationKeySetAck) error
+}
+
+type ProvisionChannelInput struct {
+	ID, EnterpriseID, ApplicationID, InstanceID, Channel, RawSecret string
+	Scopes                                                          []string
+	ExpiresAt                                                       time.Time
+}
+
+// ProvisionChannel converges an explicitly invoked offline bootstrap credential.
+// Disabled credentials remain disabled and cannot be revived by re-running bootstrap.
+func (s *Service) ProvisionChannel(ctx context.Context, input ProvisionChannelInput) (domain.ConnectorChannel, error) {
+	if s == nil || s.store == nil || input.ID == "" || input.EnterpriseID == "" || input.ApplicationID == "" || input.InstanceID == "" || input.RawSecret == "" || len(input.Scopes) == 0 || !input.ExpiresAt.After(s.config.Clock()) {
+		return domain.ConnectorChannel{}, decision("connector_provision_invalid", nil)
+	}
+	if input.Channel != domain.TrustChannelInbound && input.Channel != domain.TrustChannelOutbound && input.Channel != domain.TrustChannelKeySetOperator {
+		return domain.ConnectorChannel{}, decision("connector_provision_invalid", nil)
+	}
+	current, found, err := s.store.GetChannel(ctx, input.ID)
+	if err != nil {
+		return domain.ConnectorChannel{}, decision("connector_store_error", err)
+	}
+	if found {
+		if current.EnterpriseID != input.EnterpriseID || current.ApplicationID != input.ApplicationID || current.InstanceID != input.InstanceID || current.Channel != input.Channel {
+			return domain.ConnectorChannel{}, decision("connector_identity_conflict", nil)
+		}
+		if current.Status != "active" {
+			return current, nil
+		}
+	}
+	value := domain.NewConnectorChannel(input.ID, input.EnterpriseID, input.ApplicationID, input.InstanceID, input.Channel, input.Scopes, input.RawSecret, input.ExpiresAt)
+	if found {
+		value.CreatedAt = current.CreatedAt
+		value.RotationLineage = current.RotationLineage
+	}
+	if err := s.store.PutChannel(ctx, value); err != nil {
+		return domain.ConnectorChannel{}, decision("connector_store_error", err)
+	}
+	return value, nil
 }
 
 type SecretProvider interface {
@@ -33,6 +72,7 @@ type Config struct {
 	Issuer                     string
 	RootPublicKeyReference     string
 	RootFingerprint            string
+	RootFingerprintReference   string
 	SigningPrivateKeyReference string
 	ActiveSigningKeyID         string
 	Clock                      func() time.Time

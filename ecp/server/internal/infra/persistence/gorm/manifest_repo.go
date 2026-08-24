@@ -2,12 +2,22 @@ package persistence
 
 import (
 	"context"
+	"errors"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+func (s *RegistryStore) GetManifest(ctx context.Context, enterpriseID, applicationID string) (domain.ProductManifest, bool, error) {
+	var value domain.ProductManifest
+	err := s.db.WithContext(ctx).Where("enterprise_id = ? AND application_id = ?", enterpriseID, applicationID).First(&value).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.ProductManifest{}, false, nil
+	}
+	return value, err == nil, err
+}
 
 func (s *RegistryStore) PutManifest(ctx context.Context, value domain.ProductManifest) (domain.ProductManifest, error) {
 	db := s.db.WithContext(ctx)

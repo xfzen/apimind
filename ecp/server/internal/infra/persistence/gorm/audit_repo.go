@@ -2,21 +2,21 @@ package persistence
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type AuditAppendStore struct{ db *gorm.DB }
 
 func NewAuditAppendStore(db *gorm.DB) *AuditAppendStore { return &AuditAppendStore{db: db} }
 func (s *AuditAppendStore) Append(ctx context.Context, value domain.AuditEvent) error {
-	return s.db.WithContext(ctx).Create(&value).Error
+	return appendAuditEvent(s.db.WithContext(ctx), value, false)
 }
 func (s *AuditAppendStore) AppendOnce(ctx context.Context, value domain.AuditEvent) error {
-	return s.db.WithContext(ctx).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoNothing: true}).Create(&value).Error
+	return appendAuditEvent(s.db.WithContext(ctx), value, true)
 }
 
 type AuditTransactionStore struct{ db *gorm.DB }
@@ -29,8 +29,37 @@ func (s *AuditTransactionStore) Commit(ctx context.Context, event domain.AuditEv
 		if err := mutation(tx); err != nil {
 			return err
 		}
-		return tx.Create(&event).Error
+		return appendAuditEvent(tx, event, false)
 	})
+}
+
+var auditEventColumns = "(id,enterprise_id,application_instance_id,operation_id,stage,actor_id,actor_kind,action,resource_type,resource_id,outcome,reason,safe_diff,occurred_at,created_at)"
+
+func appendAuditEvent(db *gorm.DB, value domain.AuditEvent, once bool) error {
+	if db == nil {
+		return fmt.Errorf("audit append store unavailable")
+	}
+	statement, err := auditInsertStatement(db.Dialector.Name(), once)
+	if err != nil {
+		return err
+	}
+	return db.Exec(statement, value.ID, value.EnterpriseID, value.ApplicationInstanceID, value.OperationID, value.Stage, value.ActorID, value.ActorKind, value.Action, value.ResourceType, value.ResourceID, value.Outcome, value.Reason, value.SafeDiff, value.OccurredAt, value.CreatedAt).Error
+}
+
+func auditInsertStatement(dialect string, once bool) (string, error) {
+	prefix := "INSERT INTO audit_event "
+	suffix := ""
+	if once {
+		switch dialect {
+		case "postgres":
+			suffix = " ON CONFLICT (id) DO NOTHING"
+		case "mysql":
+			prefix = "INSERT IGNORE INTO audit_event "
+		default:
+			return "", fmt.Errorf("unsupported audit dialect %q", dialect)
+		}
+	}
+	return prefix + auditEventColumns + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" + suffix, nil
 }
 
 type AuditReadStore struct{ db *gorm.DB }

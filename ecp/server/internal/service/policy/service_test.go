@@ -10,14 +10,22 @@ import (
 )
 
 type fakeAdapter struct {
-	policies []casdoor.Policy
-	writeErr error
+	policies   []casdoor.Policy
+	writeErr   error
+	boundaries []string
 }
 
-func (a *fakeAdapter) ReadPolicies(context.Context) ([]casdoor.Policy, error) {
-	return append([]casdoor.Policy(nil), a.policies...), nil
+func (a *fakeAdapter) ReadPolicies(_ context.Context, boundary string) ([]casdoor.Policy, error) {
+	a.boundaries = append(a.boundaries, boundary)
+	values := append([]casdoor.Policy(nil), a.policies...)
+	for index := range values {
+		values[index].Owner = ""
+		values[index].Name = ""
+	}
+	return values, nil
 }
-func (a *fakeAdapter) WritePolicies(_ context.Context, values []casdoor.Policy) error {
+func (a *fakeAdapter) WritePolicies(_ context.Context, boundary string, values []casdoor.Policy) error {
+	a.boundaries = append(a.boundaries, boundary)
 	if a.writeErr != nil {
 		return a.writeErr
 	}
@@ -36,7 +44,8 @@ func TestReconcileMarksProjectionDriftedBeforeReturningMutationFailure(t *testin
 		t.Fatalf("projection=%+v", store.value)
 	}
 }
-func (a *fakeAdapter) DeletePolicies(_ context.Context, _ []casdoor.Policy) error {
+func (a *fakeAdapter) DeletePolicies(_ context.Context, boundary string, _ []casdoor.Policy) error {
+	a.boundaries = append(a.boundaries, boundary)
 	a.policies = nil
 	return nil
 }
@@ -59,6 +68,27 @@ func TestMutationReadsBackCanonicalPolicyAndAdvancesVersion(t *testing.T) {
 	}
 	if value.PolicyVersion != 1 || value.ReconciliationState != "in_sync" || value.NormalizedHash == "" || value.CasdoorPermissionID != "acme/apimind-ins-1" {
 		t.Fatalf("projection=%+v", value)
+	}
+	for _, boundary := range adapter.boundaries {
+		if boundary != "acme/apimind-ins-1" {
+			t.Fatalf("unexpected policy boundary %q", boundary)
+		}
+	}
+	if len(value.CasdoorPolicyIDs) != 1 || len(value.CasdoorPolicyIDs[0]) != len("rule-")+16 {
+		t.Fatalf("policy ids=%v", value.CasdoorPolicyIDs)
+	}
+}
+
+func TestReconcileAcceptsEmptyDesiredPolicySetToRemoveLastBinding(t *testing.T) {
+	adapter := &fakeAdapter{policies: []casdoor.Policy{{PType: "p", V0: "principal-1", V1: "workspace:1", V2: "workspace.read"}}}
+	store := &memoryStore{}
+	service := New(store, adapter)
+	value, err := service.Reconcile(context.Background(), ReconcileInput{EnterpriseID: "ent-1", ApplicationInstanceID: "ins-1", CasdoorPermissionID: "acme/apimind-ins-1", ManifestVersion: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.policies) != 0 || value.ReconciliationState != "in_sync" || len(value.CasdoorPolicyIDs) != 0 {
+		t.Fatalf("adapter=%+v projection=%+v", adapter.policies, value)
 	}
 }
 

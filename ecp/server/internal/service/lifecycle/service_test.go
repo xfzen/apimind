@@ -42,6 +42,36 @@ func (s *memoryLifecycleStore) PutSyncState(_ context.Context, value domain.Iden
 	return nil
 }
 
+func TestObserveAuthenticationCreatesActiveLifecycleAndFreshSyncState(t *testing.T) {
+	store := &memoryLifecycleStore{}
+	clock := &fakeClock{now: time.Date(2026, 8, 24, 1, 2, 3, 0, time.UTC)}
+	service := New(store, clock, 5*time.Minute)
+	if err := service.ObserveAuthentication(context.Background(), "ent-1", "pri-1", "https://idp.example.com"); err != nil {
+		t.Fatal(err)
+	}
+	lifecycle := store.lifecycles["ent-1/pri-1"]
+	if lifecycle.State != domain.LifecycleActive || lifecycle.Version != 1 {
+		t.Fatalf("lifecycle=%+v", lifecycle)
+	}
+	syncState := store.syncStates["ent-1/https://idp.example.com"]
+	if syncState.State != "fresh" || syncState.FreshnessDeadline == nil || !syncState.FreshnessDeadline.Equal(clock.now.Add(5*time.Minute)) {
+		t.Fatalf("sync=%+v", syncState)
+	}
+}
+
+func TestObserveAuthenticationDoesNotReactivateBlockedPrincipal(t *testing.T) {
+	store := &memoryLifecycleStore{lifecycles: map[string]domain.PrincipalLifecycle{
+		"ent-1/pri-1": {Base: domain.Base{ID: "lif-1", EnterpriseID: "ent-1"}, PrincipalID: "pri-1", State: domain.LifecycleBlocked, Version: 2},
+	}}
+	service := New(store, nil, 5*time.Minute)
+	if err := service.ObserveAuthentication(context.Background(), "ent-1", "pri-1", "https://idp.example.com"); err == nil || err.Error() != "principal_blocked" {
+		t.Fatalf("err=%v", err)
+	}
+	if store.lifecycles["ent-1/pri-1"].State != domain.LifecycleBlocked {
+		t.Fatal("blocked principal was reactivated")
+	}
+}
+
 func TestIdentitySyncExpiresHumanAllow(t *testing.T) {
 	clock := &fakeClock{now: time.Date(2026, 8, 23, 0, 0, 0, 0, time.UTC)}
 	service := New(&memoryLifecycleStore{}, clock, 5*time.Minute)

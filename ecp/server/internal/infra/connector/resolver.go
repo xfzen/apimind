@@ -12,6 +12,8 @@ import (
 
 type ProductConfig struct {
 	InstanceID, BaseURL, ClientID, SecretReference string
+	LocalMode                                      bool
+	AllowedInsecureHosts                           []string
 }
 
 func (r *Resolver) ResolveOffboardingClient(ctx context.Context, instance domain.ApplicationInstance) (operationservice.AuditFlushClient, error) {
@@ -26,7 +28,7 @@ func (r *Resolver) ResolveOffboardingClient(ctx context.Context, instance domain
 	if err != nil || len(secret) == 0 {
 		return nil, fmt.Errorf("product connector credential unavailable")
 	}
-	return NewClient(config.BaseURL, OutboundCredential{ClientID: config.ClientID, Secret: string(secret), Audience: instance.ID}, r.httpClient)
+	return NewClientWithOptions(config.BaseURL, OutboundCredential{ClientID: config.ClientID, Secret: string(secret), Audience: instance.ID}, r.httpClient, config.LocalMode, config.AllowedInsecureHosts)
 }
 
 type SecretProvider interface {
@@ -68,5 +70,5 @@ func (r *Resolver) ResolveClient(ctx context.Context, instance domain.Applicatio
 	if err != nil || len(secret) == 0 {
 		return nil, fmt.Errorf("product connector credential unavailable")
 	}
-	return NewClient(config.BaseURL, OutboundCredential{ClientID: config.ClientID, Secret: string(secret), Audience: instance.ID}, r.httpClient)
+	return NewClientWithOptions(config.BaseURL, OutboundCredential{ClientID: config.ClientID, Secret: string(secret), Audience: instance.ID}, r.httpClient, config.LocalMode, config.AllowedInsecureHosts)
 }
