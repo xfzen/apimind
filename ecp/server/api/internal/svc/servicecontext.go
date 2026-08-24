@@ -148,7 +148,7 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 			ctx.Operations = operationservice.New(operationStore, ctx.Audit, operationStore, nil)
 		}
 	}
-	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions).Handle)
+	ctx.AdminSession = asRestMiddleware(apiMiddleware.NewAdminSession(ctx.Sessions, adminFreshnessAdapter{query: ctx.AdminQuery, lifecycle: ctx.Lifecycle}).Handle)
 	ctx.CSRF = asRestMiddleware(apiMiddleware.NewCSRF().Handle)
 	ctx.IdempotencyHeaders = asRestMiddleware(apiMiddleware.NewIdempotency(ctx.Idempotency).Handle)
 	ctx.RateLimit = asRestMiddleware(apiMiddleware.NewRateLimit(30, time.Minute).Handle)
@@ -201,6 +201,21 @@ type envSecretProvider struct{}
 type identityPrincipalResolver struct{ service *identityservice.Service }
 type connectorCredentialAdapter struct{ service *connectorservice.Service }
 type operatorCredentialAdapter struct{ service *connectorservice.Service }
+type adminFreshnessAdapter struct {
+	query     *adminqueryservice.Service
+	lifecycle *lifecycleservice.Service
+}
+
+func (a adminFreshnessAdapter) AssertAdminFresh(ctx context.Context, enterpriseID, principalID string) error {
+	if a.query == nil || a.lifecycle == nil {
+		return fmt.Errorf("identity freshness unavailable")
+	}
+	principal, err := a.query.GetPrincipal(ctx, enterpriseID, principalID)
+	if err != nil {
+		return err
+	}
+	return a.lifecycle.AssertFresh(ctx, lifecycleservice.Subject{EnterpriseID: enterpriseID, PrincipalID: principalID, Provider: principal.Issuer, Kind: lifecycleservice.HumanPrincipal})
+}
 
 func (a connectorCredentialAdapter) VerifyConnectorCredential(ctx context.Context, id, secret string) (apiMiddleware.ConnectorClaims, error) {
 	if a.service == nil {

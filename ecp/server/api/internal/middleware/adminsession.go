@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
@@ -19,11 +20,21 @@ type SessionClaims struct {
 type SessionResolver interface {
 	Resolve(context.Context, string, string) (domain.Session, error)
 }
+type AdminFreshnessChecker interface {
+	AssertAdminFresh(context.Context, string, string) error
+}
 
-type AdminSessionMiddleware struct{ resolver SessionResolver }
+type AdminSessionMiddleware struct {
+	resolver  SessionResolver
+	freshness AdminFreshnessChecker
+}
 
-func NewAdminSession(resolver SessionResolver) *AdminSessionMiddleware {
-	return &AdminSessionMiddleware{resolver: resolver}
+func NewAdminSession(resolver SessionResolver, freshness ...AdminFreshnessChecker) *AdminSessionMiddleware {
+	value := &AdminSessionMiddleware{resolver: resolver}
+	if len(freshness) > 0 {
+		value.freshness = freshness[0]
+	}
+	return value
 }
 
 func (m *AdminSessionMiddleware) Handle(next http.Handler) http.Handler {
@@ -37,6 +48,19 @@ func (m *AdminSessionMiddleware) Handle(next http.Handler) http.Handler {
 		if err != nil {
 			deny(response, http.StatusUnauthorized, "admin_session_invalid")
 			return
+		}
+		if m.freshness != nil {
+			if err := m.freshness.AssertAdminFresh(request.Context(), value.EnterpriseID, value.PrincipalID); err != nil {
+				reason := "identity_state_unavailable"
+				for _, candidate := range []string{"principal_blocked", "principal_pending_external_sync", "identity_state_stale"} {
+					if strings.Contains(err.Error(), candidate) {
+						reason = candidate
+						break
+					}
+				}
+				deny(response, http.StatusForbidden, reason)
+				return
+			}
 		}
 		claims := SessionClaims{SessionID: value.ID, EnterpriseID: value.EnterpriseID, PrincipalID: value.PrincipalID, CSRFHash: value.CSRFHash, ExpiresAt: value.ExpiresAt}
 		next.ServeHTTP(response, request.WithContext(context.WithValue(request.Context(), sessionContextKey{}, claims)))

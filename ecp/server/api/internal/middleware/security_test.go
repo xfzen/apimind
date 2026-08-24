@@ -1,13 +1,42 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/xfzen/ecp/server/internal/domain"
+	"github.com/xfzen/ecp/server/internal/service/session"
 )
+
+type adminSessionResolverFixture struct{ value domain.Session }
+
+func (f adminSessionResolverFixture) Resolve(context.Context, string, string) (domain.Session, error) {
+	return f.value, nil
+}
+
+type adminFreshnessFixture struct{ err error }
+
+func (f adminFreshnessFixture) AssertAdminFresh(context.Context, string, string) error { return f.err }
+
+func TestAdminSessionFailsClosedWhenIdentityIsStale(t *testing.T) {
+	called := false
+	resolver := adminSessionResolverFixture{value: domain.Session{Base: domain.Base{ID: "session-1", EnterpriseID: "enterprise-1"}, PrincipalID: "principal-1", ExpiresAt: time.Now().Add(time.Hour)}}
+	handler := NewAdminSession(resolver, adminFreshnessFixture{err: errors.New("identity_state_stale")}).Handle(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called = true }))
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/identity/principals", nil)
+	request.AddCookie(&http.Cookie{Name: session.AdminCookieName, Value: "token"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if called || response.Code != http.StatusForbidden || response.Header().Get("X-ECP-Reason") != "identity_state_stale" {
+		t.Fatalf("called=%v status=%d reason=%q", called, response.Code, response.Header().Get("X-ECP-Reason"))
+	}
+}
 
 func TestBrowserWriteRejectsMissingCSRF(t *testing.T) {
 	handler := SessionContext("session-1", "csrf-token", http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) { response.WriteHeader(http.StatusNoContent) }))
