@@ -1,0 +1,28 @@
+services:
+  server:
+    environment:
+      APIMIND_MCP_AUTH_ENABLED: "true"
+    configs:
+      - source: server_enterprise_config
+        target: /app/etc/apimind.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    secrets:
+      - product_connector_secret
+      - product_callback_secret
+      - delegation_root_public_key
+      - delegation_root_fingerprint
+
+configs:
+  server_enterprise_config:
+    file: ./server.enterprise.yaml
+
+secrets:
+  product_connector_secret:
+    file: ../ecp/deploy/.run/secrets/product-connector.local.secret
+  product_callback_secret:
+    file: ../ecp/deploy/.run/secrets/product-callback.local.secret
+  delegation_root_public_key:
+    file: ../ecp/deploy/.run/secrets/delegation-root-public.local.secret
+  delegation_root_fingerprint:
+    file: ../ecp/deploy/.run/secrets/delegation-root-fingerprint.local.secret

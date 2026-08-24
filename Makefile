@@ -2,7 +2,9 @@ COMPOSE ?= docker compose
 COMPOSE_ENV ?= .env
 COMPOSE_BASE = $(COMPOSE) --env-file $(COMPOSE_ENV) -f deploy/docker-compose.yml
 COMPOSE_DEV = $(COMPOSE_BASE) -f deploy/docker-compose.dev.yml
+COMPOSE_ENTERPRISE = $(COMPOSE_DEV) -f deploy/docker-compose.enterprise.yml
 ECP_COMPOSE = $(COMPOSE) --env-file ecp/deploy/.env -f ecp/deploy/compose.yaml
+ECP_ENTERPRISE_COMPOSE = $(ECP_COMPOSE) -f ecp/deploy/compose.enterprise.yaml
 
 .DEFAULT_GOAL := help
 
@@ -28,6 +30,11 @@ config: ## Validate production and development Compose configuration.
 build-server: bootstrap ## Compile the Linux Server binary on the host.
 	$(MAKE) -C server build VERSION=0.1.0
 
+.PHONY: build-server-current
+build-server-current: ## Compile the currently checked-out Server revision without changing its gitlink checkout.
+	@test -f server/go.mod
+	$(MAKE) -C server build VERSION=0.1.0
+
 .PHONY: web-install
 web-install: ## Install locked Web dependencies from the official npm registry.
 	@test -x web/node_modules/.bin/vite && test -e web/node_modules/@apimind/mockjs-safe || \
@@ -39,6 +46,9 @@ build-web: web-install ## Compile Web assets on the host.
 
 .PHONY: build-components
 build-components: build-server build-web ## Build Server and Web inputs on the host.
+
+.PHONY: build-components-current
+build-components-current: build-server-current build-web ## Build current component revisions without resetting the Server checkout.
 
 .PHONY: dev
 dev: config bootstrap build-components ## Start MongoDB, Server, and Web on development ports.
@@ -55,7 +65,21 @@ ecp-dev: ecp-build ## Start the current checkout's ECP stack on ports 4001 and 1
 	$(ECP_COMPOSE) up -d --build --remove-orphans
 
 .PHONY: enterprise-dev
-enterprise-dev: dev ecp-dev ## Start ApiMind app-dev and the ECP stack without changing existing ports.
+enterprise-dev: ecp-build build-components-current ## Start an integrated ApiMind and ECP stack without changing existing ports.
+	@test -f .env || cp .env.example .env
+	@test -f ecp/deploy/.env || cp ecp/deploy/.env.example ecp/deploy/.env
+	cd ecp/server && GOWORK=off GOTOOLCHAIN=go1.25.12 go run ./cmd/dev-material --output ../deploy/.run/secrets
+	$(ECP_ENTERPRISE_COMPOSE) config >/dev/null
+	$(COMPOSE_ENTERPRISE) config >/dev/null
+	$(ECP_ENTERPRISE_COMPOSE) up -d --build --remove-orphans
+	APIMIND_WEB_PORT=4000 $(COMPOSE_ENTERPRISE) up -d --build --remove-orphans
+
+.PHONY: enterprise-down
+enterprise-down: ## Stop the integrated ApiMind and ECP stack while preserving databases.
+	@test -f .env || cp .env.example .env
+	@test -f ecp/deploy/.env || cp ecp/deploy/.env.example ecp/deploy/.env
+	$(COMPOSE_ENTERPRISE) down --remove-orphans
+	$(ECP_ENTERPRISE_COMPOSE) down --remove-orphans
 
 .PHONY: ecp-down
 ecp-down: ## Stop ECP while preserving its databases.

@@ -1,0 +1,38 @@
+Name: apimind
+Host: 0.0.0.0
+Port: 8888
+Mode: dev
+Mongo:
+  URI: mongodb://mongo:27017
+  Database: yapi
+Yapi:
+  RegisterEnabled: true
+  LDAPEnabled: false
+  ScriptEnable: false
+  SequenceStep: 1
+  DefaultUserEnabled: false
+MCP:
+  Enabled: true
+  AuthEnabled: true
+  Path: /mcp
+Enterprise:
+  Enabled: true
+  BaseURL: http://127.0.0.1:18890
+  BackchannelBaseURL: http://host.docker.internal:18890
+  AllowedInsecureHosts: [host.docker.internal]
+  AdminURL: http://127.0.0.1:4001
+  EnterpriseID: enterprise-local
+  ApplicationID: apimind
+  InstanceID: apimind-local
+  ConnectorID: apimind-connector
+  ConnectorSecretFile: /run/secrets/product_connector_secret
+  ProductCookieName: _apimind_enterprise_session
+  AuthRedirectURI: http://127.0.0.1:4000/api/enterprise/auth/callback
+  LocalMode: true
+  CallbackClientID: ecp-to-apimind
+  CallbackSecretFile: /run/secrets/product_callback_secret
+  DelegationIssuer: ecp
+  DelegationRootPublicKeyFile: /run/secrets/delegation_root_public_key
+  DelegationRootFingerprintFile: /run/secrets/delegation_root_fingerprint
+  LegacyAuthCompat: false
+  LegacyAuthCutoff: true
