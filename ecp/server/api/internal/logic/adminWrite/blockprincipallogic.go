@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
+	"github.com/xfzen/ecp/server/internal/domain"
+	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -36,7 +39,16 @@ func (l *BlockPrincipalLogic) BlockPrincipal(req *types.BlockPrincipalReq) (resp
 	if scopeErr != nil {
 		return nil, scopeErr
 	}
-	value, err := l.svcCtx.Lifecycle.Block(l.ctx, enterpriseID, req.PrincipalID)
+	claims, found := apiMiddleware.ClaimsFromContext(l.ctx)
+	if !found || claims.PrincipalID == "" {
+		return nil, fmt.Errorf("enterprise_scope_mismatch")
+	}
+	var value domain.PrincipalLifecycle
+	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: enterpriseID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "principal.block", ResourceType: "principal", ResourceID: req.PrincipalID, SafeDiff: map[string]any{"new_status": domain.LifecycleBlocked}}, func() error {
+		var blockErr error
+		value, blockErr = l.svcCtx.Lifecycle.Block(l.ctx, enterpriseID, req.PrincipalID)
+		return blockErr
+	})
 	if err != nil {
 		return nil, err
 	}
