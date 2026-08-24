@@ -661,6 +661,7 @@ type RoleBindingResp struct {
 
 type RotateCredentialReq struct {
 	ID              string `path:"id"`
+	Reason          string `json:"reason"`
 	LifetimeSeconds int64  `json:"lifetime_seconds"`
 }
 

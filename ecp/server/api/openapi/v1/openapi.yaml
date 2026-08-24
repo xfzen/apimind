@@ -1585,7 +1585,10 @@ components:
                 lifetime_seconds:
                     format: int64
                     type: integer
+                reason:
+                    type: string
             required:
+                - reason
                 - lifetime_seconds
             title: RotateCredentialReq
             type: object

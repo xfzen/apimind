@@ -49,7 +49,7 @@ func (l *RotateCredentialLogic) RotateCredential(req *types.RotateCredentialReq)
 		return nil, err
 	}
 	var value credentialservice.Created
-	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: enterpriseID, ApplicationInstanceID: metadata.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "credential.rotate", ResourceType: "service_credential", ResourceID: metadata.ID, SafeDiff: map[string]any{"previous_status": metadata.Status, "new_status": "rotating"}}, func() error {
+	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: enterpriseID, ApplicationInstanceID: metadata.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "credential.rotate", ResourceType: "service_credential", ResourceID: metadata.ID, SafeDiff: map[string]any{"previous_status": metadata.Status, "new_status": "rotating", "reason": req.Reason}}, func() error {
 		var rotateErr error
 		value, rotateErr = l.svcCtx.Credential.RotateForEnterprise(l.ctx, enterpriseID, req.ID, time.Duration(req.LifetimeSeconds)*time.Second)
 		return rotateErr

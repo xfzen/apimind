@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,9 +53,10 @@ func TestCreateCredentialWritesAuditedIntentAndOutcome(t *testing.T) {
 	request.AddCookie(&http.Cookie{Name: session.AdminCookieName, Value: "session-token"})
 	response := httptest.NewRecorder()
 	var logicErr error
+	var created *types.CredentialResp
 	handler := apiMiddleware.NewAdminSession(adminSessionFixture{}).Handle(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
 		ctx := apiMiddleware.ContextWithOperationID(request.Context(), "operation-credential-create")
-		_, logicErr = NewCreateCredentialLogic(ctx, serviceContext).CreateCredential(&types.CreateCredentialReq{
+		created, logicErr = NewCreateCredentialLogic(ctx, serviceContext).CreateCredential(&types.CreateCredentialReq{
 			EnterpriseID: "enterprise-1", ApplicationID: "apimind", ApplicationInstanceID: "instance-1", Name: "automation",
 			Scopes: []types.CredentialScopeItem{{ResourceType: "workspace", ResourceID: "14", Actions: []string{"workspace.read"}}}, LifetimeSeconds: 3600,
 		})
@@ -64,6 +66,19 @@ func TestCreateCredentialWritesAuditedIntentAndOutcome(t *testing.T) {
 		t.Fatal(logicErr)
 	}
 	if len(writer.events) != 2 || writer.events[0].Action != "credential.create" || writer.events[1].Outcome != "succeeded" {
+		t.Fatalf("events=%+v", writer.events)
+	}
+	rotateRequest := httptest.NewRequest(http.MethodPost, "/api/v1/credentials/"+created.ID+"/rotate", nil)
+	rotateRequest.AddCookie(&http.Cookie{Name: session.AdminCookieName, Value: "session-token"})
+	rotateHandler := apiMiddleware.NewAdminSession(adminSessionFixture{}).Handle(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+		ctx := apiMiddleware.ContextWithOperationID(request.Context(), "operation-credential-rotate")
+		_, logicErr = NewRotateCredentialLogic(ctx, serviceContext).RotateCredential(&types.RotateCredentialReq{ID: created.ID, Reason: "scheduled rotation", LifetimeSeconds: 3600})
+	}))
+	rotateHandler.ServeHTTP(httptest.NewRecorder(), rotateRequest)
+	if logicErr != nil {
+		t.Fatal(logicErr)
+	}
+	if len(writer.events) != 4 || writer.events[2].Action != "credential.rotate" || writer.events[3].Outcome != "succeeded" || !strings.Contains(string(writer.events[2].SafeDiff), "scheduled rotation") {
 		t.Fatalf("events=%+v", writer.events)
 	}
 }
