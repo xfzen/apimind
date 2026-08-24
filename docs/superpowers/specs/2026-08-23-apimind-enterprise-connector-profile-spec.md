@@ -2,6 +2,8 @@
 
 **状态：** 已确认
 
+**G0 实施证据：** [`docs/test-reports/ecp-g0-acceptance.md`](../../test-reports/ecp-g0-acceptance.md)；现有 Logic 的 Repository 服务化迁移仍按验收报告作为维护性后续保留。
+
 **日期：** 2026-08-23
 
 **范围：** ApiMind 接入 Enterprise Control Plane（ECP）的产品需求、资源权限模型、兼容边界与技术契约；不包含实施排期和任务拆分

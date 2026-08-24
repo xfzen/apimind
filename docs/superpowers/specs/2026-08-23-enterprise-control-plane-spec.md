@@ -2,6 +2,8 @@
 
 **状态：** 已确认
 
+**G0 实施证据：** [`docs/test-reports/ecp-g0-acceptance.md`](../../test-reports/ecp-g0-acceptance.md)；门槛场景已通过，明确的维护性后续不扩大为 G0 能力声明。
+
 **日期：** 2026-08-23
 
 **范围：** 面向 ApiMind、GPTS、AG Insight、NexTerm 等产品共享的 Enterprise Control Plane（ECP）需求与技术方案；不包含实施排期、任务拆分和代码变更计划

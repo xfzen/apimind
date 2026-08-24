@@ -1605,23 +1605,23 @@ git commit -m "feat(apimind): enforce ecp authorization"
 - Consumes: ECP Product Session resolution, `legacy_identity_mapping`, current ApiMind login/session routes, and Task 14 authorization convergence.
 - Produces: explicit community/enterprise mode, a time-bounded compatibility switch, audited migration metrics, deterministic rollback before cutoff, and permanent old-session rejection after cutoff.
 
-- [ ] **Step 1: Write the cutover state-machine tests**
+- [x] **Step 1: Write the cutover state-machine tests**
 
 Test `enterprise.enabled=false`; enterprise mode with compatibility off; compatibility on; dual Cookie conflict; old session for an unmapped, blocked or revoked user; expiry; rollback before cutoff; and attempted rollback after irreversible cutoff. Enterprise denial must always win over legacy membership or Cookie state.
 
-- [ ] **Step 2: Add explicit configuration and safe defaults**
+- [x] **Step 2: Add explicit configuration and safe defaults**
 
 Retain the `enterprise.enabled=false` community default established in Task 13. When enterprise mode is true, registration, local password login and LDAP login are disabled unless `enterprise.legacy_auth_compat=true` is explicitly set. A deadline is required and validated only while compatibility is enabled; startup rejects compatibility with a missing/past deadline or a window longer than the earlier of 30 days and one ApiMind minor release. After cutoff, compatibility is false and no legacy deadline is required. There is no silent fallback to old auth when ECP is unavailable.
 
-- [ ] **Step 3: Migrate identities and operate the bounded dual-session window**
+- [x] **Step 3: Migrate identities and operate the bounded dual-session window**
 
 Preflight inventories active users/sessions, requires stable `legacy_identity_mapping`, and writes no raw credentials. During compatibility, every old-session use is audited and counted, responses carry deprecation metadata, and ECP lifecycle/authorization still decides access. Product and legacy Cookies use distinct names; if both exist, the Product Session identity must match the mapped legacy identity or both are rejected and revoked.
 
-- [ ] **Step 4: Enforce removal and rollback conditions**
+- [x] **Step 4: Enforce removal and rollback conditions**
 
 Cutoff requires 14 continuous days with no successful legacy-session use, all active users mapped, no unresolved identity conflict, and passing cutover tests. Before cutoff, rollback can restore the previous login UI/config while preserving mappings and audit. After cutoff, old endpoints return stable `legacy_auth_disabled`, Web removes old entry points, and rollback means restoring from the documented release/data backup—not re-enabling an expired hidden bypass. Historical YApi User documents remain for authorship.
 
-- [ ] **Step 5: Verify and commit the cutover**
+- [x] **Step 5: Verify and commit the cutover**
 
 ```bash
 cd server
@@ -1662,7 +1662,7 @@ git commit -m "feat(apimind): cut over enterprise authentication"
 **Interfaces:**
 - Produces: supported local ECP stack, coordinated backup manifest and status API/UI, empty-environment restore, version/space/connectivity preflight, portable enterprise metadata export, product-instance offboarding, and ApiMind app-dev integration.
 
-- [ ] **Step 1: Write failing Compose and restore-policy tests**
+- [x] **Step 1: Write failing Compose and restore-policy tests**
 
 ```go
 func TestComposeUsesSeparateDatabases(t *testing.T) {
@@ -1690,27 +1690,27 @@ func TestDevRestartUsesValidatedPIDFilesInsteadOfBroadKill(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run operations tests and verify failure**
+- [x] **Step 2: Run operations tests and verify failure**
 
 Run: `cd ecp/server && go test ./tests/operations -count=1`
 
 Expected: FAIL because deployment files do not exist.
 
-- [ ] **Step 3: Add the low-threshold deployment**
+- [x] **Step 3: Add the low-threshold deployment**
 
 The stack includes Casdoor, `ecp-api`, `ecp-ui`, one PostgreSQL or MySQL engine with distinct databases/accounts, and reverse-proxy routes. Local defaults bind ECP UI to `127.0.0.1:4001` and ECP API to `127.0.0.1:18890`; existing ApiMind Web `4000`, app-dev API `18889`, and embedded API `18888` do not change. `dev-start.sh` first invokes `dev-stop.sh`; stop uses checkout-local `.run/ecp-api.pid` and `.run/ecp-ui.pid`, validates each live PID command belongs to this checkout and expected component, then terminates that PID. It never uses broad `pkill`, `killall`, or an unresolved port match. Docker starts use `--remove-orphans`. No real secret is committed; `.env.example` uses documented example values and secret-file references.
 
-- [ ] **Step 4: Implement coordinated backup and empty restore**
+- [x] **Step 4: Implement coordinated backup and empty restore**
 
 The manifest records component versions, database engine/version, backup timestamps, file hashes, encryption metadata, and restore order. A backup is not accepted until the test restores Casdoor, ECP, and an ApiMind fixture into an empty environment and validates mappings, policies, audit sequence, and product resources.
 
 Only after the operation contract exists, add `GET /api/v1/operations/backup/status`, `src/api/operations.ts`, `BackupStatus.tsx` and its UI test. The page renders verified/failed/in-progress/never-run states from the same-origin API and never infers success from file existence.
 
-- [ ] **Step 5: Implement portable export and safe product offboarding**
+- [x] **Step 5: Implement portable export and safe product offboarding**
 
 The export contains enterprise/application/instance metadata, stable identity mappings, accepted Manifest versions, policy references and canonical hashes, credential metadata without raw secrets, and an audit export manifest. Offboarding first creates and verifies that export, blocks new sessions, revokes product sessions and all instance credentials, flushes audit/outbox work, records the final lifecycle version, and only then disables the Connector registration. Retention status remains explicit; offboarding never deletes product resources or databases.
 
-- [ ] **Step 6: Run preflight and operations tests**
+- [x] **Step 6: Run preflight and operations tests**
 
 Run:
 
@@ -1726,7 +1726,7 @@ cd ../..
 
 Expected: PASS. `verify-standalone.sh` copies only `ecp/` to a clean temporary directory and runs pinned input verification, SDK/server tests, contract regeneration, UI install/typecheck/test/build, both migration dialects and Compose configuration without reading parent ApiMind files.
 
-- [ ] **Step 7: Commit the deployable ECP boundary and ApiMind glue as monorepo phases**
+- [x] **Step 7: Commit the deployable ECP boundary and ApiMind glue as monorepo phases**
 
 ```bash
 git add ecp
@@ -1752,7 +1752,7 @@ The first commit contains the deployable ECP boundary and must pass `verify-stan
 - Consumes: the passing Gate 0 report and all prior Gate A–D deliverables.
 - Produces: reproducible G0 evidence for identity, authorization, Connector isolation, audit, dual-dialect migration, UI, backup/restore, and ApiMind compatibility.
 
-- [ ] **Step 1: Encode the acceptance scenarios as executable tests**
+- [x] **Step 1: Encode the acceptance scenarios as executable tests**
 
 Cover at minimum:
 
@@ -1769,19 +1769,19 @@ coordinated empty restore
 ApiMind Web/HTTP/MCP authorization consistency
 ```
 
-- [ ] **Step 2: Run the complete ECP server verification**
+- [x] **Step 2: Run the complete ECP server verification**
 
 Run: `cd ecp/server && ./scripts/verify.sh`
 
 Expected: PASS and a clean `ecp/server` worktree.
 
-- [ ] **Step 3: Run the complete ECP UI verification**
+- [x] **Step 3: Run the complete ECP UI verification**
 
 Run: `cd ecp/ui && npm run typecheck && npm test && npm run test:e2e && npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 4: Run the ApiMind compatibility verification**
+- [x] **Step 4: Run the ApiMind compatibility verification**
 
 Run:
 
@@ -1797,15 +1797,15 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 5: Run live browser smoke against the composed stack**
+- [x] **Step 5: Run live browser smoke against the composed stack**
 
 Validate login, user disable, role assignment, unauthorized resource hiding, service credential rotation, audit query/export, and ApiMind document/interface workflows in the current Chrome session. Record concrete timestamps, versions, failures, screenshots, and recovery results in `docs/test-reports/ecp-g0-acceptance.md`.
 
-- [ ] **Step 6: Reconcile Spec status with evidence**
+- [x] **Step 6: Reconcile Spec status with evidence**
 
 Only mark a G0 acceptance item complete when the report links a passing command or live-smoke result. If runtime evidence contradicts Gate 0 or makes a mandatory Casdoor event/group assumption unknown again, reopen Gate 0 and stop acceptance; mandatory uncertainty cannot remain in a completed G0.
 
-- [ ] **Step 7: Commit acceptance evidence without collapsing repository boundaries**
+- [x] **Step 7: Commit acceptance evidence without collapsing repository boundaries**
 
 ```bash
 git add ecp
