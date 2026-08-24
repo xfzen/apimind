@@ -80,6 +80,27 @@ func TestRegisterAcceptsStableBootstrapRecordID(t *testing.T) {
 	}
 }
 
+func TestEnsureConvergesStableBootstrapRecord(t *testing.T) {
+	store := &memoryStore{}
+	service := New(store, true)
+	initial := RegisterInput{
+		ID: "oidc-admin", EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceID: "ins-1", ClientID: "client-1",
+		SecretReference: "secret://oidc/client-1", RedirectURIs: []string{"http://127.0.0.1:4001/api/v1/auth/callback"},
+	}
+	created, err := service.Ensure(context.Background(), initial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial.RedirectURIs = []string{"http://127.0.0.1:4001/auth/callback"}
+	updated, err := service.Ensure(context.Background(), initial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.ID != created.ID || updated.Version != created.Version+1 || len(updated.RedirectURIs) != 1 || updated.RedirectURIs[0] != initial.RedirectURIs[0] {
+		t.Fatalf("created=%+v updated=%+v", created, updated)
+	}
+}
+
 func TestLocalhostRedirectRequiresLocalMode(t *testing.T) {
 	input := RegisterInput{
 		EnterpriseID: "ent-1", ApplicationID: "app-1", InstanceID: "ins-1", ClientID: "client-1",

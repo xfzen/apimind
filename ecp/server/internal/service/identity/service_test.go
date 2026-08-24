@@ -122,6 +122,31 @@ func TestJITRejectsUnverifiedEmail(t *testing.T) {
 	assertReason(t, err, "jit_not_allowed")
 }
 
+func TestLocalLoopbackIssuerRequiresExplicitLocalMode(t *testing.T) {
+	principal := domain.Principal{Base: domain.Base{ID: "pri-local", EnterpriseID: "ent-1"}, Issuer: "http://127.0.0.1:4002", Subject: "admin", Status: "active"}
+	store := &memoryIdentityStore{principals: map[string]domain.Principal{principal.ID: principal}}
+	input := ExternalIdentity{EnterpriseID: "ent-1", Issuer: principal.Issuer, Subject: principal.Subject}
+	if _, err := New(store, []string{principal.Issuer}).ResolveExternalIdentity(context.Background(), input); err == nil {
+		t.Fatal("expected loopback HTTP issuer rejection outside local mode")
+	}
+	resolved, err := NewWithOptions(store, []string{principal.Issuer}, true).ResolveExternalIdentity(context.Background(), input)
+	if err != nil || resolved.ID != principal.ID {
+		t.Fatalf("principal=%+v err=%v", resolved, err)
+	}
+}
+
+func TestBootstrapCanAdmitVerifiedLocalAdministrator(t *testing.T) {
+	issuer := "http://127.0.0.1:4002"
+	store := &memoryIdentityStore{}
+	principal, err := NewWithOptions(store, []string{issuer}, true).AdmitJIT(context.Background(), JITInput{
+		EnterpriseID: "ent-1", ApplicationID: "app-1", Issuer: issuer, Subject: "immutable-admin-subject",
+		Email: "admin@example.com", EmailVerified: true, DisplayName: "Admin",
+	})
+	if err != nil || principal.Subject != "immutable-admin-subject" || principal.NormalizedEmail != "admin@example.com" {
+		t.Fatalf("principal=%+v err=%v", principal, err)
+	}
+}
+
 func TestJITUsesIssuerAndSubjectRatherThanEmailAsIdentity(t *testing.T) {
 	service := New(&memoryIdentityStore{}, []string{"https://trusted-idp.example.com"})
 	first, err := service.AdmitJIT(context.Background(), JITInput{

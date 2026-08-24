@@ -74,6 +74,33 @@ func TestOIDCVerifierRejectsNonHTTPSIssuerOutsideLocalMode(t *testing.T) {
 	}
 }
 
+func TestOIDCVerifierUsesBackchannelBaseURLWithoutChangingIssuer(t *testing.T) {
+	var receivedPath string
+	backchannel := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		receivedPath = request.URL.Path
+		response.WriteHeader(http.StatusNoContent)
+	}))
+	defer backchannel.Close()
+	issuer := httptest.NewServer(http.NotFoundHandler())
+	defer issuer.Close()
+
+	verifier, err := NewOIDCVerifier(OIDCVerifierConfig{
+		Issuer: issuer.URL, BackchannelBaseURL: backchannel.URL, ClientID: "client",
+		SecretReference: "env://OIDC_SECRET", LocalMode: true,
+	}, staticSecrets{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := verifier.httpClient.Get(issuer.URL + "/.well-known/openid-configuration")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusNoContent || receivedPath != "/.well-known/openid-configuration" {
+		t.Fatalf("status=%d path=%q", response.StatusCode, receivedPath)
+	}
+}
+
 func TestEnforceUsesExplicitPermissionIDAndTuple(t *testing.T) {
 	var permissionID, body string
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {

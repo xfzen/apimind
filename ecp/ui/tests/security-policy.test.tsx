@@ -11,4 +11,9 @@ describe('security policy', () => {
     expect(screen.getByText('密钥策略')).toBeTruthy()
     expect(screen.queryByText('任意产品配置')).toBeNull()
   })
+
+  it('renders an explicit unconfigured state for a registered instance', async () => {
+    render(<SecurityPolicy load={async () => null} />)
+    expect(await screen.findByText('尚未配置安全策略')).toBeTruthy()
+  })
 })

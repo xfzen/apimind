@@ -40,6 +40,7 @@ type Service struct {
 	store          Store
 	trustedIssuers map[string]struct{}
 	memberships    MembershipProjector
+	localMode      bool
 }
 
 func (s *Service) SetMembershipProjector(projector MembershipProjector) {
@@ -49,11 +50,15 @@ func (s *Service) SetMembershipProjector(projector MembershipProjector) {
 }
 
 func New(store Store, trustedIssuers []string) *Service {
+	return NewWithOptions(store, trustedIssuers, false)
+}
+
+func NewWithOptions(store Store, trustedIssuers []string, localMode bool) *Service {
 	trusted := make(map[string]struct{}, len(trustedIssuers))
 	for _, issuer := range trustedIssuers {
 		trusted[strings.TrimRight(strings.TrimSpace(issuer), "/")] = struct{}{}
 	}
-	return &Service{store: store, trustedIssuers: trusted}
+	return &Service{store: store, trustedIssuers: trusted, localMode: localMode}
 }
 
 type DecisionError struct {
@@ -167,7 +172,7 @@ func (s *Service) ResolveExternalIdentity(ctx context.Context, input ExternalIde
 	if s == nil || s.store == nil {
 		return domain.Principal{}, decision("identity_unavailable", nil)
 	}
-	issuer, err := normalizeIssuer(input.Issuer)
+	issuer, err := normalizeIssuer(input.Issuer, s.localMode)
 	if err != nil || strings.TrimSpace(input.Subject) == "" {
 		return domain.Principal{}, decision("identity_invalid", err)
 	}
@@ -185,7 +190,7 @@ func (s *Service) AdmitJIT(ctx context.Context, input JITInput) (domain.Principa
 	if s == nil || s.store == nil {
 		return domain.Principal{}, decision("identity_unavailable", nil)
 	}
-	issuer, err := normalizeIssuer(input.Issuer)
+	issuer, err := normalizeIssuer(input.Issuer, s.localMode)
 	if err != nil || !input.EmailVerified || strings.TrimSpace(input.Subject) == "" {
 		return domain.Principal{}, decision("jit_not_allowed", err)
 	}
@@ -306,13 +311,16 @@ func (s *Service) ListDirectGroupMembers(ctx context.Context, enterpriseID, grou
 	return s.store.ListDirectMembers(ctx, enterpriseID, value.ID)
 }
 
-func normalizeIssuer(value string) (string, error) {
+func normalizeIssuer(value string, localMode bool) (string, error) {
 	parsed, err := url.Parse(strings.TrimRight(strings.TrimSpace(value), "/"))
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+	secure := parsed != nil && (parsed.Scheme == "https" || (localMode && parsed.Scheme == "http" && isLoopback(parsed.Hostname())))
+	if err != nil || !secure || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return "", fmt.Errorf("issuer must be an absolute HTTPS URL")
 	}
 	return parsed.String(), nil
 }
+
+func isLoopback(host string) bool { return host == "localhost" || host == "127.0.0.1" || host == "::1" }
 func normalizeEmail(value string) (string, error) {
 	parsed, err := mail.ParseAddress(strings.TrimSpace(value))
 	if err != nil || parsed.Address != strings.TrimSpace(value) {

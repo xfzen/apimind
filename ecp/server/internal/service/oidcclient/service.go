@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -50,30 +51,9 @@ func (e *DecisionError) Unwrap() error { return e.Err }
 func AsDecision(err error, target **DecisionError) bool { return errors.As(err, target) }
 
 func (s *Service) Register(ctx context.Context, input RegisterInput) (domain.OIDCClient, error) {
-	if s == nil || s.store == nil {
-		return domain.OIDCClient{}, decision("oidc_client_store_unavailable", nil)
-	}
-	if (input.ID != "" && !recordIDPattern.MatchString(input.ID)) || input.EnterpriseID == "" || input.ApplicationID == "" || input.InstanceID == "" || input.ClientID == "" || !validSecretReference(input.SecretReference) || len(input.RedirectURIs) == 0 {
-		return domain.OIDCClient{}, decision("oidc_client_invalid", nil)
-	}
-	belongs, err := s.store.InstanceBelongsTo(ctx, input.EnterpriseID, input.ApplicationID, input.InstanceID)
+	redirects, err := s.validateRegistration(ctx, input)
 	if err != nil {
-		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
-	}
-	if !belongs {
-		return domain.OIDCClient{}, decision("oidc_client_instance_mismatch", nil)
-	}
-	redirects := make([]string, 0, len(input.RedirectURIs))
-	seen := make(map[string]struct{}, len(input.RedirectURIs))
-	for _, redirect := range input.RedirectURIs {
-		normalized, err := validateRedirectURI(redirect, s.localMode)
-		if err != nil {
-			return domain.OIDCClient{}, decision("redirect_uri_invalid", err)
-		}
-		if _, exists := seen[normalized]; !exists {
-			redirects = append(redirects, normalized)
-			seen[normalized] = struct{}{}
-		}
+		return domain.OIDCClient{}, err
 	}
 	now := time.Now().UTC()
 	id := input.ID
@@ -89,6 +69,68 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (domain.OID
 		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
 	}
 	return value, nil
+}
+
+// Ensure creates a stable bootstrap record or converges its non-secret metadata.
+// It deliberately preserves lifecycle state so a disabled client is not re-enabled by restart.
+func (s *Service) Ensure(ctx context.Context, input RegisterInput) (domain.OIDCClient, error) {
+	if input.ID == "" {
+		return domain.OIDCClient{}, decision("oidc_client_invalid", nil)
+	}
+	redirects, err := s.validateRegistration(ctx, input)
+	if err != nil {
+		return domain.OIDCClient{}, err
+	}
+	value, found, err := s.store.Get(ctx, input.EnterpriseID, input.ID)
+	if err != nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
+	}
+	if !found {
+		return s.Register(ctx, input)
+	}
+	if value.ApplicationID == input.ApplicationID && value.InstanceID == input.InstanceID && value.ClientID == input.ClientID && value.SecretReference == input.SecretReference && slices.Equal(value.RedirectURIs, redirects) {
+		return value, nil
+	}
+	value.ApplicationID = input.ApplicationID
+	value.InstanceID = input.InstanceID
+	value.ClientID = input.ClientID
+	value.SecretReference = input.SecretReference
+	value.RedirectURIs = redirects
+	value.Version++
+	value.UpdatedAt = time.Now().UTC()
+	if err := s.store.Update(ctx, value); err != nil {
+		return domain.OIDCClient{}, decision("oidc_client_store_error", err)
+	}
+	return value, nil
+}
+
+func (s *Service) validateRegistration(ctx context.Context, input RegisterInput) ([]string, error) {
+	if s == nil || s.store == nil {
+		return nil, decision("oidc_client_store_unavailable", nil)
+	}
+	if (input.ID != "" && !recordIDPattern.MatchString(input.ID)) || input.EnterpriseID == "" || input.ApplicationID == "" || input.InstanceID == "" || input.ClientID == "" || !validSecretReference(input.SecretReference) || len(input.RedirectURIs) == 0 {
+		return nil, decision("oidc_client_invalid", nil)
+	}
+	belongs, err := s.store.InstanceBelongsTo(ctx, input.EnterpriseID, input.ApplicationID, input.InstanceID)
+	if err != nil {
+		return nil, decision("oidc_client_store_error", err)
+	}
+	if !belongs {
+		return nil, decision("oidc_client_instance_mismatch", nil)
+	}
+	redirects := make([]string, 0, len(input.RedirectURIs))
+	seen := make(map[string]struct{}, len(input.RedirectURIs))
+	for _, redirect := range input.RedirectURIs {
+		normalized, err := validateRedirectURI(redirect, s.localMode)
+		if err != nil {
+			return nil, decision("redirect_uri_invalid", err)
+		}
+		if _, exists := seen[normalized]; !exists {
+			redirects = append(redirects, normalized)
+			seen[normalized] = struct{}{}
+		}
+	}
+	return redirects, nil
 }
 
 func (s *Service) Get(ctx context.Context, enterpriseID, id string) (domain.OIDCClient, error) {

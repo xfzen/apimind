@@ -76,7 +76,8 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 	ctx := &ServiceContext{Config: cfg}
 	ctx.NewOIDCVerifier = func(client domain.OIDCClient) (sessionservice.OIDCVerifier, error) {
 		return casdoor.NewOIDCVerifier(casdoor.OIDCVerifierConfig{
-			Issuer: cfg.OIDC.Issuer, ClientID: client.ClientID, SecretReference: client.SecretReference, LocalMode: cfg.OIDC.LocalMode,
+			Issuer: cfg.OIDC.Issuer, BackchannelBaseURL: cfg.OIDC.BackchannelBaseURL, ClientID: client.ClientID,
+			SecretReference: client.SecretReference, LocalMode: cfg.OIDC.LocalMode, AllowedInsecureHosts: cfg.OIDC.AllowedInsecureHosts,
 		}, envSecretProvider{})
 	}
 	databaseConfig := cfg.Database
@@ -97,11 +98,14 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		ctx.Registry = registryservice.New(persistence.NewRegistryStore(db))
 		ctx.AdminQuery = adminqueryservice.New(persistence.NewAdminQueryStore(db))
 		ctx.OIDCClients = oidcclientservice.New(persistence.NewOIDCClientStore(db), cfg.OIDC.LocalMode)
-		ctx.Identity = identityservice.New(persistence.NewIdentityStore(db), cfg.Identity.TrustedIssuers)
+		ctx.Identity = identityservice.NewWithOptions(persistence.NewIdentityStore(db), cfg.Identity.TrustedIssuers, cfg.Identity.LocalMode)
 		ctx.Lifecycle = lifecycleservice.New(persistence.NewLifecycleStore(db), nil, cfg.Identity.FreshnessTTL)
 		var verifier sessionservice.OIDCVerifier
 		if cfg.OIDC.Issuer != "" || cfg.OIDC.ClientID != "" || cfg.OIDC.SecretReference != "" {
-			value, err := casdoor.NewOIDCVerifier(casdoor.OIDCVerifierConfig{Issuer: cfg.OIDC.Issuer, ClientID: cfg.OIDC.ClientID, SecretReference: cfg.OIDC.SecretReference, LocalMode: cfg.OIDC.LocalMode}, envSecretProvider{})
+			value, err := casdoor.NewOIDCVerifier(casdoor.OIDCVerifierConfig{
+				Issuer: cfg.OIDC.Issuer, BackchannelBaseURL: cfg.OIDC.BackchannelBaseURL, ClientID: cfg.OIDC.ClientID,
+				SecretReference: cfg.OIDC.SecretReference, LocalMode: cfg.OIDC.LocalMode, AllowedInsecureHosts: cfg.OIDC.AllowedInsecureHosts,
+			}, envSecretProvider{})
 			if err != nil {
 				panic(err)
 			}

@@ -47,20 +47,23 @@ type CasdoorConfig struct {
 }
 
 type OIDCConfig struct {
-	LocalMode             bool   `json:",default=false"`
-	AdminEnterpriseID     string `json:",optional"`
-	AdminClientRecordID   string `json:",optional"`
-	AdminRedirectURI      string `json:",optional"`
-	AdminAudience         string `json:",optional"`
-	Issuer                string `json:",optional"`
-	AuthorizationEndpoint string `json:",optional"`
-	ClientID              string `json:",optional"`
-	SecretReference       string `json:",optional"`
+	LocalMode             bool     `json:",default=false"`
+	AdminEnterpriseID     string   `json:",optional"`
+	AdminClientRecordID   string   `json:",optional"`
+	AdminRedirectURI      string   `json:",optional"`
+	AdminAudience         string   `json:",optional"`
+	Issuer                string   `json:",optional"`
+	BackchannelBaseURL    string   `json:",optional"`
+	AllowedInsecureHosts  []string `json:",optional"`
+	AuthorizationEndpoint string   `json:",optional"`
+	ClientID              string   `json:",optional"`
+	SecretReference       string   `json:",optional"`
 }
 
 type IdentityConfig struct {
 	TrustedIssuers []string      `json:",optional"`
 	FreshnessTTL   time.Duration `json:",default=5m"`
+	LocalMode      bool          `json:",default=false"`
 }
 
 type SessionConfig struct {

@@ -27,8 +27,10 @@ func readRepositoryFile(t *testing.T, relative string) string {
 
 func TestComposeUsesSeparateDatabasesAndAccounts(t *testing.T) {
 	compose := readRepositoryFile(t, "deploy/compose.yaml")
+	dockerConfig := readRepositoryFile(t, "deploy/ecp.docker.yaml")
 	deployment := strings.Join([]string{
 		compose,
+		dockerConfig,
 		readRepositoryFile(t, "deploy/postgres/init-databases.sh"),
 		readRepositoryFile(t, "deploy/secrets/ecp-schema-dsn.example"),
 		readRepositoryFile(t, "deploy/secrets/ecp-runtime-dsn.example"),
@@ -42,6 +44,16 @@ func TestComposeUsesSeparateDatabasesAndAccounts(t *testing.T) {
 	}
 	if strings.Contains(compose, "POSTGRES_PASSWORD: password") {
 		t.Fatal("compose contains a shared inline password")
+	}
+	for _, wanted := range []string{
+		"AdminRedirectURI: http://127.0.0.1:4001/auth/callback",
+		"BackchannelBaseURL: http://casdoor:8000",
+		`--redirect-uri", "http://127.0.0.1:4001/auth/callback"`,
+		"ECP_BOOTSTRAP_ADMIN_SUBJECT",
+	} {
+		if !strings.Contains(deployment, wanted) {
+			t.Fatalf("local OIDC deployment missing %q", wanted)
+		}
 	}
 }
 

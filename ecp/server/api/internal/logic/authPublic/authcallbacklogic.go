@@ -39,6 +39,7 @@ func (l *AuthCallbackLogic) Complete(req *types.AuthCallbackReq, transactionID, 
 	}
 	value, err := l.svcCtx.Sessions.Complete(l.ctx, sessionservice.CompleteInput{TransactionID: transactionID, State: req.State, PKCEVerifier: verifier, Nonce: nonce, Code: req.Code, ExpectedAudience: l.svcCtx.Config.OIDC.AdminAudience})
 	if err != nil {
+		l.Errorf("admin OIDC callback failed: %v", err)
 		return nil, "", "", err
 	}
 	resp := &types.SessionSummaryResp{ID: value.ID, EnterpriseID: value.EnterpriseID, PrincipalID: value.PrincipalID, ApplicationInstanceID: value.ApplicationInstanceID, Kind: value.Kind, ExpiresAt: value.ExpiresAt.Unix(), Revoked: value.RevokedAt != nil}

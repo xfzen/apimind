@@ -3,8 +3,10 @@ package casdoor
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/xfzen/ecp/server/internal/domain"
 
@@ -13,25 +15,39 @@ import (
 )
 
 type OIDCVerifierConfig struct {
-	Issuer, ClientID, SecretReference string
-	LocalMode                         bool
+	Issuer, BackchannelBaseURL, ClientID, SecretReference string
+	LocalMode                                             bool
+	AllowedInsecureHosts                                  []string
 }
 
 type OIDCVerifier struct {
-	config  OIDCVerifierConfig
-	secrets SecretProvider
+	config     OIDCVerifierConfig
+	secrets    SecretProvider
+	httpClient *http.Client
 }
 
 func NewOIDCVerifier(config OIDCVerifierConfig, secrets SecretProvider) (*OIDCVerifier, error) {
-	issuer, err := url.Parse(strings.TrimRight(strings.TrimSpace(config.Issuer), "/"))
-	if err != nil || issuer.Host == "" || (issuer.Scheme != "https" && !(config.LocalMode && issuer.Scheme == "http" && isLoopback(issuer.Hostname()))) {
+	issuer, err := parseOIDCEndpoint(config.Issuer, config.LocalMode, nil)
+	if err != nil || !isLoopbackOrHTTPS(issuer, config.LocalMode) {
 		return nil, adapterError("oidc_issuer_invalid", 0, err)
 	}
 	if config.ClientID == "" || config.SecretReference == "" || secrets == nil {
 		return nil, adapterError("oidc_config_invalid", 0, nil)
 	}
 	config.Issuer = issuer.String()
-	return &OIDCVerifier{config: config, secrets: secrets}, nil
+	httpClient := http.DefaultClient
+	if strings.TrimSpace(config.BackchannelBaseURL) != "" {
+		backchannel, err := parseOIDCEndpoint(config.BackchannelBaseURL, config.LocalMode, config.AllowedInsecureHosts)
+		if err != nil {
+			return nil, adapterError("oidc_backchannel_invalid", 0, err)
+		}
+		config.BackchannelBaseURL = backchannel.String()
+		httpClient = &http.Client{
+			Transport: &issuerRewriteTransport{issuer: issuer, backchannel: backchannel, next: http.DefaultTransport},
+			Timeout:   15 * time.Second,
+		}
+	}
+	return &OIDCVerifier{config: config, secrets: secrets, httpClient: httpClient}, nil
 }
 
 func (v *OIDCVerifier) Verify(ctx context.Context, code, pkceVerifier, redirectURI string) (domain.VerifiedOIDCClaims, error) {
@@ -42,6 +58,7 @@ func (v *OIDCVerifier) Verify(ctx context.Context, code, pkceVerifier, redirectU
 	if err != nil || len(secret) == 0 {
 		return domain.VerifiedOIDCClaims{}, adapterError("oidc_credential_unavailable", 0, err)
 	}
+	ctx = oidc.ClientContext(ctx, v.httpClient)
 	provider, err := oidc.NewProvider(ctx, v.config.Issuer)
 	if err != nil {
 		return domain.VerifiedOIDCClaims{}, adapterError("oidc_discovery_failed", 0, err)
@@ -84,4 +101,40 @@ func (v *OIDCVerifier) Verify(ctx context.Context, code, pkceVerifier, redirectU
 		}
 	}
 	return domain.VerifiedOIDCClaims{Issuer: claims.Issuer, Subject: claims.Subject, Audience: audience, Nonce: claims.Nonce}, nil
+}
+
+type issuerRewriteTransport struct {
+	issuer, backchannel *url.URL
+	next                http.RoundTripper
+}
+
+func (t *issuerRewriteTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	if request.URL.Scheme != t.issuer.Scheme || !strings.EqualFold(request.URL.Host, t.issuer.Host) {
+		return t.next.RoundTrip(request)
+	}
+	clone := request.Clone(request.Context())
+	clone.URL.Scheme = t.backchannel.Scheme
+	clone.URL.Host = t.backchannel.Host
+	clone.URL.Path = joinURLPath(t.backchannel.Path, request.URL.Path)
+	clone.Host = ""
+	return t.next.RoundTrip(clone)
+}
+
+func parseOIDCEndpoint(raw string, localMode bool, allowedInsecureHosts []string) (*url.URL, error) {
+	parsed, err := url.Parse(strings.TrimRight(strings.TrimSpace(raw), "/"))
+	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return nil, fmt.Errorf("endpoint must be an absolute URL without credentials, query, or fragment")
+	}
+	if parsed.Scheme != "https" && !(localMode && parsed.Scheme == "http" && isAllowedInsecureHost(parsed.Hostname(), allowedInsecureHosts)) {
+		return nil, fmt.Errorf("endpoint must use HTTPS")
+	}
+	return parsed, nil
+}
+
+func isLoopbackOrHTTPS(endpoint *url.URL, localMode bool) bool {
+	return endpoint != nil && (endpoint.Scheme == "https" || (localMode && endpoint.Scheme == "http" && isLoopback(endpoint.Hostname())))
+}
+
+func joinURLPath(base, path string) string {
+	return strings.TrimRight(base, "/") + "/" + strings.TrimLeft(path, "/")
 }

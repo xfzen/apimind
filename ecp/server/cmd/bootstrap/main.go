@@ -9,6 +9,7 @@ import (
 
 	"github.com/xfzen/ecp/server/config"
 	persistence "github.com/xfzen/ecp/server/internal/infra/persistence/gorm"
+	identityservice "github.com/xfzen/ecp/server/internal/service/identity"
 	oidcclientservice "github.com/xfzen/ecp/server/internal/service/oidcclient"
 	registryservice "github.com/xfzen/ecp/server/internal/service/registry"
 )
@@ -24,6 +25,10 @@ func main() {
 	clientID := flag.String("client-id", "", "OIDC client ID")
 	secretReference := flag.String("secret-reference", "", "OIDC client secret reference")
 	redirectURI := flag.String("redirect-uri", "", "OIDC redirect URI")
+	adminIssuer := flag.String("admin-issuer", "", "initial administrator OIDC issuer")
+	adminSubject := flag.String("admin-subject", "", "initial administrator immutable OIDC subject")
+	adminEmail := flag.String("admin-email", "", "initial administrator verified email")
+	adminDisplayName := flag.String("admin-display-name", "", "initial administrator display name")
 	localMode := flag.Bool("local-mode", false, "allow loopback HTTP redirect")
 	flag.Parse()
 
@@ -67,12 +72,20 @@ func main() {
 			fail(err.Error())
 		}
 	}
-	oidcStore := persistence.NewOIDCClientStore(db)
-	if _, found, err := oidcStore.Get(ctx, *enterpriseID, *clientRecordID); err != nil {
+	oidc := oidcclientservice.New(persistence.NewOIDCClientStore(db), *localMode)
+	if _, err := oidc.Ensure(ctx, oidcclientservice.RegisterInput{ID: *clientRecordID, EnterpriseID: *enterpriseID, ApplicationID: *applicationID, InstanceID: *instanceID, ClientID: *clientID, SecretReference: *secretReference, RedirectURIs: []string{*redirectURI}}); err != nil {
 		fail(err.Error())
-	} else if !found {
-		oidc := oidcclientservice.New(oidcStore, *localMode)
-		if _, err := oidc.Register(ctx, oidcclientservice.RegisterInput{ID: *clientRecordID, EnterpriseID: *enterpriseID, ApplicationID: *applicationID, InstanceID: *instanceID, ClientID: *clientID, SecretReference: *secretReference, RedirectURIs: []string{*redirectURI}}); err != nil {
+	}
+	adminFields := []string{strings.TrimSpace(*adminIssuer), strings.TrimSpace(*adminSubject), strings.TrimSpace(*adminEmail)}
+	if adminFields[0] != "" || adminFields[1] != "" || adminFields[2] != "" {
+		if adminFields[0] == "" || adminFields[1] == "" || adminFields[2] == "" {
+			fail("admin issuer, subject, and email must be provided together")
+		}
+		identities := identityservice.NewWithOptions(persistence.NewIdentityStore(db), []string{adminFields[0]}, *localMode)
+		if _, err := identities.AdmitJIT(ctx, identityservice.JITInput{
+			EnterpriseID: *enterpriseID, ApplicationID: *applicationID, Issuer: adminFields[0], Subject: adminFields[1],
+			Email: adminFields[2], EmailVerified: true, DisplayName: strings.TrimSpace(*adminDisplayName),
+		}); err != nil {
 			fail(err.Error())
 		}
 	}
