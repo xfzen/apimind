@@ -9,12 +9,20 @@ import (
 	"github.com/xfzen/ecp/server/config"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestParseDialectRejectsUnknown(t *testing.T) {
 	_, err := ParseDialect("sqlite")
 	if !errors.Is(err, ErrUnsupportedDialect) {
 		t.Fatalf("expected ErrUnsupportedDialect, got %v", err)
+	}
+}
+
+func TestDatabaseLoggerDoesNotEmitSQLParameters(t *testing.T) {
+	config := databaseGORMConfig()
+	if config.Logger != logger.Discard {
+		t.Fatal("database logger must discard statements and parameters")
 	}
 }
 

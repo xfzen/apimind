@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"time"
 
+	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
+	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
 	credentialservice "github.com/xfzen/ecp/server/internal/service/credential"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -38,7 +40,16 @@ func (l *CreateCredentialLogic) CreateCredential(req *types.CreateCredentialReq)
 	if scopeErr != nil {
 		return nil, scopeErr
 	}
-	value, err := l.svcCtx.Credential.Create(l.ctx, credentialservice.CreateInput{EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, ApplicationInstanceID: req.ApplicationInstanceID, Name: req.Name, Scopes: credentialScopes(req.Scopes), Lifetime: time.Duration(req.LifetimeSeconds) * time.Second})
+	claims, found := apiMiddleware.ClaimsFromContext(l.ctx)
+	if !found || claims.PrincipalID == "" {
+		return nil, fmt.Errorf("enterprise_scope_mismatch")
+	}
+	var value credentialservice.Created
+	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: enterpriseID, ApplicationInstanceID: req.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "credential.create", ResourceType: "application_instance", ResourceID: req.ApplicationInstanceID, SafeDiff: map[string]any{"scope_count": len(req.Scopes)}}, func() error {
+		var createErr error
+		value, createErr = l.svcCtx.Credential.Create(l.ctx, credentialservice.CreateInput{EnterpriseID: enterpriseID, ApplicationID: req.ApplicationID, ApplicationInstanceID: req.ApplicationInstanceID, Name: req.Name, Scopes: credentialScopes(req.Scopes), Lifetime: time.Duration(req.LifetimeSeconds) * time.Second})
+		return createErr
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func Open(cfg config.DatabaseConfig) (*gorm.DB, error) {
@@ -35,7 +36,7 @@ func Open(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	case DialectMySQL:
 		dialector = mysql.Open(cfg.DSN)
 	}
-	db, err := gorm.Open(dialector, &gorm.Config{DisableAutomaticPing: true})
+	db, err := gorm.Open(dialector, databaseGORMConfig())
 	if err != nil {
 		return nil, fmt.Errorf("open %s database: %w", dialect, err)
 	}
@@ -57,4 +58,11 @@ func Open(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("ping %s database: %w", dialect, err)
 	}
 	return db, nil
+}
+
+func databaseGORMConfig() *gorm.Config {
+	// Repository errors are returned to the service boundary. Disable GORM's
+	// statement logger so SQL parameters cannot expose credential, identity, or
+	// policy metadata in application logs.
+	return &gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard}
 }

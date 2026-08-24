@@ -82,6 +82,9 @@ type Principal struct {
 	CredentialID, EnterpriseID, ApplicationID, ApplicationInstanceID string
 	Scopes                                                           []domain.CredentialScope
 }
+type Metadata struct {
+	ID, EnterpriseID, ApplicationID, ApplicationInstanceID, Name, Status string
+}
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (Created, error) {
 	return s.create(ctx, input, "", "")
@@ -149,6 +152,19 @@ func (s *Service) Revoke(ctx context.Context, id string) error {
 }
 func (s *Service) RevokeForEnterprise(ctx context.Context, enterpriseID, id string) error {
 	return s.revoke(ctx, enterpriseID, id)
+}
+func (s *Service) DescribeForEnterprise(ctx context.Context, enterpriseID, id string) (Metadata, error) {
+	if s == nil || s.store == nil || enterpriseID == "" || id == "" {
+		return Metadata{}, decision("credential_not_found", nil)
+	}
+	value, found, err := s.store.Get(ctx, id)
+	if err != nil {
+		return Metadata{}, decision("credential_store_error", err)
+	}
+	if !found || value.EnterpriseID != enterpriseID {
+		return Metadata{}, decision("credential_not_found", nil)
+	}
+	return Metadata{ID: value.ID, EnterpriseID: value.EnterpriseID, ApplicationID: value.ApplicationID, ApplicationInstanceID: value.ApplicationInstanceID, Name: value.Name, Status: value.Status}, nil
 }
 func (s *Service) revoke(ctx context.Context, enterpriseID, id string) error {
 	value, found, err := s.store.Get(ctx, id)
@@ -222,7 +238,9 @@ func scopeAllows(scopes []domain.CredentialScope, request AccessRequest) bool {
 	return false
 }
 func randomID(prefix string) string {
-	value := make([]byte, 16)
+	// Credential identifiers are stored in the shared 36-character ID boundary.
+	// Keep the established cred_ prefix while retaining 120 bits of entropy.
+	value := make([]byte, 15)
 	if _, err := rand.Read(value); err != nil {
 		panic(err)
 	}

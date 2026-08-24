@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	apiMiddleware "github.com/xfzen/ecp/server/api/internal/middleware"
 	"github.com/xfzen/ecp/server/api/internal/svc"
 	"github.com/xfzen/ecp/server/api/internal/types"
+	auditservice "github.com/xfzen/ecp/server/internal/service/audit"
+	credentialservice "github.com/xfzen/ecp/server/internal/service/credential"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -37,7 +40,20 @@ func (l *RotateCredentialLogic) RotateCredential(req *types.RotateCredentialReq)
 	if scopeErr != nil {
 		return nil, scopeErr
 	}
-	value, err := l.svcCtx.Credential.RotateForEnterprise(l.ctx, enterpriseID, req.ID, time.Duration(req.LifetimeSeconds)*time.Second)
+	claims, found := apiMiddleware.ClaimsFromContext(l.ctx)
+	if !found || claims.PrincipalID == "" {
+		return nil, fmt.Errorf("enterprise_scope_mismatch")
+	}
+	metadata, err := l.svcCtx.Credential.DescribeForEnterprise(l.ctx, enterpriseID, req.ID)
+	if err != nil {
+		return nil, err
+	}
+	var value credentialservice.Created
+	err = runAuditedMutation(l.ctx, l.svcCtx.Audit, auditservice.Operation{EnterpriseID: enterpriseID, ApplicationInstanceID: metadata.ApplicationInstanceID, ActorID: claims.PrincipalID, ActorKind: "principal", Action: "credential.rotate", ResourceType: "service_credential", ResourceID: metadata.ID, SafeDiff: map[string]any{"previous_status": metadata.Status, "new_status": "rotating"}}, func() error {
+		var rotateErr error
+		value, rotateErr = l.svcCtx.Credential.RotateForEnterprise(l.ctx, enterpriseID, req.ID, time.Duration(req.LifetimeSeconds)*time.Second)
+		return rotateErr
+	})
 	if err != nil {
 		return nil, err
 	}

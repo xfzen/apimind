@@ -54,6 +54,9 @@ func TestCreateReturnsSecretOnceAndStoresDigest(t *testing.T) {
 	if created.Secret == "" {
 		t.Fatal("secret was not returned")
 	}
+	if len(created.ID) > 36 {
+		t.Fatalf("credential id exceeds the persisted identifier boundary: %q", created.ID)
+	}
 	stored := store.values[created.ID]
 	if stored.SecretDigest == "" || strings.Contains(stored.SecretDigest, created.Secret) || strings.Contains(string(stored.ScopesJSON), created.Secret) {
 		t.Fatal("raw secret leaked into persistence")
